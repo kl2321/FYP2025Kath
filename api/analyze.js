@@ -60,7 +60,7 @@
 //   });
 // }
 
-import formidable from 'formidable';
+import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import FormData from 'form-data';
 
@@ -75,18 +75,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const form = new formidable.IncomingForm({
-    uploadDir: '/tmp',
-    keepExtensions: true,
-  });
+  const form = new IncomingForm({ uploadDir: '/tmp', keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error('❌ Form parse error:', err);
-      return res.status(500).json({ error: 'Form parse error', detail: err.message });
-    }
-
     const rawFile = Array.isArray(files.file) ? files.file[0] : files.file;
+
     if (!rawFile || !rawFile.filepath) {
       return res.status(400).json({ error: 'Audio file is missing' });
     }
@@ -97,22 +90,20 @@ export default async function handler(req, res) {
     }
 
     try {
-      // 🔁 Whisper API
       const formData = new FormData();
       formData.append('file', fs.createReadStream(rawFile.filepath));
-      formData.append('model', 'whisper-1'); // ✅ 这个必须有
+      formData.append('model', 'whisper-1');
 
       const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${openAIKey}`,
-          ...formData.getHeaders(), // ✅ 必须设置 multipart boundary
+          ...formData.getHeaders(),
         },
         body: formData,
       });
 
       const whisperJson = await whisperRes.json();
-      console.log('🧠 Whisper result:', whisperJson);
 
       if (!whisperRes.ok) {
         return res.status(500).json({ error: 'Whisper API failed', detail: whisperJson });
@@ -120,7 +111,6 @@ export default async function handler(req, res) {
 
       const transcript = whisperJson.text;
 
-      // 🧠 GPT 摘要
       const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -134,20 +124,107 @@ export default async function handler(req, res) {
       });
 
       const gptJson = await gptRes.json();
-      if (!gptRes.ok) {
-        return res.status(500).json({ error: 'GPT API failed', detail: gptJson });
-      }
 
       return res.status(200).json({
         transcript,
         summary: gptJson.choices[0].message.content,
       });
     } catch (err) {
-      console.error('🔥 Internal Server Error:', err);
       return res.status(500).json({ error: 'Internal Server Error', detail: err.message });
     }
   });
 }
+
+
+
+// import formidable from 'formidable';
+// import fs from 'fs';
+// import FormData from 'form-data';
+
+// export const config = {
+//   api: {
+//     bodyParser: false,
+//   },
+// };
+
+// export default async function handler(req, res) {
+//   if (req.method !== 'POST') {
+//     return res.status(405).json({ error: 'Method not allowed' });
+//   }
+
+//   const form = new formidable.IncomingForm({
+//     uploadDir: '/tmp',
+//     keepExtensions: true,
+//   });
+
+//   form.parse(req, async (err, fields, files) => {
+//     if (err) {
+//       console.error('❌ Form parse error:', err);
+//       return res.status(500).json({ error: 'Form parse error', detail: err.message });
+//     }
+
+//     const rawFile = Array.isArray(files.file) ? files.file[0] : files.file;
+//     if (!rawFile || !rawFile.filepath) {
+//       return res.status(400).json({ error: 'Audio file is missing' });
+//     }
+
+//     const openAIKey = process.env.OPENAI_API_KEY;
+//     if (!openAIKey) {
+//       return res.status(500).json({ error: 'Missing OpenAI API key' });
+//     }
+
+//     try {
+//       // 🔁 Whisper API
+//       const formData = new FormData();
+//       formData.append('file', fs.createReadStream(rawFile.filepath));
+//       formData.append('model', 'whisper-1'); // ✅ 这个必须有
+
+//       const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+//         method: 'POST',
+//         headers: {
+//           Authorization: `Bearer ${openAIKey}`,
+//           ...formData.getHeaders(), // ✅ 必须设置 multipart boundary
+//         },
+//         body: formData,
+//       });
+
+//       const whisperJson = await whisperRes.json();
+//       console.log('🧠 Whisper result:', whisperJson);
+
+//       if (!whisperRes.ok) {
+//         return res.status(500).json({ error: 'Whisper API failed', detail: whisperJson });
+//       }
+
+//       const transcript = whisperJson.text;
+
+//       // 🧠 GPT 摘要
+//       const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+//         method: 'POST',
+//         headers: {
+//           Authorization: `Bearer ${openAIKey}`,
+//           'Content-Type': 'application/json',
+//         },
+//         body: JSON.stringify({
+//           model: 'gpt-3.5-turbo',
+//           messages: [{ role: 'user', content: `请总结以下会议内容：\n\n${transcript}` }],
+//         }),
+//       });
+
+//       const gptJson = await gptRes.json();
+//       if (!gptRes.ok) {
+//         return res.status(500).json({ error: 'GPT API failed', detail: gptJson });
+//       }
+
+//       return res.status(200).json({
+//         transcript,
+//         summary: gptJson.choices[0].message.content,
+//       });
+//     } catch (err) {
+//       console.error('🔥 Internal Server Error:', err);
+//       return res.status(500).json({ error: 'Internal Server Error', detail: err.message });
+//     }
+//   });
+// }
 
 
 
