@@ -35,8 +35,8 @@
         parent.postMessage({
           pluginMessage: {
             type: 'analyze-transcript',
-            transcript,
-            summary
+            transcript: msg.transcript,
+            summary: msg.summary
           }
         }, '*');
       }
