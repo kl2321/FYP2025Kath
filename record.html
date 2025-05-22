@@ -142,7 +142,9 @@
             textArea.value = `📝 Transcript:\n${result.transcript}\n\n🧠 Summary:\n${result.summary}`;
 
             // 回传给 Figma 插件窗口
+            console.log("ready to send")
             window.opener?.postMessage({
+              
               pluginMessage: {
                 type: 'analyze-transcript',
                 transcript: result.transcript,
@@ -152,6 +154,7 @@
 
           } catch (err) {
             textArea.value = '❌ Analysis error: ' + err.message;
+            console.log("message sent")
           }
 
           startBtn.disabled = false;
@@ -172,6 +175,9 @@
       if (recorder && recorder.state === 'recording') {
         recorder.stop();
       }
+    }
+    window.onload = () => {
+      window.opener?.postMessage({ type: 'ready-to-record' }, '*');
     }
   </script>
 </body>

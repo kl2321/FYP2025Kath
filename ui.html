@@ -14,53 +14,49 @@
   <div id="result">⏳ Waiting for result...</div>
 
   <script>
-    const openBtn = document.getElementById('openBtn');
-    const resultBox = document.getElementById('result');
-    let recorderWindow = null;
-    // 点击打开新窗口
-    openBtn.onclick = () => {
-      recorderWindow = window.open('https://fyp-2025-kath.vercel.app/record.html', '_blank', 'width=500,height=400');
-      console.log("window opened");
-    };
+  const openBtn = document.getElementById('openBtn');
+  const resultBox = document.getElementById('result');
+  let recorderWindow = null;
+  let ready = false;
 
-    // 等窗口打开后，发消息给它
-  const trySendMessage = () => {
-  console.log("message sending")
-    if (recorderWindow) {
-      recorderWindow.postMessage({ type: 'start-recording' }, '*');
-      console.log("message sent")
-    } else {
-      console.warn("⚠️ Recorder window not ready yet.");
-    }
+  // 👆 点击打开 recorder.html
+  openBtn.onclick = () => {
+    recorderWindow = window.open(
+      'https://fyp-2025-kath.vercel.app/record.html',
+      '_blank',
+      'width=500,height=400'
+    );
+    console.log("✅ Recorder window opened");
   };
 
-  // 尝试多次发送，避免窗口未加载完接收不到
-  const interval = setInterval(() => {
-    trySendMessage();
-  }, 300);
+  // 👂 监听所有来自 record.html 的消息
+  window.addEventListener('message', (event) => {
+    const msg = event.data;
 
-  setTimeout(() => clearInterval(interval), 2000); // 最多发送 2 秒
+    // ✅ Recorder 页面准备好了
+    if (msg?.type === 'ready-to-record') {
+      console.log('✅ Recorder ready, sending start signal...');
+      ready = true;
+      recorderWindow?.postMessage({ type: 'start-recording' }, '*');
+    }
 
+    // ✅ 收到分析结果
+    if (msg?.pluginMessage?.type === 'analyze-transcript') {
+      const { transcript, summary } = msg.pluginMessage;
+      console.log('📥 Received transcript & summary');
+      resultBox.textContent = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
 
-
-    // 接收来自 record.html 的分析结果
-    window.addEventListener('message', (event) => {
-      console.log("record received");
-      const msg = event.data.pluginMessage;
-      if (msg?.type === 'analyze-transcript') {
-        const { transcript, summary } = msg;
-        resultBox.textContent = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
-
-        // 发送给 Figma 插件 code.ts 插入画布
-        parent.postMessage({
-          pluginMessage: {
-            type: 'analyze-transcript',
-            transcript: msg.transcript,
-            summary: msg.summary
-          }
-        }, '*');
-      }
-    });
-  </script>
+      // 转发给 code.ts 插件主线程
+      parent.postMessage({
+        pluginMessage: {
+          type: 'analyze-transcript',
+          transcript,
+          summary
+        }
+      }, '*');
+    }
+  });
+</script>
+ 
 </body>
 </html>
