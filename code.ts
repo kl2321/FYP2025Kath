@@ -1,11 +1,25 @@
 figma.showUI(__html__, { width: 500, height: 600 });
-figma.ui.onmessage = msg => {
-  if (msg.text) {
-    const node = figma.createText();
-    node.characters = `Transcript:\n${msg.text}\n---\nSummary:\n${msg.summary}`;
-    figma.currentPage.appendChild(node);
+
+figma.ui.onmessage = async (msg) => {
+  if (msg.transcript && msg.summary) {
+    try {
+      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+
+      const textNode = figma.createText();
+      textNode.characters = `📝 Transcript:\n${msg.transcript}\n\n🧠 Summary:\n${msg.summary}`;
+      textNode.fontSize = 14;
+      textNode.x = 100;
+      textNode.y = 100;
+
+      figma.currentPage.appendChild(textNode);
+      figma.viewport.scrollAndZoomIntoView([textNode]);
+    } catch (err) {
+      console.error("❌ Font load failed:", err);
+      figma.notify("Font loading failed.");
+    }
   }
 };
+
 
 
 

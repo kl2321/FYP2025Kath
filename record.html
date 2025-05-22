@@ -133,9 +133,16 @@
             return;
           }
 
-          const json = await res.json();
-          textArea.value = json.summary || json.transcript || JSON.stringify(json, null, 2);
-          window.parent?.postMessage({ pluginMessage: json }, '*');
+          const result = await res.json();
+          textArea.value = result.summary || result.transcript || JSON.stringify(result, null, 2);
+          //window.parent?.postMessage({ pluginMessage: json }, '*');
+          window.parent?.postMessage({
+            pluginMessage: {
+              type: 'analyze-transcript',
+              transcript: result.transcript,
+              summary: result.summary,
+            }
+          }, '*');
         } catch (err) {
           console.error('❌ Network or fetch error:', err);
           textArea.value = '❌ Fetch error: ' + err.message;

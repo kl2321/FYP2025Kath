@@ -13,7 +13,7 @@
   ],
   "ui": "ui.html",
   "networkAccess": {
-  "allowedDomains": ["none"],  
+  "allowedDomains": ["https://fyp-2025-kath.vercel.app"],  
   "devAllowedDomains": [" https://fyp-2025-kath.vercel.app/record.html"]
   }
 }

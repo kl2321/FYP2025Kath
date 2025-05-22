@@ -1,13 +1,73 @@
-<!DOCTYPE html><html><body>
-<iframe src=" https://fyp-2025-kath.vercel.app/record.html" allow="microphone" style="width:100%;height:300px;"></iframe>
-<textarea id="output" placeholder="Awaiting result..." style="width:100%;height:150px;"></textarea>
-<script>
-  window.addEventListener('message', e => {
-    const msg = e.data.pluginMessage;
-    if (msg && msg.text) {
-      document.getElementById('output').value = `Transcript:\n${msg.text}\n\nAI Summary:\n${msg.summary}`;
-      parent.postMessage({ pluginMessage: msg }, '*');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 16px;
     }
-  });
-</script>
-</body></html>
+
+    #result {
+      white-space: pre-wrap;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 12px;
+      height: 240px;
+      overflow-y: auto;
+      background: #f9f9f9;
+    }
+
+    button {
+      padding: 8px 16px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎤 Analyze Meeting</h2>
+  <p>Click the button below to start recording and analyzing.</p>
+  <button id="recordBtn">Start Recording</button>
+
+  <div id="result">⏳ Waiting for analysis result...</div>
+
+  <!-- 隐藏 iframe 用于加载 record.html -->
+  <iframe id="recorder" src="record.html" style="display: none;"></iframe>
+
+  <script>
+    const recordBtn = document.getElementById('recordBtn');
+    const resultBox = document.getElementById('result');
+    const recorder = document.getElementById('recorder').contentWindow;
+
+    // 监听来自 record.html 的消息
+    window.addEventListener('message', (event) => {
+      const msg = event.data.pluginMessage;
+      if (msg?.type === 'analyze-transcript') {
+        const { transcript, summary } = msg;
+
+        // 在界面中展示
+        resultBox.textContent = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
+
+        // 发送给 code.ts 插入到 Figma 画布
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: 'analyze-transcript',
+              transcript,
+              summary
+            }
+          },
+          '*'
+        );
+      }
+    });
+
+    recordBtn.onclick = () => {
+      // 让 record.html 内部点击 startBtn
+      recorder.postMessage({ type: 'start-recording' }, '*');
+      resultBox.textContent = '🎙️ Recording... Please wait for the analysis result.';
+    };
+  </script>
+</body>
+</html>
+

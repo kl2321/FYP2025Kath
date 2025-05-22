@@ -1,12 +1,32 @@
 "use strict";
-figma.showUI(__html__, { width: 500, height: 600 });
-figma.ui.onmessage = msg => {
-    if (msg.text) {
-        const node = figma.createText();
-        node.characters = `Transcript:\n${msg.text}\n---\nSummary:\n${msg.summary}`;
-        figma.currentPage.appendChild(node);
-    }
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
 };
+figma.showUI(__html__, { width: 500, height: 600 });
+figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
+    if (msg.transcript && msg.summary) {
+        try {
+            yield figma.loadFontAsync({ family: "Inter", style: "Regular" });
+            const textNode = figma.createText();
+            textNode.characters = `📝 Transcript:\n${msg.transcript}\n\n🧠 Summary:\n${msg.summary}`;
+            textNode.fontSize = 14;
+            textNode.x = 100;
+            textNode.y = 100;
+            figma.currentPage.appendChild(textNode);
+            figma.viewport.scrollAndZoomIntoView([textNode]);
+        }
+        catch (err) {
+            console.error("❌ Font load failed:", err);
+            figma.notify("Font loading failed.");
+        }
+    }
+});
 // figma.ui.onmessage = async (msg: { type: string; text?: string }) => {
 //   if (msg.type === "analyze-transcript" && msg.text) {
 //     const transcript = msg.text;
