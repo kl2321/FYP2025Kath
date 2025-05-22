@@ -1,3 +1,13 @@
+import formidable from 'formidable';
+import fs from 'fs';
+import FormData from 'form-data';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -8,42 +18,116 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Missing OpenAI API key' });
   }
 
-  try {
-    const { transcript } = req.body;
+  const form = new formidable.IncomingForm({ multiples: false });
+  form.uploadDir = '/tmp';
+  form.keepExtensions = true;
 
-    if (!transcript) {
-      return res.status(400).json({ error: 'Missing transcript' });
+  form.parse(req, async (err, fields, files) => {
+    if (err) {
+      console.error('❌ Form parse error:', err);
+      return res.status(500).json({ error: 'Form parse error' });
     }
 
-    const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'user',
-            content: `请总结以下会议内容:\n\n${transcript}`
-          }
-        ]
-      })
-    });
-
-    const gptJson = await gptRes.json();
-
-    if (!gptRes.ok) {
-      return res.status(500).json({ error: 'OpenAI API error', detail: gptJson });
+    const audioFile = files.file;
+    if (!audioFile || !audioFile.filepath) {
+      return res.status(400).json({ error: 'Audio file is missing' });
     }
 
-    res.status(200).json({ summary: gptJson.choices[0].message.content });
-  } catch (err) {
-    console.error('🔥 GPT error:', err);
-    res.status(500).json({ error: 'Internal Server Error', detail: err.message });
-  }
+    try {
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(audioFile.filepath));
+      formData.append('model', 'whisper-1');
+
+      const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`
+        },
+        body: formData,
+      });
+
+      const whisperJson = await whisperRes.json();
+
+      if (!whisperRes.ok) {
+        return res.status(500).json({ error: 'Whisper API error', detail: whisperJson });
+      }
+
+      const transcript = whisperJson.text;
+
+      const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [{ role: 'user', content: `请总结以下会议内容：\n\n${transcript}` }],
+        }),
+      });
+
+      const gptJson = await gptRes.json();
+
+      if (!gptRes.ok) {
+        return res.status(500).json({ error: 'OpenAI GPT API error', detail: gptJson });
+      }
+
+      res.status(200).json({ summary: gptJson.choices[0].message.content });
+    } catch (error) {
+      console.error('🔥 Processing error:', error);
+      res.status(500).json({ error: 'Internal Server Error', detail: error.message });
+    }
+  });
 }
+
+
+
+// export default async function handler(req, res) {
+//   if (req.method !== 'POST') {
+//     return res.status(405).json({ error: 'Method not allowed' });
+//   }
+
+//   const apiKey = process.env.OPENAI_API_KEY;
+//   if (!apiKey) {
+//     return res.status(500).json({ error: 'Missing OpenAI API key' });
+//   }
+
+//   try {
+//     const { transcript } = req.body;
+
+//     if (!transcript) {
+//       return res.status(400).json({ error: 'Missing transcript' });
+//     }
+
+//     const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+//       method: 'POST',
+//       headers: {
+//         'Authorization': `Bearer ${apiKey}`,
+//         'Content-Type': 'application/json'
+//       },
+//       body: JSON.stringify({
+//         model: 'gpt-3.5-turbo',
+//         messages: [
+//           {
+//             role: 'user',
+//             content: `请总结以下会议内容:\n\n${transcript}`
+//           }
+//         ]
+//       })
+//     });
+
+//     const gptJson = await gptRes.json();
+
+//     if (!gptRes.ok) {
+//       return res.status(500).json({ error: 'OpenAI API error', detail: gptJson });
+//     }
+
+//     res.status(200).json({ summary: gptJson.choices[0].message.content });
+//   } catch (err) {
+//     console.error('🔥 GPT error:', err);
+//     res.status(500).json({ error: 'Internal Server Error', detail: err.message });
+//   }
+// }
 
 
 
