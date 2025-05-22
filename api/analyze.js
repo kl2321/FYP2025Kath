@@ -62,9 +62,8 @@
 
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
-import { FormData } from 'formdata-node';
-import { fileFromPath } from 'formdata-node/file-from-path';
-import { fetch } from 'undici';
+import axios from 'axios';
+import FormData from 'form-data';
 
 export const config = {
   api: {
@@ -77,16 +76,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const form = new IncomingForm({ uploadDir: '/tmp', keepExtensions: true });
+  const form = new IncomingForm({
+    uploadDir: '/tmp',
+    keepExtensions: true,
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error('❌ Form parse error:', err);
       return res.status(500).json({ error: 'Form parse error', detail: err.message });
     }
-    const rawFile = Array.isArray(files.file) ? files.file[0] : files.file;
-    
 
+    const rawFile = Array.isArray(files.file) ? files.file[0] : files.file;
     if (!rawFile || !rawFile.filepath) {
       return res.status(400).json({ error: 'Audio file is missing' });
     }
@@ -97,61 +98,151 @@ export default async function handler(req, res) {
     }
 
     try {
+      // ✅ Whisper API with axios + form-data
       const formData = new FormData();
-      formData.set('file', await fileFromPath(rawFile.filepath));
-      formData.set('model', 'whisper-1');
-      console.log('✅ testing form data content...');
-      console.log('✅ file exists?', formData.has('file'));
-      console.log('✅ model value:', formData.get('model'));
+      formData.append('file', fs.createReadStream(rawFile.filepath));
+      formData.append('model', 'whisper-1');
 
-      console.log('🔁 Whisper request form data fields:', formData);
+      console.log('📤 Sending to Whisper...');
+      const whisperRes = await axios.post(
+        'https://api.openai.com/v1/audio/transcriptions',
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${openAIKey}`,
+            ...formData.getHeaders(), // 👈 包含 multipart boundary
+          },
+        }
+      );
 
+      const transcript = whisperRes.data.text;
+      console.log('✅ Whisper transcript:', transcript);
 
-      const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${openAIKey}`,
-         // ...formData.getHeaders(),
-        },
-        body: formData,
-      });
-
-      const whisperJson = await whisperRes.json();
-
-      if (!whisperRes.ok) {
-        return res.status(500).json({ error: 'Whisper API failed', detail: whisperJson });
-      }
-
-      const transcript = whisperJson.text;
-
-      const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${openAIKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // 🔁 GPT summary
+      const gptRes = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
           model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: `please summarize the following：\n\n${transcript}` }],
-        }),
-      });
-
-      const gptJson = await gptRes.json();
-
-      if (!gptRes.ok) {
-        return res.status(500).json({ error: 'GPT API failed', detail: gptJson });
-      }
+          messages: [{ role: 'user', content: `请总结以下会议内容：\n\n${transcript}` }],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${openAIKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       return res.status(200).json({
         transcript,
-        summary: gptJson.choices[0].message.content,
+        summary: gptRes.data.choices[0].message.content,
       });
     } catch (err) {
-      console.error(' Internal Server Error:', err);
-      return res.status(500).json({ error: 'Internal Server Error', detail: err.message });
+      console.error('🔥 Error during processing:', err?.response?.data || err.message);
+      return res.status(500).json({
+        error: 'Processing failed',
+        detail: err?.response?.data || err.message,
+      });
     }
   });
 }
+
+
+
+// import { IncomingForm } from 'formidable';
+// import fs from 'fs';
+// import axios from 'axios';
+// //import { FormData } from 'formdata-node';
+// import FormData from 'form-data';
+// //import { fileFromPath } from 'formdata-node/file-from-path';
+// //import { fetch } from 'undici';
+
+// export const config = {
+//   api: {
+//     bodyParser: false,
+//   },
+// };
+
+// export default async function handler(req, res) {
+//   if (req.method !== 'POST') {
+//     return res.status(405).json({ error: 'Method not allowed' });
+//   }
+
+//   const form = new IncomingForm({ uploadDir: '/tmp', keepExtensions: true });
+
+//   form.parse(req, async (err, fields, files) => {
+//     if (err) {
+//       console.error('❌ Form parse error:', err);
+//       return res.status(500).json({ error: 'Form parse error', detail: err.message });
+//     }
+//     const rawFile = Array.isArray(files.file) ? files.file[0] : files.file;
+    
+
+//     if (!rawFile || !rawFile.filepath) {
+//       return res.status(400).json({ error: 'Audio file is missing' });
+//     }
+
+//     const openAIKey = process.env.OPENAI_API_KEY;
+//     if (!openAIKey) {
+//       return res.status(500).json({ error: 'Missing OpenAI API key' });
+//     }
+
+//     try {
+//       const formData = new FormData();
+//       formData.set('file', await fileFromPath(rawFile.filepath));
+//       formData.set('model', 'whisper-1');
+//       console.log('✅ testing form data content...');
+//       console.log('✅ file exists?', formData.has('file'));
+//       console.log('✅ model value:', formData.get('model'));
+
+//       console.log('🔁 Whisper request form data fields:', formData);
+
+
+//       const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+//         method: 'POST',
+//         headers: {
+//           Authorization: `Bearer ${openAIKey}`,
+//          // ...formData.getHeaders(),
+//         },
+//         body: formData,
+//       });
+
+//       const whisperJson = await whisperRes.json();
+
+//       if (!whisperRes.ok) {
+//         return res.status(500).json({ error: 'Whisper API failed', detail: whisperJson });
+//       }
+
+//       const transcript = whisperJson.text;
+
+//       const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+//         method: 'POST',
+//         headers: {
+//           Authorization: `Bearer ${openAIKey}`,
+//           'Content-Type': 'application/json',
+//         },
+//         body: JSON.stringify({
+//           model: 'gpt-3.5-turbo',
+//           messages: [{ role: 'user', content: `please summarize the following：\n\n${transcript}` }],
+//         }),
+//       });
+
+//       const gptJson = await gptRes.json();
+
+//       if (!gptRes.ok) {
+//         return res.status(500).json({ error: 'GPT API failed', detail: gptJson });
+//       }
+
+//       return res.status(200).json({
+//         transcript,
+//         summary: gptJson.choices[0].message.content,
+//       });
+//     } catch (err) {
+//       console.error(' Internal Server Error:', err);
+//       return res.status(500).json({ error: 'Internal Server Error', detail: err.message });
+//     }
+//   });
+// }
 
 
 
