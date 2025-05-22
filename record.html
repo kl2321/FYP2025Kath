@@ -124,7 +124,7 @@
         form.append('file', blob, 'audio.webm'); // ✅ 保持字段名为 'file'
 
         try {
-          const res = await fetch('/api/analyze', { method: 'POST', body: form });
+          const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', { method: 'POST', body: form });
 
           if (!res.ok) {
             const errorText = await res.text();
