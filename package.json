@@ -1,6 +1,7 @@
 {
   "name": "try_demo",
   "version": "1.0.0",
+  "type": "module", 
   "description": "Your Figma Plugin",
   "main": "code.js",
   "scripts": {
