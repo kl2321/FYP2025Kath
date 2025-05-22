@@ -7,67 +7,70 @@
       font-family: sans-serif;
       padding: 16px;
     }
-
-    #result {
-      white-space: pre-wrap;
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-top: 12px;
-      height: 240px;
-      overflow-y: auto;
-      background: #f9f9f9;
-    }
-
     button {
       padding: 8px 16px;
       font-weight: bold;
+      margin-right: 12px;
+    }
+    #result {
+      margin-top: 16px;
+      white-space: pre-wrap;
+      background: #f2f2f2;
+      padding: 12px;
+      border-radius: 6px;
+      height: 200px;
+      overflow-y: auto;
     }
   </style>
 </head>
 <body>
   <h2>🎤 Analyze Meeting</h2>
-  <p>Click the button below to start recording and analyzing.</p>
-  <button id="recordBtn">Start Recording</button>
+  <p>Use the buttons below to control recording via the hidden recorder.</p>
+  <button id="startBtn">Start Recording</button>
+  <button id="stopBtn" disabled>Stop</button>
+  <div id="result">⏳ Waiting for result...</div>
 
-  <div id="result">⏳ Waiting for analysis result...</div>
-
-  <!-- 隐藏 iframe 用于加载 record.html -->
+  <!-- Hidden iframe loading record.html -->
   <iframe id="recorder" src="record.html" style="display: none;"></iframe>
 
   <script>
-    const recordBtn = document.getElementById('recordBtn');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
     const resultBox = document.getElementById('result');
     const recorder = document.getElementById('recorder').contentWindow;
 
-    // 监听来自 record.html 的消息
+    // Forward recording commands to record.html
+    startBtn.onclick = () => {
+      recorder.postMessage({ type: 'start-recording' }, '*');
+      resultBox.textContent = '🎙️ Recording...';
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    };
+
+    stopBtn.onclick = () => {
+      recorder.postMessage({ type: 'stop-recording' }, '*');
+      stopBtn.disabled = true;
+    };
+
+    // Receive result back from record.html
     window.addEventListener('message', (event) => {
       const msg = event.data.pluginMessage;
       if (msg?.type === 'analyze-transcript') {
         const { transcript, summary } = msg;
-
-        // 在界面中展示
         resultBox.textContent = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
 
-        // 发送给 code.ts 插入到 Figma 画布
-        parent.postMessage(
-          {
-            pluginMessage: {
-              type: 'analyze-transcript',
-              transcript,
-              summary
-            }
-          },
-          '*'
-        );
+        // Forward to plugin code.ts
+        parent.postMessage({
+          pluginMessage: {
+            type: 'analyze-transcript',
+            transcript,
+            summary
+          }
+        }, '*');
+
+        startBtn.disabled = false;
       }
     });
-
-    recordBtn.onclick = () => {
-      // 让 record.html 内部点击 startBtn
-      recorder.postMessage({ type: 'start-recording' }, '*');
-      resultBox.textContent = '🎙️ Recording... Please wait for the analysis result.';
-    };
   </script>
 </body>
 </html>
-

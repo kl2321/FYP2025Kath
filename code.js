@@ -8,13 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-figma.showUI(__html__, { width: 500, height: 600 });
+figma.showUI(__html__, { width: 480, height: 520 });
 figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
-    if (msg.transcript && msg.summary) {
+    if (msg.type === 'analyze-transcript') {
+        const { transcript, summary } = msg;
         try {
-            yield figma.loadFontAsync({ family: "Inter", style: "Regular" });
+            yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
             const textNode = figma.createText();
-            textNode.characters = `📝 Transcript:\n${msg.transcript}\n\n🧠 Summary:\n${msg.summary}`;
+            textNode.characters = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
             textNode.fontSize = 14;
             textNode.x = 100;
             textNode.y = 100;
@@ -22,11 +23,29 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             figma.viewport.scrollAndZoomIntoView([textNode]);
         }
         catch (err) {
-            console.error("❌ Font load failed:", err);
-            figma.notify("Font loading failed.");
+            console.error('❌ Font load failed:', err);
+            figma.notify('Failed to load font.');
         }
     }
 });
+// figma.showUI(__html__, { width: 500, height: 600 });
+// figma.ui.onmessage = async (msg) => {
+//   if (msg.transcript && msg.summary) {
+//     try {
+//       await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+//       const textNode = figma.createText();
+//       textNode.characters = `📝 Transcript:\n${msg.transcript}\n\n🧠 Summary:\n${msg.summary}`;
+//       textNode.fontSize = 14;
+//       textNode.x = 100;
+//       textNode.y = 100;
+//       figma.currentPage.appendChild(textNode);
+//       figma.viewport.scrollAndZoomIntoView([textNode]);
+//     } catch (err) {
+//       console.error("❌ Font load failed:", err);
+//       figma.notify("Font loading failed.");
+//     }
+//   }
+// };
 // figma.ui.onmessage = async (msg: { type: string; text?: string }) => {
 //   if (msg.type === "analyze-transcript" && msg.text) {
 //     const transcript = msg.text;
