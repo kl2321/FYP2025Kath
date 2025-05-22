@@ -1,64 +1,64 @@
-// analyze.js
-// Figma插件后端：接收record.html上传的音频，使用Whisper转词，再让GPT概括
+// // analyze.js
+// // Figma插件后端：接收record.html上传的音频，使用Whisper转词，再让GPT概括
 
-const formidable = require('formidable');
-const fs = require('fs');
-const path = require('path');
-const { Readable } = require('stream');
-const { OpenAI } = require('openai');
+// const formidable = require('formidable');
+// const fs = require('fs');
+// const path = require('path');
+// const { Readable } = require('stream');
+// const { OpenAI } = require('openai');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// 关闭默认body解析器，允许处理文件
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// // 关闭默认body解析器，允许处理文件
+// export const config = {
+//   api: {
+//     bodyParser: false,
+//   },
+// };
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+// export default async function handler(req, res) {
+//   if (req.method !== 'POST') {
+//     return res.status(405).json({ error: 'Method not allowed' });
+//   }
 
-  const form = formidable();
+//   const form = formidable();
 
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      return res.status(500).json({ error: 'Form parse error', detail: err.message });
-    }
+//   form.parse(req, async (err, fields, files) => {
+//     if (err) {
+//       return res.status(500).json({ error: 'Form parse error', detail: err.message });
+//     }
 
-    const file = files.file?.[0];
-    if (!file) {
-      return res.status(400).json({ error: 'No audio file uploaded' });
-    }
+//     const file = files.file?.[0];
+//     if (!file) {
+//       return res.status(400).json({ error: 'No audio file uploaded' });
+//     }
 
-    try {
-      // Whisper API 转音为文
-      const transcription = await openai.audio.transcriptions.create({
-        file: fs.createReadStream(file.filepath),
-        model: 'whisper-1',
-        response_format: 'text'
-      });
+//     try {
+//       // Whisper API 转音为文
+//       const transcription = await openai.audio.transcriptions.create({
+//         file: fs.createReadStream(file.filepath),
+//         model: 'whisper-1',
+//         response_format: 'text'
+//       });
 
-      // GPT 概括为要点
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'user',
-            content: `请概括我下面的会议记录：\n\n${transcription}`,
-          },
-        ],
-      });
+//       // GPT 概括为要点
+//       const completion = await openai.chat.completions.create({
+//         model: 'gpt-3.5-turbo',
+//         messages: [
+//           {
+//             role: 'user',
+//             content: `请概括我下面的会议记录：\n\n${transcription}`,
+//           },
+//         ],
+//       });
 
-      res.status(200).json({ transcript: transcription, summary: completion.choices[0].message.content });
-    } catch (err) {
-      console.error('AI processing error:', err);
-      res.status(500).json({ error: 'AI processing failed', detail: err.message });
-    }
-  });
-}
+//       res.status(200).json({ transcript: transcription, summary: completion.choices[0].message.content });
+//     } catch (err) {
+//       console.error('AI processing error:', err);
+//       res.status(500).json({ error: 'AI processing failed', detail: err.message });
+//     }
+//   });
+// }
 
 
 
@@ -147,52 +147,52 @@ export default async function handler(req, res) {
 
 
 
-// export default async function handler(req, res) {
-//   if (req.method !== 'POST') {
-//     return res.status(405).json({ error: 'Method not allowed' });
-//   }
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-//   const apiKey = process.env.OPENAI_API_KEY;
-//   if (!apiKey) {
-//     return res.status(500).json({ error: 'Missing OpenAI API key' });
-//   }
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'Missing OpenAI API key' });
+  }
 
-//   try {
-//     const { transcript } = req.body;
+  try {
+    const { transcript } = req.body;
 
-//     if (!transcript) {
-//       return res.status(400).json({ error: 'Missing transcript' });
-//     }
+    if (!transcript) {
+      return res.status(400).json({ error: 'Missing transcript' });
+    }
 
-//     const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
-//       method: 'POST',
-//       headers: {
-//         'Authorization': `Bearer ${apiKey}`,
-//         'Content-Type': 'application/json'
-//       },
-//       body: JSON.stringify({
-//         model: 'gpt-3.5-turbo',
-//         messages: [
-//           {
-//             role: 'user',
-//             content: `请总结以下会议内容:\n\n${transcript}`
-//           }
-//         ]
-//       })
-//     });
+    const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'user',
+            content: `请总结以下会议内容:\n\n${transcript}`
+          }
+        ]
+      })
+    });
 
-//     const gptJson = await gptRes.json();
+    const gptJson = await gptRes.json();
 
-//     if (!gptRes.ok) {
-//       return res.status(500).json({ error: 'OpenAI API error', detail: gptJson });
-//     }
+    if (!gptRes.ok) {
+      return res.status(500).json({ error: 'OpenAI API error', detail: gptJson });
+    }
 
-//     res.status(200).json({ summary: gptJson.choices[0].message.content });
-//   } catch (err) {
-//     console.error('🔥 GPT error:', err);
-//     res.status(500).json({ error: 'Internal Server Error', detail: err.message });
-//   }
-// }
+    res.status(200).json({ summary: gptJson.choices[0].message.content });
+  } catch (err) {
+    console.error('🔥 GPT error:', err);
+    res.status(500).json({ error: 'Internal Server Error', detail: err.message });
+  }
+}
 
 
 
