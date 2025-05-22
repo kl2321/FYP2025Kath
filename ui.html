@@ -16,12 +16,30 @@
   <script>
     const openBtn = document.getElementById('openBtn');
     const resultBox = document.getElementById('result');
-
+    let recorderWindow = null;
     // 点击打开新窗口
     openBtn.onclick = () => {
-      window.open('https://fyp-2025-kath.vercel.app/record.html', '_blank', 'width=500,height=400');
+      recorderWindow = window.open('https://fyp-2025-kath.vercel.app/record.html', '_blank', 'width=500,height=400');
       console.log("window opened");
     };
+
+    // 等窗口打开后，发消息给它
+  const trySendMessage = () => {
+    if (recorderWindow) {
+      recorderWindow.postMessage({ type: 'start-recording' }, '*');
+    } else {
+      console.warn("⚠️ Recorder window not ready yet.");
+    }
+  };
+
+  // 尝试多次发送，避免窗口未加载完接收不到
+  const interval = setInterval(() => {
+    trySendMessage();
+  }, 300);
+
+  setTimeout(() => clearInterval(interval), 2000); // 最多发送 2 秒
+
+
 
     // 接收来自 record.html 的分析结果
     window.addEventListener('message', (event) => {
