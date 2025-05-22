@@ -17,8 +17,6 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             const textNode = figma.createText();
             textNode.characters = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
             textNode.fontSize = 14;
-            textNode.x = 100;
-            textNode.y = 100;
             figma.currentPage.appendChild(textNode);
             figma.viewport.scrollAndZoomIntoView([textNode]);
         }

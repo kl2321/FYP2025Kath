@@ -3,64 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 16px;
-    }
-    button {
-      padding: 8px 16px;
-      font-weight: bold;
-      margin-right: 12px;
-    }
-    #result {
-      margin-top: 16px;
-      white-space: pre-wrap;
-      background: #f2f2f2;
-      padding: 12px;
-      border-radius: 6px;
-      height: 200px;
-      overflow-y: auto;
-    }
+    body { font-family: sans-serif; padding: 16px; }
+    #result { white-space: pre-wrap; background: #f2f2f2; padding: 12px; margin-top: 12px; height: 200px; overflow-y: auto; }
+    button { padding: 8px 16px; font-weight: bold; }
   </style>
 </head>
 <body>
   <h2>🎤 Analyze Meeting</h2>
-  <p>Use the buttons below to control recording via the hidden recorder.</p>
-  <button id="startBtn">Start Recording</button>
-  <button id="stopBtn" disabled>Stop</button>
+  <button id="openBtn">Open Recorder</button>
   <div id="result">⏳ Waiting for result...</div>
 
-  <!-- Hidden iframe loading record.html -->
-  <iframe id="recorder" src="https://fyp-2025-kath.vercel.app/record.html" style="display:none;"></iframe>
-
-
   <script>
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
+    const openBtn = document.getElementById('openBtn');
     const resultBox = document.getElementById('result');
-    const recorder = document.getElementById('recorder').contentWindow;
 
-    // Forward recording commands to record.html
-    startBtn.onclick = () => {
-      recorder.postMessage({ type: 'start-recording' }, '*');
-      resultBox.textContent = '🎙️ Recording...';
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
+    // 点击打开新窗口
+    openBtn.onclick = () => {
+      window.open('https://fyp-2025-kath.vercel.app/record.html', '_blank', 'width=500,height=400');
     };
 
-    stopBtn.onclick = () => {
-      recorder.postMessage({ type: 'stop-recording' }, '*');
-      stopBtn.disabled = true;
-    };
-
-    // Receive result back from record.html
+    // 接收来自 record.html 的分析结果
     window.addEventListener('message', (event) => {
       const msg = event.data.pluginMessage;
       if (msg?.type === 'analyze-transcript') {
         const { transcript, summary } = msg;
         resultBox.textContent = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
 
-        // Forward to plugin code.ts
+        // 发送给 Figma 插件 code.ts 插入画布
         parent.postMessage({
           pluginMessage: {
             type: 'analyze-transcript',
@@ -68,8 +37,6 @@
             summary
           }
         }, '*');
-
-        startBtn.disabled = false;
       }
     });
   </script>

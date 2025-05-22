@@ -10,9 +10,6 @@ figma.ui.onmessage = async (msg) => {
       const textNode = figma.createText();
       textNode.characters = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
       textNode.fontSize = 14;
-      textNode.x = 100;
-      textNode.y = 100;
-
       figma.currentPage.appendChild(textNode);
       figma.viewport.scrollAndZoomIntoView([textNode]);
     } catch (err) {
