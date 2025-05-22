@@ -24,6 +24,7 @@
 
     // 接收来自 record.html 的分析结果
     window.addEventListener('message', (event) => {
+      console.log("record received");
       const msg = event.data.pluginMessage;
       if (msg?.type === 'analyze-transcript') {
         const { transcript, summary } = msg;
