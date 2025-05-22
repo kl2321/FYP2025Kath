@@ -1,11 +1,10 @@
 {
-  "devCommand": "vite",  
   "functions": {
     "api/analyze.js": {
       "memory": 512
     }
-  },
-  "devAllowedOrigins": ["http://localhost:5500"]
+  }
 }
+
 
 
