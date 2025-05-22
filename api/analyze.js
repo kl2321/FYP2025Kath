@@ -63,17 +63,19 @@
 
 
 
-import formidable from 'formidable';
-import fs from 'fs';
-import FormData from 'form-data';
+const formidable = require('formidable');
+const fs = require('fs');
+const FormData = require('form-data');
 
-export const config = {
+exports.config = {
   api: {
     bodyParser: false,
   },
 };
 
-export default async function handler(req, res) {
+
+
+exports.default = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

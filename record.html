@@ -106,6 +106,11 @@
         const form = new FormData();
         form.append('file', blob, 'audio.webm');
         const res = await fetch('/api/analyze', { method: 'POST', body: form });
+        if (!res.ok) {
+          const text = await res.text(); // 用 text 看错误细节
+          console.error('❌ Server error:', text);
+          document.getElementById('text').value = '❌ Server error: ' + text;
+          return;}
         const json = await res.json();
         document.getElementById('text').value = JSON.stringify(json, null, 2);
         window.parent.postMessage({ pluginMessage: json }, '*');
