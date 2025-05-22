@@ -90,6 +90,77 @@
 
   <script>
     let recorder, chunks = [];
+
+    const startBtn = document.getElementById('start');
+    const stopBtn = document.getElementById('stop');
+    const textArea = document.getElementById('text');
+
+    startBtn.onclick = async () => {
+      chunks = []; // 清空旧数据
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recorder = new MediaRecorder(stream);
+
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.start();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    };
+
+    stopBtn.onclick = () => {
+      recorder.stop();
+
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+
+        if (blob.size === 0) {
+          textArea.value = '❌ No audio recorded.';
+          return;
+        }
+
+        const form = new FormData();
+        form.append('file', blob, 'audio.webm'); // ✅ 保持字段名为 'file'
+
+        try {
+          const res = await fetch('/api/analyze', { method: 'POST', body: form });
+
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.error('❌ Server error:', errorText);
+            textArea.value = '❌ Server error: ' + errorText;
+            return;
+          }
+
+          const json = await res.json();
+          textArea.value = json.summary || json.transcript || JSON.stringify(json, null, 2);
+          window.parent?.postMessage({ pluginMessage: json }, '*');
+        } catch (err) {
+          console.error('❌ Network or fetch error:', err);
+          textArea.value = '❌ Fetch error: ' + err.message;
+        }
+
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      };
+    };
+  </script>
+</body>
+</html>
+
+
+<!-- <!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Recorder</title></head>
+<body>
+  <h2>🎤 Recorder</h2>
+  <button id="start">Start</button>
+  <button id="stop" disabled>Stop & Analyze</button>
+  <textarea id="text" style="width:100%;height:150px;"></textarea>
+
+  <script>
+    let recorder, chunks = [];
     document.getElementById('start').onclick = async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recorder = new MediaRecorder(stream);
@@ -120,7 +191,7 @@
     };
   </script>
 </body>
-</html>
+</html> -->
 
 
 
