@@ -25,6 +25,7 @@
 
     // 等窗口打开后，发消息给它
   const trySendMessage = () => {
+  console.log("message sending")
     if (recorderWindow) {
       recorderWindow.postMessage({ type: 'start-recording' }, '*');
     } else {
