@@ -28,6 +28,7 @@
   console.log("message sending")
     if (recorderWindow) {
       recorderWindow.postMessage({ type: 'start-recording' }, '*');
+      console.log("message sent")
     } else {
       console.warn("⚠️ Recorder window not ready yet.");
     }
