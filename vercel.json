@@ -1,0 +1,19 @@
+{
+  "cleanUrls": true,
+  "outputDirectory": ".",
+  "rewrites": [
+    {
+      "source": "/api/analyze",
+      "destination": "/api/analyze.js"
+    }
+  ],
+  "networkAccess": {
+    "devAllowedDomains": ["http://localhost:5500"]
+  },
+  "functions": {
+    "api/analyze.js": {
+      "memory": 512
+    }
+  }
+}
+
