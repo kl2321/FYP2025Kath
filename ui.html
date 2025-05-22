@@ -1,46 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <style>
-      body {
-        font-family: sans-serif;
-        padding: 16px;
-      }
-      textarea {
-        width: 100%;
-        height: 200px;
-        resize: none;
-      }
-      button {
-        margin-top: 12px;
-        padding: 8px 16px;
-        font-weight: bold;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>📋 Paste Meeting Transcript</h2>
-    <textarea id="transcript" placeholder="Paste transcript here..."></textarea>
-    <br />
-    <button id="submit">Send to Plugin</button>
-
-    <script>
-      document.getElementById("submit").onclick = () => {
-        const text = document.getElementById("transcript").value;
-        console.log("📤 Text being sent to plugin:", text);
-        parent.postMessage(
-          {
-            pluginMessage: {
-              type: "analyze-transcript",
-              text: text,
-            },
-          },
-          "*"
-        );
-      };
-    </script>
-  </body>
-</html>
-
-
+<!DOCTYPE html><html><body>
+<iframe src="https://你的-app.vercel.app/record.html" allow="microphone" style="width:100%;height:300px;"></iframe>
+<textarea id="output" placeholder="Awaiting result..." style="width:100%;height:150px;"></textarea>
+<script>
+  window.addEventListener('message', e => {
+    const msg = e.data.pluginMessage;
+    if (msg && msg.text) {
+      document.getElementById('output').value = `Transcript:\n${msg.text}\n\nAI Summary:\n${msg.summary}`;
+      parent.postMessage({ pluginMessage: msg }, '*');
+    }
+  });
+</script>
+</body></html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Recorder</title></head>
+<body>
+  <h2>🎤 Recorder</h2>
+  <button id="start">Start</button>
+  <button id="stop" disabled>Stop & Analyze</button>
+  <textarea id="text" style="width:100%;height:150px;"></textarea>
+
+  <script>
+    let recorder, chunks = [];
+    document.getElementById('start').onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.start();
+      document.getElementById('start').disabled = true;
+      document.getElementById('stop').disabled = false;
+    };
+
+    document.getElementById('stop').onclick = () => {
+      recorder.stop();
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const form = new FormData();
+        form.append('file', blob, 'audio.webm');
+        const res = await fetch('/api/analyze', { method: 'POST', body: form });
+        const json = await res.json();
+        document.getElementById('text').value = JSON.stringify(json, null, 2);
+        window.parent.postMessage({ pluginMessage: json }, '*');
+        document.getElementById('start').disabled = false;
+        document.getElementById('stop').disabled = true;
+      };
+    };
+  </script>
+</body>
+</html>
+
+
+
+<!-- <h2>🎤 External Recorder</h2>
+<button id="start">Start Recording</button>
+<button id="stop" disabled>Stop</button>
+<textarea id="text" placeholder="Transcript will appear here..."></textarea>
+<script>
+  let recognition;
+  let finalTranscript = '';
+
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Please use Google Chrome.");
+  } else {
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      document.getElementById('text').value = finalTranscript + interim;
+    };
+
+    recognition.onerror = (e) => {
+      console.error("Speech recognition error:", e);
+      alert("Microphone access denied or blocked.");
+    };
+  }
+
+  document.getElementById('start').onclick = () => {
+    finalTranscript = '';
+    recognition.start();
+    document.getElementById('start').disabled = true;
+    document.getElementById('stop').disabled = false;
+  };
+
+  document.getElementById('stop').onclick = () => {
+    recognition.stop();
+    document.getElementById('start').disabled = false;
+    document.getElementById('stop').disabled = true;
+    const text = document.getElementById('text').value;
+
+    window.parent.postMessage({
+      pluginMessage: {
+        type: 'analyze-transcript',
+        text: text
+      }
+    }, '*');
+
+    alert("✅ Sent transcript to plugin UI.");
+  };
+</script> -->
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🎤 Recorder</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px 0;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎤 External Recorder</h2>
+  <button id="start">Start Recording</button>
+  <button id="stop" disabled>Stop</button>
+  <textarea id="text" placeholder="Transcript will appear here..."></textarea>
+
+  <script>
+    let recognition;
+    let finalTranscript = '';
+
+    if (!('webkitSpeechRecognition' in window)) {
+      alert("Please use Google Chrome to use this feature.");
+    } else {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        document.getElementById('text').value = finalTranscript + interim;
+      };
+
+      recognition.onerror = (e) => {
+        console.error("Speech recognition error:", e);
+        alert("Microphone access denied or blocked.");
+      };
+    }
+
+    document.getElementById('start').onclick = () => {
+      finalTranscript = '';
+      recognition.start();
+      document.getElementById('start').disabled = true;
+      alert("📤 start shdshh transcript to UI: " + text);
+      document.getElementById('stop').disabled = false;
+    };
+
+    document.getElementById('stop').onclick = () => {
+  // ✅ 获取转录文本
+  const text = document.getElementById('text').value;
+
+  // ✅ 停止录音 & 按钮切换
+  recognition.stop();
+  document.getElementById('start').disabled = false;
+  document.getElementById('stop').disabled = true;
+
+  // ✅ 打印确认
+  console.log("📤 About to send transcript to parent iframe:", text);
+
+  // ✅ 使用 window.parent 发送给父窗口（ui.html）
+  window.parent.postMessage({
+    pluginMessage: {
+      type: 'analyze-transcript',
+      text: text
+    }
+  }, '*');
+
+  alert("✅ Sent transcript to plugin UI.");
+}; -->
+
+
