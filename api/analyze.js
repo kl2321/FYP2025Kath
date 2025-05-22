@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Form parse error', detail: err.message });
     }
 
-    const audioFile = files.file;
+    const audioFile = Array.isArray(files.file) ? files.file[0] : files.file;
     if (!audioFile || !audioFile.filepath) {
       return res.status(400).json({ error: 'Audio file is missing' });
     }
