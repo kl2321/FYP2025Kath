@@ -100,6 +100,10 @@ export default async function handler(req, res) {
       const formData = new FormData();
       formData.set('file', await fileFromPath(rawFile.filepath));
       formData.set('model', 'whisper-1');
+      console.log('✅ testing form data content...');
+      console.log('✅ file exists?', formData.has('file'));
+      console.log('✅ model value:', formData.get('model'));
+
       console.log('🔁 Whisper request form data fields:', formData);
 
 
