@@ -62,7 +62,9 @@
 
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
-import FormData from 'form-data';
+import { FormData } from 'formdata-node';
+import { fileFromPath } from 'formdata-node/file-from-path';
+import { fetch } from 'undici';
 
 export const config = {
   api: {
@@ -78,7 +80,12 @@ export default async function handler(req, res) {
   const form = new IncomingForm({ uploadDir: '/tmp', keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
+    if (err) {
+      console.error('❌ Form parse error:', err);
+      return res.status(500).json({ error: 'Form parse error', detail: err.message });
+    }
     const rawFile = Array.isArray(files.file) ? files.file[0] : files.file;
+    
 
     if (!rawFile || !rawFile.filepath) {
       return res.status(400).json({ error: 'Audio file is missing' });
@@ -98,7 +105,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${openAIKey}`,
-          ...formData.getHeaders(),
+         // ...formData.getHeaders(),
         },
         body: formData,
       });
@@ -119,17 +126,22 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: `请总结以下会议内容：\n\n${transcript}` }],
+          messages: [{ role: 'user', content: `please summarize the following：\n\n${transcript}` }],
         }),
       });
 
       const gptJson = await gptRes.json();
+
+      if (!gptRes.ok) {
+        return res.status(500).json({ error: 'GPT API failed', detail: gptJson });
+      }
 
       return res.status(200).json({
         transcript,
         summary: gptJson.choices[0].message.content,
       });
     } catch (err) {
+      console.error(' Internal Server Error:', err);
       return res.status(500).json({ error: 'Internal Server Error', detail: err.message });
     }
   });
