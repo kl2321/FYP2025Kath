@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -58,5 +58,57 @@
   });
 </script>
  
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: sans-serif; padding: 16px; }
+    #result { white-space: pre-wrap; background: #f2f2f2; padding: 12px; margin-top: 12px; height: 200px; overflow-y: auto; }
+    button { padding: 8px 16px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>🎤 Analyze Meeting</h2>
+  <button id="openBtn">Open Recorder</button>
+  <div id="result">⏳ Waiting for result...</div>
+
+  <script>
+    const openBtn = document.getElementById('openBtn');
+    const resultBox = document.getElementById('result');
+
+    openBtn.onclick = () => {
+      // 通过 URL 参数触发 record.html 自动开始录音
+      window.open(
+        'https://fyp-2025-kath.vercel.app/record.html?start=true',
+        '_blank',
+        'width=500,height=400'
+      );
+      console.log("✅ Recorder window opened with ?start=true");
+    };
+
+    // 监听 record.html 返回的分析结果
+    window.addEventListener('message', (event) => {
+      const msg = event.data.pluginMessage;
+      if (msg?.type === 'analyze-transcript') {
+        const { transcript, summary } = msg;
+        console.log("📥 Received transcript & summary");
+
+        resultBox.textContent = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
+
+        // 发送给 code.ts 插入 Figma 画布
+        parent.postMessage({
+          pluginMessage: {
+            type: 'analyze-transcript',
+            transcript,
+            summary
+          }
+        }, '*');
+      }
+    });
+  </script>
 </body>
 </html>
