@@ -14,17 +14,12 @@
   "ui": "ui.html",
   "networkAccess": {
   "allowedDomains": [
-    {
-      "domain": "https://fyp-2025-kath.vercel.app",
-      "reason": "To fetch analysis results from Vercel backend"
-    }
+    "https://fyp-2025-kath.vercel.app"
   ],
   "devAllowedDomains": [
-    {
-      "domain": "https://fyp-2025-kath.vercel.app",
-      "reason": "Dev access to hosted record.html and API endpoint"
-    }
+    "https://fyp-2025-kath.vercel.app"
   ]
 }
+
 
 }
