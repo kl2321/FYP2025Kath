@@ -43,6 +43,8 @@
   },
   "dependencies": {
     "form-data": "^4.0.2",
-    "formidable": "^3.5.4"
+    "formdata-node": "^6.0.3",
+    "formidable": "^3.5.4",
+    "undici": "^7.10.0"
   }
 }
