@@ -98,8 +98,10 @@ export default async function handler(req, res) {
 
     try {
       const formData = new FormData();
-      formData.append('file', fs.createReadStream(rawFile.filepath));
-      formData.append('model', 'whisper-1');
+      formData.set('file', await fileFromPath(rawFile.filepath));
+      formData.set('model', 'whisper-1');
+      console.log('🔁 Whisper request form data fields:', formData);
+
 
       const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
