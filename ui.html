@@ -61,7 +61,7 @@
 </body>
 </html> -->
 
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -109,6 +109,74 @@
         }, '*');
       }
     });
+  </script>
+</body>
+</html> -->
+
+/*
+✅ 在使用「后端中转 + 轮询」方案时，UI.html 和 record.html 的主要改动如下：
+*/
+
+// 🔁 UI.html 改动
+1. 点击按钮时，打开 record.html 时附带 sessionId 参数
+2. 启动轮询函数，每 1 秒轮询一次后端 /api/get 接口
+3. 一旦拿到结果就展示，并通过 postMessage 发给 Figma 插件主线程
+
+// 🎙 record.html 改动
+1. 通过 URL 参数接收 sessionId，自动开始录音
+2. 录音结束后将结果通过 /api/save POST 到后端
+
+
+// ✅ ✅ ✅ 以下为最终版 ui.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: sans-serif; padding: 16px; }
+    #result { white-space: pre-wrap; background: #f2f2f2; padding: 12px; height: 200px; overflow-y: auto; }
+    button { padding: 8px 16px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>🎤 Analyze Meeting</h2>
+  <button id="openBtn">Open Recorder</button>
+  <div id="result">⏳ Waiting for result...</div>
+
+  <script>
+    const openBtn = document.getElementById('openBtn');
+    const resultBox = document.getElementById('result');
+
+    openBtn.onclick = () => {
+      const sessionId = Date.now().toString();
+      window.open(
+        `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
+        'recorder',
+        'width=500,height=400'
+      );
+      poll(sessionId);
+    };
+
+    function poll(sessionId) {
+      const interval = setInterval(async () => {
+        const res = await fetch(`https://fyp-2025-kath.vercel.app/api/get?session=${sessionId}`);
+        const data = await res.json();
+        if (data.summary) {
+          clearInterval(interval);
+          resultBox.textContent = `📝 Transcript:\n${data.transcript}\n\n🧠 Summary:\n${data.summary}`;
+
+          // 通知插件主线程插入文字
+          parent.postMessage({
+            pluginMessage: {
+              type: 'analyze-transcript',
+              transcript: data.transcript,
+              summary: data.summary
+            }
+          }, '*');
+        }
+      }, 1000);
+    }
   </script>
 </body>
 </html>

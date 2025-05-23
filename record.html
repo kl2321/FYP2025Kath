@@ -97,93 +97,93 @@
   <textarea id="textArea" placeholder="Transcript and summary will appear here..."></textarea>
 
   <script>
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const textArea = document.getElementById('textArea');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const textArea = document.getElementById('textArea');
 
-    let recorder;
-    let chunks = [];
+  let recorder;
+  let chunks = [];
 
-    startBtn.onclick = startRecording;
-    stopBtn.onclick = stopRecording;
+  const params = new URLSearchParams(location.search);
+  const sessionId = params.get('session');
+  const autoStart = params.get('start') === 'true';
 
-    // 读取 URL 参数决定是否自动开始
-    window.onload = () => {
-      const shouldStart = new URLSearchParams(window.location.search).get('start');
-      if (shouldStart === 'true') {
-        console.log("🚀 Auto-start recording triggered by URL");
-        startRecording();
-      }
-    };
+  startBtn.onclick = startRecording;
+  stopBtn.onclick = stopRecording;
 
-    async function startRecording() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        recorder = new MediaRecorder(stream);
-        chunks = [];
+  if (autoStart) startRecording();
 
-        recorder.ondataavailable = (e) => chunks.push(e.data);
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recorder = new MediaRecorder(stream);
+      chunks = [];
 
-        recorder.onstop = async () => {
-          console.log("🎯 Recording stopped");
-          const blob = new Blob(chunks, { type: 'audio/webm' });
+      recorder.ondataavailable = (e) => chunks.push(e.data);
 
-          if (blob.size === 0) {
-            textArea.value = '❌ No audio recorded.';
-            return;
-          }
+      recorder.onstop = async () => {
+        console.log("🎯 Recording stopped");
 
-          const form = new FormData();
-          form.append('file', blob, 'audio.webm');
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        if (blob.size === 0) {
+          textArea.value = '❌ No audio recorded.';
+          return;
+        }
 
-          try {
-            const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', {
-              method: 'POST',
-              body: form
-            });
+        textArea.value = '🔄 Uploading and analyzing...';
 
-            const result = await res.json();
-            console.log("✅ Analysis result:", result);
-            textArea.value = `📝 Transcript:\n${result.transcript}\n\n🧠 Summary:\n${result.summary}`;
-            console.log(window.opener)
+        const form = new FormData();
+        form.append('file', blob, 'audio.webm');
 
-            // 发回 Figma 插件的 ui.html
-            if (window.opener) {
-              console.log("📤 Sending result to ui.html...");
-              window.opener.postMessage({
-                pluginMessage: {
-                  type: 'analyze-transcript',
-                  transcript: result.transcript,
-                  summary: result.summary
-                }
-              }, '*');
-            } else {
-              console.warn("⚠️ No window.opener found.");
-            }
-          } catch (err) {
-            console.error('❌ Analysis error:', err);
-            textArea.value = '❌ Analysis error: ' + err.message;
-          }
+        try {
+          const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', {
+            method: 'POST',
+            body: form
+          });
 
-          startBtn.disabled = false;
-          stopBtn.disabled = true;
-        };
-        recorder.start();
-        textArea.value = '🎙️ Recording...';
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-      } catch (err) {
-        console.error('❌ Could not access microphone:', err);
-        textArea.value = '❌ Microphone access error';
-      }
+          const result = await res.json();
+          console.log("✅ Analysis result:", result);
+
+          textArea.value = `📝 Transcript:\n${result.transcript}\n\n🧠 Summary:\n${result.summary}`;
+
+          // 保存分析结果到后端
+          await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session: sessionId,
+              transcript: result.transcript,
+              summary: result.summary
+            })
+          });
+
+        } catch (analyzeErr) {
+          console.error('❌ Analysis or saving failed:', analyzeErr);
+          textArea.value = '❌ Failed to analyze or save result.';
+        }
+
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      };
+
+      recorder.start();
+      textArea.value = '🎙️ Recording...';
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+
+    } catch (err) {
+      console.error('❌ Microphone access error:', err);
+      textArea.value = '❌ Could not access microphone.';
     }
+  }
 
-    function stopRecording() {
-      if (recorder && recorder.state === 'recording') {
-        recorder.stop();
-      }
+  function stopRecording() {
+    if (recorder && recorder.state === 'recording') {
+      recorder.stop();
     }
-  </script>
+  }
+</script>
+
 </body>
 </html>
 
