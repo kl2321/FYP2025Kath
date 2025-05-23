@@ -148,14 +148,20 @@
       const interval = setInterval(async () => {
         try {
           const res = await fetch(`https://fyp-2025-kath.vercel.app/api/get?session=${sessionId}`);
+          if (!res.ok) {
+            console.warn("❌ Fetch failed:", res.status);
+            return;
+          }
+
           const data = await res.json();
-          if (data.summary) {
+          console.log("🔄 Polling result:", data);
+
+          if (data && typeof data === 'object' && data.summary) {
             clearInterval(interval);
-            console.log("📥 Got result:", data);
 
             resultBox.textContent = `📝 Transcript:\n${data.transcript}\n\n🧠 Summary:\n${data.summary}`;
-
             console.log("📤 Sending pluginMessage to Figma");
+
             parent.postMessage({
               pluginMessage: {
                 type: 'analyze-transcript',
@@ -164,11 +170,13 @@
               }
             }, '*');
           }
+
         } catch (err) {
-          console.error('❌ Polling error:', err);
+          console.error("❌ Polling error:", err);
         }
       }, 1000);
     }
+
 
     function sendTest() {
       console.log("📤 Sending TEST message...");
