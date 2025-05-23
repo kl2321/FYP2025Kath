@@ -134,6 +134,8 @@
     const openBtn = document.getElementById('openBtn');
     const stopBtn = document.getElementById('stopBtn');
     const resultBox = document.getElementById('result');
+    
+    let recorderWindow = null;
 
     openBtn.onclick = () => {
       const sessionId = Date.now().toString();
