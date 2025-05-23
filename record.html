@@ -101,8 +101,14 @@
     function stopRecording() {
       if (recorder && recorder.state === 'recording') {
         recorder.stop();
-      }
+      } 
     }
+    // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
+  window.addEventListener('message', (event) => {
+    const { type } = event.data;
+    if (type === 'start-recording') startRecording();
+    if (type === 'stop-recording') stopRecording();  
+  });
   </script>
 </body>
 </html>
