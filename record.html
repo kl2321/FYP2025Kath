@@ -12,9 +12,24 @@
   <h2>🎙️ Record Meeting</h2>
   <button id="startBtn">Start</button>
   <button id="stopBtn" disabled>Stop</button>
+  <button id="testSend">🧪 Send test to UI</button>
+
   <textarea id="textArea" placeholder="Transcript and summary will appear here..."></textarea>
 
   <script>
+
+    document.getElementById('testSend').onclick = () => {
+      window.opener?.postMessage({ type: 'test-from-record', text: 'Hi from record.html 👋' }, '*');
+      console.log("📤 Sent test-from-record message to UI");
+    };
+
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'test-from-ui') {
+        console.log("📥 Received test-from-ui:", event.data.text);
+        alert("📥 record.html received: " + event.data.text);
+      }
+    });
+
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const textArea = document.getElementById('textArea');
