@@ -151,9 +151,10 @@
 
     stopBtn.onclick = () => {
       console.log("stop button clicked");
-      if (recorderWindow && ready) {
+      console.log("🧠 recorderWindow is", recorderWindow);
+      if (recorderWindow && !recorderWindow.closed) {
         recorderWindow.postMessage({ type: 'stop-recording' }, '*');
-        console.log("🛑 Sent stop-recording to recorder window");
+        console.log("🛑 Sent stop-recording message sent");
       } else {
         console.warn("Recorder window not open yet.")
       }
