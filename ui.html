@@ -169,7 +169,7 @@
           });
 
           const data = await res.json();
-          console.log("📥 Got from Supabase:", data);
+          //console.log("📥 Got from Supabase:", data);
 
           if (Array.isArray(data) && data.length > 0 && data[0].summary) {
             clearInterval(interval);
