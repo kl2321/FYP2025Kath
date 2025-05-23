@@ -1,3 +1,4 @@
+// ✅ /api/save.js
 import fs from 'fs';
 import path from 'path';
 
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
     const raw = fs.readFileSync(filePath, 'utf8');
     store = JSON.parse(raw);
   } catch (e) {
-    console.log("📁 Creating new store");
+    console.log("📁 Creating new session store.");
   }
 
   store[session] = { transcript, summary };
@@ -47,7 +48,6 @@ async function getJsonBody(req) {
     });
   });
 }
-
 
 // export default async function handler(req, res) {
 //   res.setHeader('Access-Control-Allow-Origin', '*');
