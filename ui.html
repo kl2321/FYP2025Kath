@@ -136,6 +136,7 @@
     const resultBox = document.getElementById('result');
     
     let recorderWindow = null;
+    let ready = false;
 
     openBtn.onclick = () => {
       const sessionId = Date.now().toString();
@@ -144,18 +145,42 @@
         'recorder',
         'width=500,height=400'
       );
+      ready = false;
       poll(sessionId);
     };
 
     stopBtn.onclick = () => {
       console.log("stop button clicked");
-      if (recorderWindow) {
+      if (recorderWindow && ready) {
         recorderWindow.postMessage({ type: 'stop-recording' }, '*');
         console.log("🛑 Sent stop-recording to recorder window");
       } else {
         console.warn("Recorder window not open yet.")
       }
     };
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+
+      if (msg?.type === 'ready-to-record') {
+        ready = true;
+        console.log("✅ Recorder window is ready");
+      }
+
+      if (msg?.pluginMessage?.type === 'analyze-transcript') {
+        const { transcript, summary } = msg.pluginMessage;
+        resultBox.textContent = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
+
+        parent.postMessage({
+          pluginMessage: {
+            type: 'analyze-transcript',
+            transcript,
+            summary
+          }
+        }, '*');
+      }
+    });
+
 
     function poll(sessionId) {
       const interval = setInterval(async () => {
