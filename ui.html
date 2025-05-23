@@ -135,12 +135,12 @@
     const stopBtn = document.getElementById('stopBtn');
     const resultBox = document.getElementById('result');
     
-    let recorderWindow = null;
+    //let recorderWindow = null;
     let ready = false;
 
     openBtn.onclick = () => {
       const sessionId = Date.now().toString();
-      recorderWindow = window.open(
+      window.open(
         `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
         'recorder',
         'width=500,height=400'
@@ -151,13 +151,7 @@
 
     stopBtn.onclick = () => {
       console.log("stop button clicked");
-      console.log("🧠 recorderWindow is", recorderWindow);
-      if (recorderWindow && !recorderWindow.closed && ready) {
-        recorderWindow.postMessage({ type: 'stop-recording' }, '*');
-        console.log("🛑 Sent stop-recording message sent");
-      } else {
-        console.warn("Recorder window not open yet.")
-      }
+      window.postMessage({ type: 'stop-recording' }, '*');
     };
 
     window.addEventListener('message', (event) => {

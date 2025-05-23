@@ -109,6 +109,12 @@
     if (type === 'start-recording') startRecording();
     if (type === 'stop-recording') stopRecording();  
   });
+
+  // ✅ 通知插件 UI：我已经准备好了
+  window.onload = () => {
+    window.opener?.postMessage({ type: 'ready-to-record' }, '*');
+    console.log("📤 record.html sent ready-to-record");
+  };
   </script>
 </body>
 </html>
