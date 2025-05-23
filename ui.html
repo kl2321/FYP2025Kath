@@ -120,17 +120,19 @@
   <meta charset="UTF-8" />
   <style>
     body { font-family: sans-serif; padding: 16px; }
-    #result { white-space: pre-wrap; background: #f2f2f2; padding: 12px; height: 200px; overflow-y: auto; margin-top: 12px; }
+    #result { white-space: pre-wrap; background: #f2f2f2; padding: 12px; height: 300px; overflow-y: auto; margin-top: 12px; }
     button { padding: 8px 16px; font-weight: bold; margin-right: 8px; }
   </style>
 </head>
 <body>
   <h2>🎤 Analyze Meeting</h2>
   <button id="openBtn">Open Recorder</button>
+  <button id="stopBtn">Stop Recording</button>
   <div id="result">⏳ Waiting for result...</div>
 
   <script>
     const openBtn = document.getElementById('openBtn');
+    const stopBtn = document.getElementById('stopBtn');
     const resultBox = document.getElementById('result');
 
     openBtn.onclick = () => {
@@ -141,6 +143,13 @@
         'width=500,height=400'
       );
       poll(sessionId);
+    };
+
+    stopBtn.onclick = () => {
+      if (recorderWindow) {
+        recorderWindow.postMessage({ type: 'stop-recording' }, '*');
+        console.log("🛑 Sent stop-recording to recorder window");
+      }
     };
 
     function poll(sessionId) {
