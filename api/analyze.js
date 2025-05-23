@@ -147,6 +147,8 @@ export default async function handler(req, res) {
   });
 }
 
+console.log('Transcript length:', result.transcript.length);
+console.log('Summary length:', result.summary.length);
 
 
 // import { IncomingForm } from 'formidable';
