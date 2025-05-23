@@ -151,6 +151,8 @@
       if (recorderWindow) {
         recorderWindow.postMessage({ type: 'stop-recording' }, '*');
         console.log("🛑 Sent stop-recording to recorder window");
+      } else {
+        console.warn("Recorder window not open yet.")
       }
     };
 
