@@ -123,7 +123,11 @@ export default async function handler(req, res) {
         'https://api.openai.com/v1/chat/completions',
         {
           model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: `please summarize the following and split into explicit and tacit knowledge:\n\n${transcript}` }],
+          //messages: [{ role: 'user', content: `please summarize the following and split into explicit and tacit knowledge:\n\n${transcript}` }],
+          messages: [{
+            role: 'user',
+            content: `Please summarize the following meeting transcript and split the content into explicit and tacit knowledge. Only include conversation related to the team's project work or collaboration.\n\n- Explicit knowledge refers to documented, factual information such as data, specifications, or user feedback.\n- Tacit knowledge refers to intuitive insights, experience-based observations, or subjective impressions shared by team members.\n\nSummarize the conversation and categorize the relevant points into the two types.\n\nTranscript:\n\n${transcript}`
+          }]
         },
         {
           headers: {
