@@ -145,7 +145,7 @@
             const result = await res.json();
             console.log("✅ Analysis result:", result);
             textArea.value = `📝 Transcript:\n${result.transcript}\n\n🧠 Summary:\n${result.summary}`;
-            print(window.opener)
+            console.log(window.opener)
 
             // 发回 Figma 插件的 ui.html
             if (window.opener) {
