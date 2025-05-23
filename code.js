@@ -11,27 +11,47 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 figma.showUI(__html__, { width: 480, height: 520 });
 figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("📨 Figma received pluginMessage:", msg);
+    if (msg.type === 'test') {
+        figma.notify("✅ Test message received from UI!");
+    }
     if (msg.type === 'analyze-transcript') {
         try {
-            yield figma.loadFontAsync({ family: 'Roboto', style: 'Regular' });
-            const textNode = figma.createText();
-            textNode.characters = `🧠 Summary:\n${msg.summary || 'No summary found.'}`;
-            textNode.fontSize = 14;
-            figma.currentPage.appendChild(textNode);
-            figma.viewport.scrollAndZoomIntoView([textNode]);
-            figma.notify("✅ Text inserted!");
+            yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+            const node = figma.createText();
+            node.characters = `📝 Transcript:\n${msg.transcript}\n\n🧠 Summary:\n${msg.summary}`;
+            node.fontSize = 14;
+            figma.currentPage.appendChild(node);
+            figma.viewport.scrollAndZoomIntoView([node]);
         }
         catch (err) {
-            console.error('❌ Font load failed:', err);
-            figma.notify('Font load failed.');
+            console.error('❌ Font load error:', err);
+            figma.notify('Font loading failed!');
         }
     }
-    // ✅ TEST MESSAGE HANDLER
-    if (msg.type === 'test-debug') {
-        figma.notify("✅ Test message received!");
-        figma.ui.postMessage({ type: 'reply', message: '🎯 Plugin received your message' });
-    }
 });
+// figma.showUI(__html__, { width: 480, height: 520 });
+// figma.ui.onmessage = async (msg) => {
+//   console.log("📨 Figma received pluginMessage:", msg);
+//   if (msg.type === 'analyze-transcript') {
+//     try {
+//       await figma.loadFontAsync({ family: 'Roboto', style: 'Regular' });
+//       const textNode = figma.createText();
+//       textNode.characters = `🧠 Summary:\n${msg.summary || 'No summary found.'}`;
+//       textNode.fontSize = 14;
+//       figma.currentPage.appendChild(textNode);
+//       figma.viewport.scrollAndZoomIntoView([textNode]);
+//       figma.notify("✅ Text inserted!");
+//     } catch (err) {
+//       console.error('❌ Font load failed:', err);
+//       figma.notify('Font load failed.');
+//     }
+//   }
+//   // ✅ TEST MESSAGE HANDLER
+//   if (msg.type === 'test-debug') {
+//     figma.notify("✅ Test message received!");
+//     figma.ui.postMessage({ type: 'reply', message: '🎯 Plugin received your message' });
+//   }
+// };
 // figma.showUI(__html__, { width: 500, height: 600 });
 // figma.ui.onmessage = async (msg) => {
 //   if (msg.transcript && msg.summary) {

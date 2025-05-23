@@ -114,11 +114,76 @@
 </html> -->
 
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: sans-serif; padding: 16px; }
+    #result { white-space: pre-wrap; background: #f2f2f2; padding: 12px; height: 200px; overflow-y: auto; margin-top: 12px; }
+    button { padding: 8px 16px; font-weight: bold; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <h2>🎤 Analyze Meeting</h2>
+  <button id="openBtn">Open Recorder</button>
+  <button onclick="sendTest()">Send Test</button>
+  <div id="result">⏳ Waiting for result...</div>
+
+  <script>
+    const openBtn = document.getElementById('openBtn');
+    const resultBox = document.getElementById('result');
+
+    openBtn.onclick = () => {
+      const sessionId = Date.now().toString();
+      window.open(
+        `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
+        'recorder',
+        'width=500,height=400'
+      );
+      poll(sessionId);
+    };
+
+    function poll(sessionId) {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`https://fyp-2025-kath.vercel.app/api/get?session=${sessionId}`);
+          const data = await res.json();
+          if (data.summary) {
+            clearInterval(interval);
+            console.log("📥 Got result:", data);
+
+            resultBox.textContent = `📝 Transcript:\n${data.transcript}\n\n🧠 Summary:\n${data.summary}`;
+
+            console.log("📤 Sending pluginMessage to Figma");
+            parent.postMessage({
+              pluginMessage: {
+                type: 'analyze-transcript',
+                transcript: data.transcript,
+                summary: data.summary
+              }
+            }, '*');
+          }
+        } catch (err) {
+          console.error('❌ Polling error:', err);
+        }
+      }, 1000);
+    }
+
+    function sendTest() {
+      console.log("📤 Sending TEST message...");
+      parent.postMessage({ pluginMessage: { type: 'test', message: 'Hello Figma from UI!' } }, '*');
+    }
+  </script>
+</body>
+</html>
 
 
 // ✅ ✅ ✅ 以下为最终版 ui.html
 
-<!DOCTYPE html>
+
+
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -179,4 +244,4 @@
     }
   </script>
 </body>
-</html>
+</html> -->
