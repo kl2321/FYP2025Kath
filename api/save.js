@@ -1,18 +1,65 @@
-await fetch('https://inyqglzldyhuvenrfyli.supabase.co/rest/v1/sessions', {
-  method: 'POST',
-  headers: {
-    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc',
-    'Content-Type': 'application/json',
-    'Prefer': 'return=minimal'
-  },
-  body: JSON.stringify({
-    session_id: sessionId,
-    transcript: result.transcript,
-    summary: result.summary
-  })
-});
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end(); // CORS preflight
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  try {
+    const body = await getJsonBody(req);
+    const { session, transcript, summary } = body;
+
+    if (!session || !transcript || !summary) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
+
+    const supabaseRes = await fetch("https://inyqglzldyhuvenrfyli.supabase.co/rest/v1/sessions", {
+      method: "POST",
+      headers: {
+        apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc",
+        Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        session_id: session,
+        transcript,
+        summary
+      })
+    });
+
+    if (!supabaseRes.ok) {
+      const text = await supabaseRes.text();
+      console.error('❌ Supabase save failed:', text);
+      return res.status(500).json({ error: 'Supabase save failed' });
+    }
+
+    console.log("✅ Saved to Supabase:", session);
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('❌ Exception in save.js:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+async function getJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', chunk => raw += chunk);
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(raw));
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+}
 
 
 
