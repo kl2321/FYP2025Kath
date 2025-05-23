@@ -14,10 +14,12 @@
   "ui": "ui.html",
   "networkAccess": {
   "allowedDomains": [
-    "https://fyp-2025-kath.vercel.app"
+    "https://fyp-2025-kath.vercel.app",
+    "https://inyqglzldyhuvenrfyli.supabase.co"
   ],
   "devAllowedDomains": [
-    "https://fyp-2025-kath.vercel.app"
+    "https://fyp-2025-kath.vercel.app",
+    "https://inyqglzldyhuvenrfyli.supabase.co"
   ]
 }
 
