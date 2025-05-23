@@ -95,6 +95,7 @@
   <textarea id="textArea" placeholder="Transcript and summary will appear here..."></textarea>
 
   <script>
+    
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const textArea = document.getElementById('textArea');
@@ -185,6 +186,10 @@
         recorder.stop();
       }
     }
+    function sendTest() {
+    console.log("📤 Sending TEST message...");
+    parent.postMessage({ pluginMessage: { type: 'test', message: 'Hello Figma from record!' } }, '*');
+  }
   </script>
 </body>
 </html>
