@@ -78,110 +78,9 @@
 </body>
 </html> -->
 
+
+
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Recorder</title>
-</head>
-<body>
-  <h2>🎙️ Audio Recorder</h2>
-  <button id="startBtn">Start Recording</button>
-  <button id="stopBtn" disabled>Stop Recording</button>
-  <textarea id="textArea" readonly></textarea>
-
-  <script>
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const textArea = document.getElementById('textArea');
-
-    let recorder;
-    let chunks = [];
-    const params = new URLSearchParams(location.search);
-    const sessionId = params.get('session') || Date.now().toString();
-    const autoStart = params.get('start') === 'true';
-
-    startBtn.onclick = startRecording;
-    stopBtn.onclick = stopRecording;
-    if (autoStart) startRecording();
-
-    async function startRecording() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        recorder = new MediaRecorder(stream);
-        chunks = [];
-
-        recorder.ondataavailable = (e) => chunks.push(e.data);
-
-        recorder.onstop = async () => {
-          console.log("🎯 Recording stopped");
-          const blob = new Blob(chunks, { type: 'audio/webm' });
-
-          if (blob.size === 0) {
-            textArea.value = '❌ No audio recorded.';
-            return;
-          }
-
-          textArea.value = '🔄 Uploading and analyzing...';
-
-          const form = new FormData();
-          form.append('file', blob, 'audio.webm');
-
-          try {
-            const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', {
-              method: 'POST',
-              body: form
-            });
-
-            const result = await res.json();
-            console.log("✅ Analysis result:", result);
-
-            textArea.value = `📝 Transcript:\n${result.transcript}\n\n🧠 Summary:\n${result.summary}`;
-
-            // 保存分析结果到后端
-            await fetch('https://fyp-2025-kath.vercel.app/api/save', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                session: sessionId,
-                transcript: result.transcript,
-                summary: result.summary
-              })
-            });
-
-            // 🔁 分析完成后跳转 Super Debug 页面
-            window.location.href = `https://fyp-2025-kath.vercel.app/super-debug.html?session=${sessionId}`;
-
-          } catch (err) {
-            console.error('❌ Analysis or saving failed:', err);
-            textArea.value = '❌ Failed to analyze or save result.';
-          }
-
-          startBtn.disabled = false;
-          stopBtn.disabled = true;
-        };
-
-        recorder.start();
-        textArea.value = '🎙️ Recording...';
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-      } catch (err) {
-        console.error('❌ Microphone access error:', err);
-        textArea.value = '❌ Could not access microphone.';
-      }
-    }
-
-    function stopRecording() {
-      if (recorder && recorder.state === 'recording') {
-        recorder.stop();
-      }
-    }
-  </script>
-</body>
-</html>
-
-
-<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -286,7 +185,7 @@
 </script>
 
 </body>
-</html> -->
+</html>
 
 
 <!-- <!DOCTYPE html>
