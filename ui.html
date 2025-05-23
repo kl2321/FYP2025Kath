@@ -113,18 +113,7 @@
 </body>
 </html> -->
 
-/*
-✅ 在使用「后端中转 + 轮询」方案时，UI.html 和 record.html 的主要改动如下：
-*/
 
-// 🔁 UI.html 改动
-1. 点击按钮时，打开 record.html 时附带 sessionId 参数
-2. 启动轮询函数，每 1 秒轮询一次后端 /api/get 接口
-3. 一旦拿到结果就展示，并通过 postMessage 发给 Figma 插件主线程
-
-// 🎙 record.html 改动
-1. 通过 URL 参数接收 sessionId，自动开始录音
-2. 录音结束后将结果通过 /api/save POST 到后端
 
 
 // ✅ ✅ ✅ 以下为最终版 ui.html
@@ -174,6 +163,8 @@
           console.log("📥 Got result:", data);
 
           resultBox.textContent = `📝 Transcript:\n${data.transcript}\n\n🧠 Summary:\n${data.summary}`;
+
+          console.log("📤 Sending pluginMessage...", { transcript, summary });
 
           // 通知插件主线程插入文字
           parent.postMessage({

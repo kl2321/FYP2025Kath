@@ -1,24 +1,23 @@
 figma.showUI(__html__, { width: 480, height: 520 });
 
 figma.ui.onmessage = async (msg) => {
-  console.log("📨 Figma received pluginMessage:", msg);
-
   if (msg.type === 'analyze-transcript') {
-    const { transcript, summary } = msg;
-
     try {
-      await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+      await figma.loadFontAsync({ family: 'Roboto', style: 'Regular' });
 
       const textNode = figma.createText();
-      textNode.characters = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
+      textNode.characters = `🧠 Summary:\n${msg.summary || 'No summary found.'}`;
       textNode.fontSize = 14;
       figma.currentPage.appendChild(textNode);
       figma.viewport.scrollAndZoomIntoView([textNode]);
+      figma.notify("✅ Text inserted!");
     } catch (err) {
       console.error('❌ Font load failed:', err);
-      figma.notify('Failed to load font.');
+      figma.notify('Font load failed.');
     }
   }
+
+
 
   // ✅ TEST MESSAGE HANDLER
   if (msg.type === 'test-debug') {
