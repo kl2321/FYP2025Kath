@@ -1,6 +1,8 @@
 figma.showUI(__html__, { width: 480, height: 520 });
 
 figma.ui.onmessage = async (msg) => {
+  console.log("📨 Figma received pluginMessage:", msg);
+
   if (msg.type === 'analyze-transcript') {
     const { transcript, summary } = msg;
 
@@ -16,6 +18,12 @@ figma.ui.onmessage = async (msg) => {
       console.error('❌ Font load failed:', err);
       figma.notify('Failed to load font.');
     }
+  }
+
+  // ✅ TEST MESSAGE HANDLER
+  if (msg.type === 'test-debug') {
+    figma.notify("✅ Test message received!");
+    figma.ui.postMessage({ type: 'reply', message: '🎯 Plugin received your message' });
   }
 };
 

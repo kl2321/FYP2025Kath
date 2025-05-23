@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🎯 Super Debug UI</title>
+  <style>
+    body { font-family: sans-serif; padding: 16px; line-height: 1.6; }
+    .status { padding: 8px 12px; border-radius: 6px; margin-top: 8px; display: inline-block; }
+    .ok { background: #dcfce7; color: #065f46; }
+    .fail { background: #fee2e2; color: #991b1b; }
+    .log { font-size: 13px; color: #555; white-space: pre-wrap; background: #f4f4f5; padding: 10px; border-radius: 4px; margin-top: 12px; }
+    textarea { width: 100%; height: 100px; margin-top: 8px; white-space: pre-wrap; }
+    button { margin-top: 12px; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <h2>🧪 Super Debug Panel</h2>
+  <div id="session"></div>
+  <div id="pollingStatus" class="status fail">Polling: ❌ Not started</div>
+  <div id="dataStatus" class="status fail">Data: ❌ No data</div>
+  <div id="messageStatus" class="status fail">Message: ❌ Not sent</div>
+  <div id="pluginStatus" class="status fail">Figma Plugin: ❌ No response</div>
+
+  <textarea id="debugBox" placeholder="Debug logs..."></textarea>
+  <button onclick="sendTestMessage()">Send Test Plugin Message</button>
+
+  <script>
+    const sessionId = Date.now().toString();
+    const debugBox = document.getElementById('debugBox');
+    const sessionDiv = document.getElementById('session');
+    const pollingStatus = document.getElementById('pollingStatus');
+    const dataStatus = document.getElementById('dataStatus');
+    const messageStatus = document.getElementById('messageStatus');
+    const pluginStatus = document.getElementById('pluginStatus');
+
+    sessionDiv.innerHTML = `<strong>Session ID:</strong> ${sessionId}`;
+
+    const log = (msg) => {
+      debugBox.value += `\n${msg}`;
+      debugBox.scrollTop = debugBox.scrollHeight;
+    };
+
+    function setStatus(el, isOk) {
+      el.className = `status ${isOk ? 'ok' : 'fail'}`;
+      el.textContent = el.id.replace('Status', '') + `: ${isOk ? '✅ Success' : '❌ Failed'}`;
+    }
+
+    function poll() {
+      pollingStatus.className = 'status ok';
+      pollingStatus.textContent = 'Polling: ⏳ In progress...';
+
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`https://fyp-2025-kath.vercel.app/api/get?session=${sessionId}`);
+          const data = await res.json();
+          log(`🌀 Poll result: ${JSON.stringify(data)}`);
+          if (data.summary) {
+            clearInterval(interval);
+            setStatus(pollingStatus, true);
+            setStatus(dataStatus, true);
+
+            // send to Figma plugin
+            parent.postMessage({
+              pluginMessage: {
+                type: 'analyze-transcript',
+                transcript: data.transcript,
+                summary: data.summary
+              }
+            }, '*');
+
+            log('📤 Sent pluginMessage to Figma.');
+            setStatus(messageStatus, true);
+          }
+        } catch (err) {
+          log(`❌ Polling error: ${err.message}`);
+        }
+      }, 1000);
+    }
+
+    function sendTestMessage() {
+      log('📤 Sending test plugin message...');
+      parent.postMessage({ pluginMessage: { type: 'test-debug', message: '👋 Hello from UI' } }, '*');
+    }
+
+    // receive plugin message back
+    window.addEventListener('message', (event) => {
+      log('📥 Plugin responded: ' + JSON.stringify(event.data));
+      setStatus(pluginStatus, true);
+    });
+
+    poll();
+  </script>
+</body>
+</html>

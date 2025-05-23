@@ -137,14 +137,21 @@
     body { font-family: sans-serif; padding: 16px; }
     #result { white-space: pre-wrap; background: #f2f2f2; padding: 12px; height: 200px; overflow-y: auto; }
     button { padding: 8px 16px; font-weight: bold; }
+    
   </style>
 </head>
 <body>
   <h2>🎤 Analyze Meeting</h2>
   <button id="openBtn">Open Recorder</button>
   <div id="result">⏳ Waiting for result...</div>
+  <button onclick="sendTest()">Send Test Message</button>
 
   <script>
+    function sendTest() {
+    console.log("📤 Sending TEST message...");
+    parent.postMessage({ pluginMessage: { type: 'test', message: 'Hello Figma!' } }, '*');
+  }
+    
     const openBtn = document.getElementById('openBtn');
     const resultBox = document.getElementById('result');
 
@@ -164,6 +171,8 @@
         const data = await res.json();
         if (data.summary) {
           clearInterval(interval);
+          console.log("📥 Got result:", data);
+
           resultBox.textContent = `📝 Transcript:\n${data.transcript}\n\n🧠 Summary:\n${data.summary}`;
 
           // 通知插件主线程插入文字
