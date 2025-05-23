@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 figma.showUI(__html__, { width: 480, height: 520 });
 figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("📨 Figma received pluginMessage:", msg);
     if (msg.type === 'analyze-transcript') {
         try {
             yield figma.loadFontAsync({ family: 'Roboto', style: 'Regular' });

@@ -1,6 +1,7 @@
 figma.showUI(__html__, { width: 480, height: 520 });
 
 figma.ui.onmessage = async (msg) => {
+  console.log("📨 Figma received pluginMessage:", msg);
   if (msg.type === 'analyze-transcript') {
     try {
       await figma.loadFontAsync({ family: 'Roboto', style: 'Regular' });
