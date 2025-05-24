@@ -100,12 +100,33 @@
         textArea.value = '❌ Could not access microphone.';
       }
     }
-
     function stopRecording() {
       if (recorder && recorder.state === 'recording') {
         recorder.stop();
       } 
     }
+
+    function pollStop(sessionId) {
+      const interval = setInterval(async () => {
+        const res = await fetch(`https://inyqglzldyhuvenrfyli.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.stop`, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await res.json();
+        if (data.length > 0) {
+          clearInterval(interval);
+          stopRecording(); // 自动调用你已有的 stopRecording
+        }
+      }, 1000);
+    }
+    if (sessionId) {
+    pollStop(sessionId);
+  }
+
   //   // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
   // window.addEventListener('message', (event) => {
   //   const { type } = event.data;

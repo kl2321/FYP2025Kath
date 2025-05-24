@@ -152,10 +152,18 @@
       poll(sessionId);
     };
 
-    stopBtn.onclick = () => {
-      console.log("stop button clicked");
-      window.postMessage({ type: 'stop-recording' }, '*');
+    stopBtn.onclick = async () => {
+      console.log("🛑 stop button clicked");
+
+      await fetch('/api/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session: sessionId })
+      });
+
+      console.log("✅ stop command sent to Supabase");
     };
+
 
     window.addEventListener('message', (event) => {
       const msg = event.data;
