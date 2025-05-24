@@ -156,7 +156,7 @@
     stopBtn.onclick = async () => {
       console.log("🛑 stop button clicked");
 
-      await fetch('/api/stop', {
+      await fetch('https://inyqglzldyhuvenrfyli.supabase.co/rest/v1/control_signals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session: sessionId })
