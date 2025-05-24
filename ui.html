@@ -128,26 +128,11 @@
   <h2>🎤 Analyze Meeting</h2>
   <button id="openBtn">Open Recorder</button>
   <button id="stopBtn">Stop Recording</button>
-  <button id="testSend">🧪 Send test to Record</button>
 
   <div id="result">⏳ Waiting for result...</div>
 
   <script>
-    //test
-    document.getElementById('testSend').onclick = () => {
-      window.postMessage({ type: 'test-from-ui', text: 'Hello from UI 🎯' }, '*');
-      console.log("📤 Sent test-from-ui message to record.html");
-    };
 
-    window.addEventListener('message', (event) => {
-      const msg = event.data;
-      if (msg?.type === 'test-from-record') {
-        console.log('📥 Received from record.html:', msg.text);
-        alert('📥 UI received from record.html: ' + msg.text);
-      }
-    });
-
-    
     
     const openBtn = document.getElementById('openBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -231,10 +216,10 @@
 
       
 
-    function sendTest() {
-      console.log("📤 Sending TEST message...");
-      parent.postMessage({ pluginMessage: { type: 'test', message: 'Hello Figma from UI!' } }, '*');
-    }
+    // function sendTest() {
+    //   console.log("📤 Sending TEST message...");
+    //   parent.postMessage({ pluginMessage: { type: 'test', message: 'Hello Figma from UI!' } }, '*');
+    // }
   </script>
 </body>
 </html>
