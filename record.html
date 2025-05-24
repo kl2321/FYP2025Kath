@@ -106,18 +106,18 @@
         recorder.stop();
       } 
     }
-    // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
-  window.addEventListener('message', (event) => {
-    const { type } = event.data;
-    if (type === 'start-recording') startRecording();
-    if (type === 'stop-recording') stopRecording();  
-  });
+  //   // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
+  // window.addEventListener('message', (event) => {
+  //   const { type } = event.data;
+  //   if (type === 'start-recording') startRecording();
+  //   if (type === 'stop-recording') stopRecording();  
+  // });
 
-  // ✅ 通知插件 UI：我已经准备好了
-  window.onload = () => {
-    window.opener?.postMessage({ type: 'ready-to-record' }, '*');
-    console.log("📤 record.html sent ready-to-record");
-  };
+  // // ✅ 通知插件 UI：我已经准备好了
+  // window.onload = () => {
+  //   window.opener?.postMessage({ type: 'ready-to-record' }, '*');
+  //   console.log("📤 record.html sent ready-to-record");
+  // };
   </script>
 </body>
 </html>
