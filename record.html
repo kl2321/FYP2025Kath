@@ -109,19 +109,33 @@
     function pollStop(sessionId) {
       console.log("🔁 Starting pollStop for sessionId:", sessionId);
       const interval = setInterval(async () => {
-        const res = await fetch(`https://inyqglzldyhuvenrfyli.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.stop`, {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc',
-            'Content-Type': 'application/json'
-          }
-        });
+        const url = `https://inyqglzldyhuvenrfyli.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.stop`;
 
-        const data = await res.json();
-        console.log("poll result:", data);
-        if (data.length > 0) {
-          clearInterval(interval);
-          stopRecording(); // 自动调用你已有的 stopRecording
+        try {
+          const res = await fetch(url, {
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc',
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!res.ok) {
+            const error = await res.text();
+            console.error("❌ Supabase fetch failed:", error);
+            return;
+          }
+
+          const data = await res.json();
+          console.log("📡 poll result:", data);
+
+          if (Array.isArray(data) && data.length > 0) {
+            clearInterval(interval);
+            console.log("🛑 Stop command received. Stopping recorder...");
+            stopRecording();
+          }
+        } catch (err) {
+          console.error("❌ Polling error:", err);
         }
       }, 1000);
     }
