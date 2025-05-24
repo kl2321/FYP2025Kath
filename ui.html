@@ -140,9 +140,10 @@
     
     //let recorderWindow = null;
     let ready = false;
+    let sessionId = null; 
 
     openBtn.onclick = () => {
-      const sessionId = Date.now().toString();
+      sessionId = Date.now().toString();
       window.open(
         `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
         'recorder',
