@@ -107,6 +107,7 @@
     }
 
     function pollStop(sessionId) {
+      console.log("🔁 Starting pollStop for sessionId:", sessionId);
       const interval = setInterval(async () => {
         const res = await fetch(`https://inyqglzldyhuvenrfyli.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.stop`, {
           headers: {
@@ -117,6 +118,7 @@
         });
 
         const data = await res.json();
+        console.log("poll result:", data);
         if (data.length > 0) {
           clearInterval(interval);
           stopRecording(); // 自动调用你已有的 stopRecording
