@@ -18,6 +18,10 @@
 
   <script>
 
+    let totalSeconds = 0;
+    let sessionStartTime = null;
+
+
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const textArea = document.getElementById('textArea');
@@ -44,6 +48,9 @@
       isManuallyStopped = false;
       recordingCycleCount = 0;
       transcriptChunks.length = 0;
+      sessionStartTime = Date.now();
+      totalSeconds = 0;
+
       startSegmentRecording();
     };
     stopBtn.onclick = () => {
@@ -57,14 +64,27 @@
       isManuallyStopped = false;
       recordingCycleCount = 0;
       transcriptChunks.length = 0;
+      sessionStartTime = Date.now();
+      totalSeconds = 0;
+
       startSegmentRecording();
     }
 
 
    async function startSegmentRecording() {
-    if (recordingCycleCount >= MAX_CYCLE || isManuallyStopped) {
-      console.log("🛑 Stop condition met, summarizing...");
-      summarizeChunks();
+    if (isManuallyStopped) {
+      console.log("🛑 Manually stopped, summarizing...");
+      await summarizeChunks();
+      return;
+    }
+
+    if (recordingCycleCount >= MAX_CYCLE) {
+      console.log("⏰ Reached 5-minute limit. Summarizing and continuing...")
+      await summarizeChunks();
+      recordingCycleCount =0;
+      if (!isManuallyStopped) {
+        startSegmentRecording();
+      }
       return;
     }
     await startRecording();
@@ -85,11 +105,11 @@
         recorder.ondataavailable = (e) => chunks.push(e.data);
 
         recorder.onstop = async () => {
-          console.log("🎯 Recording stopped");
+          console.log(" Recording stopped");
 
           const blob = new Blob(chunks, { type: 'audio/webm' });
           if (blob.size === 0) {
-            textArea.value = '❌ No audio recorded.';
+            textArea.value = ' No audio recorded.';
             return;
           }
 
@@ -108,7 +128,9 @@
             console.log("✅ Analysis result:", result);
             transcriptChunks.push(result.transcript || ''); // 累积transcript
             recordingCycleCount++;
-            textArea.value = `✅ Segment ${recordingCycleCount} done`;
+
+            const durationMin = Math.floor(((Date.now() - sessionStartTime) / 1000) / 60);
+            textArea.value = `⏱️ Total time: ${durationMin} min\n✅ Segment ${recordingCycleCount} done`;
 
             startSegmentRecording(); // 继续下一个录音段
 
@@ -138,7 +160,8 @@
 
       async function summarizeChunks() {
         const combined = transcriptChunks.join('\n');
-        textArea.value = '🧠 Summarizing full 5-minute content...';
+        const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
+        textArea.value = `🧠 Summarizing full content... (${duration} min)`;
 
         try {
           const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
@@ -148,7 +171,7 @@
           });
           const data = await res.json();
 
-          textArea.value = `📋 Transcript:\n${combined}\n\n🧠 Summary:\n${data.summary}`;
+          textArea.value = `⏱️ ${duration} min transcript:\n${combined}\n\n🧠 Summary:\n${data.summary}`;
 
           // 可选：保存整段到 Supabase
           await fetch('https://fyp-2025-kath.vercel.app/api/save', {
@@ -164,12 +187,12 @@
           console.log("📦 Full result saved.");
 
           // begin the next 5mins loop
-          if (!isManuallyStopped) {
-            console.log("🔁 Restarting next 5-minute cycle...");
-            recordingCycleCount = 0;
-            transcriptChunks.length = 0;
-            startSegmentRecording(); // ✅ 继续循环
-          }
+          // if (!isManuallyStopped) {
+          //   console.log("🔁 Restarting next 5-minute cycle...");
+          //   recordingCycleCount = 0;
+          //   transcriptChunks.length = 0;
+          //   startSegmentRecording(); // ✅ 继续循环
+          // }
         } catch (err) {
           console.error("❌ Final summary error:", err);
           textArea.value = '❌ Final summary failed.';
