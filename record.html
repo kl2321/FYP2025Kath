@@ -21,9 +21,15 @@
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const textArea = document.getElementById('textArea');
+    
 
     let recorder;
     let chunks = [];
+
+    const transcriptChunks = [];
+    let recordingCycleCount = 0;
+    const MAX_CYCLE = 10; // 30s * 10 = 5min
+    let isManuallyStopped = false;
 
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get("session");
@@ -31,11 +37,45 @@
 
     console.log("📎 Extracted sessionId:", sessionId);
 
-    startBtn.onclick = startRecording;
-    stopBtn.onclick = stopRecording;
+    //startBtn.onclick = startRecording;
+    //stopBtn.onclick = stopRecording;
 
-    if (autoStart) startRecording();
+    startBtn.onclick = () => {
+      isManuallyStopped = false;
+      recordingCycleCount = 0;
+      transcriptChunks.length = 0;
+      startSegmentRecording();
+    };
+    stopBtn.onclick = () => {
+      isManuallyStopped = true;
+      stopRecording();
+    };
 
+    //if (autoStart) startRecording();
+
+    if (autoStart) {
+      isManuallyStopped = false;
+      recordingCycleCount = 0;
+      transcriptChunks.length = 0;
+      startSegmentRecording();
+    }
+
+
+   async function startSegmentRecording() {
+    if (recordingCycleCount >= MAX_CYCLE || isManuallyStopped) {
+      console.log("🛑 Stop condition met, summarizing...");
+      summarizeChunks();
+      return;
+    }
+    await startRecording();
+    setTimeout(() => {
+      if (!isManuallyStopped) {
+        stopRecording();
+      }
+    }, 30000); // 每段 30 秒
+  }  
+    
+    
     async function startRecording() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -66,28 +106,16 @@
 
             const result = await res.json();
             console.log("✅ Analysis result:", result);
+            transcriptChunks.push(result.transcript || ''); // 累积transcript
+            recordingCycleCount++;
+            textArea.value = `✅ Segment ${recordingCycleCount} done`;
 
-            textArea.value = `📝 Transcript:\n${result.transcript}\n\n🧠 Summary:\n${result.summary}`;
-
-            await fetch('https://fyp-2025-kath.vercel.app/api/save', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                session: sessionId,
-                transcript: result.transcript,
-                summary: result.summary
-              })
-            });
-
-            console.log("📦 Saved to session:", sessionId);
+            startSegmentRecording(); // 继续下一个录音段
 
           } catch (err) {
-            console.error('❌ Analysis or save failed:', err);
-            textArea.value = '❌ Failed to analyze or save result.';
+            console.error('❌ Analysis failed:', err);
+            textArea.value = '❌ Failed to analyze this chunk.';
           }
-
-          startBtn.disabled = false;
-          stopBtn.disabled = true;
         };
 
         recorder.start();
@@ -95,16 +123,96 @@
         startBtn.disabled = true;
         stopBtn.disabled = false;
 
-      } catch (err) {
-        console.error('❌ Microphone access error:', err);
-        textArea.value = '❌ Could not access microphone.';
+        } catch (err) {
+          console.error('❌ Microphone error:', err);
+          textArea.value = '❌ Microphone access denied.';
+        }
       }
-    }
-    function stopRecording() {
-      if (recorder && recorder.state === 'recording') {
-        recorder.stop();
-      } 
-    }
+
+      function stopRecording() {
+        if (recorder && recorder.state === 'recording') {
+          recorder.stop();
+        } 
+      }
+
+
+      async function summarizeChunks() {
+        const combined = transcriptChunks.join('\n');
+        textArea.value = '🧠 Summarizing full 5-minute content...';
+
+        try {
+          const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: combined })
+          });
+          const data = await res.json();
+
+          textArea.value = `📋 Transcript:\n${combined}\n\n🧠 Summary:\n${data.summary}`;
+
+          // 可选：保存整段到 Supabase
+          await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session: sessionId,
+              transcript: combined,
+              summary: data.summary
+            })
+          });
+
+          console.log("📦 Full result saved.");
+        } catch (err) {
+          console.error("❌ Final summary error:", err);
+          textArea.value = '❌ Final summary failed.';
+        }
+
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+
+
+
+
+
+            //textArea.value = `📝 Transcript:\n${result.transcript}\n\n🧠 Summary:\n${result.summary}`;
+
+        //     await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+        //       method: 'POST',
+        //       headers: { 'Content-Type': 'application/json' },
+        //       body: JSON.stringify({
+        //         session: sessionId,
+        //         transcript: result.transcript,
+        //         summary: result.summary
+        //       })
+        //     });
+
+        //     console.log("📦 Saved to session:", sessionId);
+
+        //   } catch (err) {
+        //     console.error('❌ Analysis or save failed:', err);
+        //     textArea.value = '❌ Failed to analyze or save result.';
+        //   }
+
+        //   startBtn.disabled = false;
+        //   stopBtn.disabled = true;
+        // };
+
+        // recorder.start();
+        // textArea.value = '🎙️ Recording...';
+        // startBtn.disabled = true;
+        // stopBtn.disabled = false;
+
+    //   } catch (err) {
+    //     console.error('❌ Microphone access error:', err);
+    //     textArea.value = '❌ Could not access microphone.';
+    //   }
+    // }
+    // function stopRecording() {
+    //   if (recorder && recorder.state === 'recording') {
+    //     recorder.stop();
+    //   } 
+    // }
 
     function pollStop(sessionId) {
       console.log("🔁 Starting pollStop for sessionId:", sessionId);
@@ -146,8 +254,8 @@
     // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
   window.addEventListener('message', (event) => {
     const { type } = event.data;
-    if (type === 'start-recording') startRecording();
-    if (type === 'stop-recording') stopRecording();  
+    if (type === 'start-recording') startBtn.click();
+    if (type === 'stop-recording') stopBtn.click();  
   });
 
   // ✅ 通知插件 UI：我已经准备好了
