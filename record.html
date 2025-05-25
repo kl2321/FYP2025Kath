@@ -153,9 +153,48 @@
 
       function stopRecording() {
         if (recorder && recorder.state === 'recording') {
+          recorder.onstop = async () => {
+            await handleSegmentAnalysis();
+            summarizeChunks();
+          };
           recorder.stop();
-        } 
+          isManuallyStopped = true;
+        } else {
+          if (recordingCycleCount >0) {
+            summarizeChunks();
+          }
+        }
       }
+
+      async function handleSegmentAnalysis() {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        if (blob.size === 0) {
+          textArea.value = '❌ No audio recorded.';
+          return;
+        }
+
+        textArea.value = '🔄 Uploading and analyzing...';
+
+        const form = new FormData();
+        form.append('file', blob, 'audio.webm');
+
+        try {
+          const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', {
+            method: 'POST',
+            body: form
+          });
+
+          const result = await res.json();
+          console.log("✅ Analysis result:", result);
+          transcriptChunks.push(result.transcript || '');
+          recordingCycleCount++;
+          textArea.value = `✅ Segment ${recordingCycleCount} done`;
+        } catch (err) {
+          console.error('❌ Analysis failed:', err);
+          textArea.value = '❌ Failed to analyze this chunk.';
+        }
+      }
+
 
 
       async function summarizeChunks() {
