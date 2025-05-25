@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing fields' });
     }
 
-    const supabaseRes = await fetch("https://inyqglzldyhuvenrfyli.supabase.co/rest/v1/sessions", {
+    const supabaseRes = await fetch("https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/sessions", {
       method: "POST",
       headers: {
         apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueXFnbHpsZHlodXZlbnJmeWxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5Njg4ODAsImV4cCI6MjA2MzU0NDg4MH0.5jyzoEVJf7eBNk3Y4cUTd-pQPNTjz2B9yFlo7t36auc",
@@ -33,10 +33,13 @@ export default async function handler(req, res) {
       })
     });
 
+    const responseText = await supabaseRes.text();
+    console.log('📦 Supabase raw response:', responseText);
+
     if (!supabaseRes.ok) {
-      const text = await supabaseRes.text();
-      console.error('❌ Supabase save failed:', text);
-      return res.status(500).json({ error: 'Supabase save failed' });
+      //const text = await supabaseRes.text();
+      console.error('❌ Supabase save failed:', responseText);
+      return res.status(500).json({ error: 'Supabase save failed', detail:responseText });
     }
 
     console.log("✅ Saved to Supabase:", session);
