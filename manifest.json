@@ -15,11 +15,11 @@
   "networkAccess": {
   "allowedDomains": [
     "https://fyp-2025-kath.vercel.app",
-    "https://inyqglzldyhuvenrfyli.supabase.co"
+    "https://cwhekhkphzcovivgqezd.supabase.co"
   ],
   "devAllowedDomains": [
     "https://fyp-2025-kath.vercel.app",
-    "https://inyqglzldyhuvenrfyli.supabase.co"
+    "https://cwhekhkphzcovivgqezd.supabase.co"
   ]
 }
 
