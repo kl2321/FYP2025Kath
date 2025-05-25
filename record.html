@@ -155,7 +155,12 @@
         if (recorder && recorder.state === 'recording') {
           recorder.onstop = async () => {
             await handleSegmentAnalysis();
-            summarizeChunks();
+
+            if (isManuallyStopped || recordingCycleCount >= MAX_CYCLE ) {
+              await summarizeChunks();
+            } else{
+              startSegmentRecording();
+            }      
           };
           recorder.stop();
           isManuallyStopped = true;
@@ -240,49 +245,6 @@
         startBtn.disabled = false;
         stopBtn.disabled = true;
       }
-
-
-
-
-
-            //textArea.value = `📝 Transcript:\n${result.transcript}\n\n🧠 Summary:\n${result.summary}`;
-
-        //     await fetch('https://fyp-2025-kath.vercel.app/api/save', {
-        //       method: 'POST',
-        //       headers: { 'Content-Type': 'application/json' },
-        //       body: JSON.stringify({
-        //         session: sessionId,
-        //         transcript: result.transcript,
-        //         summary: result.summary
-        //       })
-        //     });
-
-        //     console.log("📦 Saved to session:", sessionId);
-
-        //   } catch (err) {
-        //     console.error('❌ Analysis or save failed:', err);
-        //     textArea.value = '❌ Failed to analyze or save result.';
-        //   }
-
-        //   startBtn.disabled = false;
-        //   stopBtn.disabled = true;
-        // };
-
-        // recorder.start();
-        // textArea.value = '🎙️ Recording...';
-        // startBtn.disabled = true;
-        // stopBtn.disabled = false;
-
-    //   } catch (err) {
-    //     console.error('❌ Microphone access error:', err);
-    //     textArea.value = '❌ Could not access microphone.';
-    //   }
-    // }
-    // function stopRecording() {
-    //   if (recorder && recorder.state === 'recording') {
-    //     recorder.stop();
-    //   } 
-    // }
 
     function pollStop(sessionId) {
       console.log("🔁 Starting pollStop for sessionId:", sessionId);
