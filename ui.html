@@ -199,7 +199,7 @@
 
     function poll(sessionId) {
       const interval = setInterval(async () => {
-        consle.log('polling summary');
+        console.log('polling summary');
         try {
           const res = await fetch(`https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/sessions?session_id=eq.${sessionId}`, {
             headers: {
