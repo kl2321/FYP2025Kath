@@ -106,7 +106,7 @@
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         recorder = new MediaRecorder(stream);
-        recorder.start();
+        //recorder.start();
         chunks = [];
 
         recorder.ondataavailable = (e) => chunks.push(e.data);
