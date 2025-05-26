@@ -276,6 +276,14 @@
 
           textArea.value = `⏱️ ${duration} min transcript:\n${combined}\n\n🧠 Summary:\n${data.summary}`;
 
+          window.opener?.postMessage({
+            pluginMessage: {
+              type:'analyze-transcript',
+              transcript: combined,
+              summary:data.summary
+            }
+          }, '*');
+
           // 可选：保存整段到 Supabase
           await fetch('https://fyp-2025-kath.vercel.app/api/save', {
             method: 'POST',
