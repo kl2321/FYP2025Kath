@@ -21,6 +21,8 @@
     let totalSeconds = 0;
     let sessionStartTime = null;
 
+    const fullTranscriptHistory =[];
+
 
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -126,99 +128,6 @@
 }
 
 
-          // const blob = new Blob(chunks, { type: 'audio/webm' });
-          // if (blob.size === 0) {
-          //   textArea.value = ' No audio recorded.';
-          //   return;
-          // }
-
-      //     textArea.value = '🔄 Uploading and analyzing...';
-
-      //     const form = new FormData();
-      //     form.append('file', blob, 'audio.webm');
-
-      //     try {
-      //       const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', {
-      //         method: 'POST',
-      //         body: form
-      //       });
-
-      //       const result = await res.json();
-      //       console.log("✅ Analysis result:", result);
-      //       transcriptChunks.push(result.transcript || ''); // 累积transcript
-      //       recordingCycleCount++;
-
-      //       const durationMin = Math.floor(((Date.now() - sessionStartTime) / 1000) / 60);
-      //       textArea.value = `⏱️ Total time: ${durationMin} min\n✅ Segment ${recordingCycleCount} done`;
-
-      //       startSegmentRecording(); // 继续下一个录音段
-
-      //     } catch (err) {
-      //       console.error('❌ Analysis failed:', err);
-      //       textArea.value = '❌ Failed to analyze this chunk.';
-      //     }
-      //   };
-
-      //   recorder.start();
-      //   textArea.value = '🎙️ Recording...';
-      //   startBtn.disabled = true;
-      //   stopBtn.disabled = false;
-
-      //   } catch (err) {
-      //     console.error('❌ Microphone error:', err);
-      //     textArea.value = '❌ Microphone access denied.';
-      //   }
-      // }
-
-      // function stopRecording() {
-      //   if (recorder && recorder.state === 'recording') {
-      //     recorder.onstop = async () => {
-      //       await handleSegmentAnalysis();
-
-      //       if (isManuallyStopped || recordingCycleCount >= MAX_CYCLE ) {
-      //         await summarizeChunks();
-      //       } else{
-      //         startSegmentRecording();
-      //       }      
-      //     };
-      //     recorder.stop();
-      //     //isManuallyStopped = true;
-      //   } else {
-      //     if (recordingCycleCount >0) {
-      //       summarizeChunks();
-      //     }
-      //   }
-      // }
-
-      // async function handleSegmentAnalysis() {
-      //   const blob = new Blob(chunks, { type: 'audio/webm' });
-      //   if (blob.size === 0) {
-      //     textArea.value = '❌ No audio recorded.';
-      //     return;
-      //   }
-
-      //   textArea.value = '🔄 Uploading and analyzing...';
-
-      //   const form = new FormData();
-      //   form.append('file', blob, 'audio.webm');
-
-      //   try {
-      //     const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', {
-      //       method: 'POST',
-      //       body: form
-      //     });
-
-      //     const result = await res.json();
-      //     console.log("✅ Analysis result:", result);
-      //     transcriptChunks.push(result.transcript || '');
-      //     recordingCycleCount++;
-      //     textArea.value = `✅ Segment ${recordingCycleCount} done`;
-      //   } catch (err) {
-      //     console.error('❌ Analysis failed:', err);
-      //     textArea.value = '❌ Failed to analyze this chunk.';
-      //   }
-      // }
-
       function stopRecording() {
         //isManuallyStopped = true;
 
@@ -262,7 +171,9 @@
       }
 
       async function summarizeChunks() {
-        const combined = transcriptChunks.join('\n');
+        const currentCombined = transcriptChunks.join('\n');
+        fullTranscriptHistory.push(currentCombined);
+        const combined=fullTranscriptHistory.join('\n');
         const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
         textArea.value = `🧠 Summarizing full content... (${duration} min)`;
 
