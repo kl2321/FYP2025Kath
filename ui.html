@@ -1,120 +1,108 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <style>
-    body { font-family: sans-serif; padding: 16px; }
-    #result { white-space: pre-wrap; background: #f2f2f2; padding: 12px; margin-top: 12px; height: 200px; overflow-y: auto; }
-    button { padding: 8px 16px; font-weight: bold; }
+    body {
+      font-family: sans-serif;
+      padding: 16px;
+    }
+    .card {
+      background: #f3f3f3;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .card h3 {
+      margin-top: 0;
+    }
+    button {
+      padding: 8px 16px;
+      font-weight: bold;
+      margin-right: 8px;
+    }
   </style>
 </head>
 <body>
   <h2>🎤 Analyze Meeting</h2>
   <button id="openBtn">Open Recorder</button>
-  <div id="result">⏳ Waiting for result...</div>
+  <button id="stopBtn">Stop Recording</button>
 
-  <script>
-  const openBtn = document.getElementById('openBtn');
-  const resultBox = document.getElementById('result');
-  let recorderWindow = null;
-  let ready = false;
-
-  // 👆 点击打开 recorder.html
-  openBtn.onclick = () => {
-    recorderWindow = window.open(
-      'https://fyp-2025-kath.vercel.app/record.html',
-      '_blank',
-      'width=500,height=400'
-    );
-    console.log("✅ Recorder window opened");
-  };
-
-  // 👂 监听所有来自 record.html 的消息
-  window.addEventListener('message', (event) => {
-    const msg = event.data;
-
-    // ✅ Recorder 页面准备好了
-    if (msg?.type === 'ready-to-record') {
-      console.log('✅ Recorder ready, sending start signal...');
-      ready = true;
-      recorderWindow?.postMessage({ type: 'start-recording' }, '*');
-    }
-
-    // ✅ 收到分析结果
-    if (msg?.pluginMessage?.type === 'analyze-transcript') {
-      const { transcript, summary } = msg.pluginMessage;
-      console.log('📥 Received transcript & summary');
-      resultBox.textContent = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
-
-      // 转发给 code.ts 插件主线程
-      parent.postMessage({
-        pluginMessage: {
-          type: 'analyze-transcript',
-          transcript,
-          summary
-        }
-      }, '*');
-    }
-  });
-</script>
- 
-</body>
-</html> -->
-
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <style>
-    body { font-family: sans-serif; padding: 16px; }
-    #result { white-space: pre-wrap; background: #f2f2f2; padding: 12px; margin-top: 12px; height: 200px; overflow-y: auto; }
-    button { padding: 8px 16px; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <h2>🎤 Analyze Meeting</h2>
-  <button id="openBtn">Open Recorder</button>
-  <div id="result">⏳ Waiting for result...</div>
+  <div id="result">⏳ Waiting for results...</div>
 
   <script>
     const openBtn = document.getElementById('openBtn');
+    const stopBtn = document.getElementById('stopBtn');
     const resultBox = document.getElementById('result');
+    let sessionId = null;
+    let lastShownSummary = '';
 
     openBtn.onclick = () => {
-      // 通过 URL 参数触发 record.html 自动开始录音
+      sessionId = Date.now().toString();
       window.open(
-        'https://fyp-2025-kath.vercel.app/record.html?start=true',
-        'recordWindow',
+        `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
+        'recorder',
         'width=500,height=400'
       );
-      console.log("✅ Recorder window opened with ?start=true");
+      poll(sessionId);
     };
 
-    // 监听 record.html 返回的分析结果
-    window.addEventListener('message', (event) => {
-      const msg = event.data.pluginMessage;
-      if (msg?.type === 'analyze-transcript') {
-        const { transcript, summary } = msg;
-        console.log("📥 Received transcript & summary");
+    stopBtn.onclick = async () => {
+      await fetch('https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals', {
+        method: 'POST',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ session_id: sessionId, command: 'stop' })
+      });
+    };
 
-        resultBox.textContent = `📝 Transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
+    function poll(sessionId) {
+      setInterval(async () => {
+        try {
+          const res = await fetch(`https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/sessions?session_id=eq.${sessionId}&order=created_at.desc&limit=1`, {
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+              'Content-Type': 'application/json'
+            }
+          });
+          const data = await res.json();
+          const item = data?.[0];
+          if (item && item.summary && item.summary !== lastShownSummary) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `<h3>🧠 Summary</h3><p>${item.summary}</p><h3>📝 Transcript</h3><p>${item.transcript}</p>`;
+            resultBox.prepend(card);
 
-        // 发送给 code.ts 插入 Figma 画布
-        parent.postMessage({
-          pluginMessage: {
-            type: 'analyze-transcript',
-            transcript,
-            summary
+            parent.postMessage({
+              pluginMessage: {
+                type: 'analyze-transcript',
+                transcript: item.transcript,
+                summary: item.summary
+              }
+            }, '*');
+
+            lastShownSummary = item.summary;
           }
-        }, '*');
-      }
-    });
+        } catch (err) {
+          console.error('Polling error:', err);
+        }
+      }, 2000);
+    }
   </script>
 </body>
-</html> -->
+</html>
 
 
-<!DOCTYPE html>
+
+
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -252,7 +240,7 @@
     // }
   </script>
 </body>
-</html>
+</html> -->
 
 
 
