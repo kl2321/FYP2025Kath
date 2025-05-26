@@ -37,15 +37,15 @@ figma.ui.onmessage = async (msg) => {
       frame.appendChild(summaryText);
 
       // 📄 Add transcript
-      // const transcriptText = figma.createText();
-      // transcriptText.characters = `📝 Transcript:\n${msg.transcript}`;
-      // transcriptText.fontSize = 12;
-      // transcriptText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
-      // await figma.loadFontAsync(transcriptText.fontName as FontName);
-      // frame.appendChild(transcriptText);
+      const transcriptText = figma.createText();
+      transcriptText.characters = `📝 Transcript:\n${msg.transcript}`;
+      transcriptText.fontSize = 12;
+      transcriptText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
+      await figma.loadFontAsync(transcriptText.fontName as FontName);
+      frame.appendChild(transcriptText);
 
-      // figma.currentPage.appendChild(frame);
-      // figma.viewport.scrollAndZoomIntoView([frame]);
+      figma.currentPage.appendChild(frame);
+      figma.viewport.scrollAndZoomIntoView([frame]);
 
       // ⬇️ Move y for next card
       yOffset += frame.height + 24;
