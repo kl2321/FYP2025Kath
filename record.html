@@ -34,7 +34,7 @@
 
     const transcriptChunks = [];
     let recordingCycleCount = 0;
-    const MAX_CYCLE = 10; // 30s * 10 = 5min
+    const MAX_CYCLE = 2; // 30s * 10 = 5min
     let isManuallyStopped = false;
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -184,6 +184,8 @@
             body: JSON.stringify({ text: combined })
           });
           const data = await res.json();
+          console.log("🧠 Full transcript sent to summarizer:\n", combined);
+
 
           textArea.value = `⏱️ ${duration} min transcript:\n${combined}\n\n🧠 Summary:\n${data.summary}`;
 
