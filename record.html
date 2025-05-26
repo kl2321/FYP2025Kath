@@ -61,13 +61,14 @@
 
     //if (autoStart) startRecording();
 
-    // if (autoStart) {
-    //   isManuallyStopped = false;
-    //   recordingCycleCount = 0;
-    //   transcriptChunks.length = 0;
-    //   sessionStartTime = Date.now();
-    //   startSegmentRecording();
-    // }
+    if (autoStart) {
+      startBtn.onclick();
+      // isManuallyStopped = false;
+      // recordingCycleCount = 0;
+      // transcriptChunks.length = 0;
+      // sessionStartTime = Date.now();
+      // startSegmentRecording();
+    }
 
 
    async function startSegmentRecording() {
