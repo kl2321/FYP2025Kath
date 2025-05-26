@@ -46,23 +46,6 @@
     //startBtn.onclick = startRecording;
     //stopBtn.onclick = stopRecording;
 
-    startBtn.onclick = () => {
-      //isManuallyStopped = false;
-      if (recordingCycleCount === 0) {
-        isManuallyStopped = false;
-      };
-      transcriptChunks.length = 0;
-      sessionStartTime = Date.now();
-      totalSeconds = 0;
-      startSegmentRecording();
-    };
-    stopBtn.onclick = () => {
-      isManuallyStopped = true;
-      stopRecording();
-    };
-
-    //if (autoStart) startRecording();
-
     if (autoStart) {
       console.log("⚙️ Auto-start triggered");
       //isManuallyStopped = false;
@@ -74,6 +57,23 @@
       // startSegmentRecording();
     }
 
+    startBtn.onclick = () => {
+      //isManuallyStopped = false;
+      // if (recordingCycleCount === 0) {
+      //   isManuallyStopped = false;
+      // };
+      transcriptChunks.length = 0;
+      sessionStartTime = Date.now();
+      totalSeconds = 0;
+      startSegmentRecording();
+    };
+    
+    stopBtn.onclick = () => {
+      isManuallyStopped = true;
+      stopRecording();
+    };
+
+    //if (autoStart) startRecording();
 
    async function startSegmentRecording() {
     if (isManuallyStopped) {
