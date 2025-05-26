@@ -34,6 +34,15 @@ export default async function handler(req, res) {
     });
 
     const data = await openaiRes.json();
+    // 🛡️ 安全检查
+    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+    console.warn("🟨 OpenAI returned empty or malformed response:", JSON.stringify(data, null, 2));
+    return res.status(200).json({ summary: '' }); // fallback 防止 500 错误
+    }
+
+
+
+    
     const summary = data.choices?.[0]?.message?.content ?? '';
 
     res.status(200).json({ 
