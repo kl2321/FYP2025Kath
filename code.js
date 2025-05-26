@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-figma.showUI(__html__, { width: 480, height: 520 });
+figma.showUI(__html__, { width: 480, height: 700 });
 let yOffset = 100; // 🧭 To stack summary cards downward
 figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("📨 Figma received pluginMessage:", msg);
@@ -40,14 +40,14 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             yield figma.loadFontAsync(summaryText.fontName);
             frame.appendChild(summaryText);
             // 📄 Add transcript
-            const transcriptText = figma.createText();
-            transcriptText.characters = `📝 Transcript:\n${msg.transcript}`;
-            transcriptText.fontSize = 12;
-            transcriptText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
-            yield figma.loadFontAsync(transcriptText.fontName);
-            frame.appendChild(transcriptText);
-            figma.currentPage.appendChild(frame);
-            figma.viewport.scrollAndZoomIntoView([frame]);
+            // const transcriptText = figma.createText();
+            // transcriptText.characters = `📝 Transcript:\n${msg.transcript}`;
+            // transcriptText.fontSize = 12;
+            // transcriptText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
+            // await figma.loadFontAsync(transcriptText.fontName as FontName);
+            // frame.appendChild(transcriptText);
+            // figma.currentPage.appendChild(frame);
+            // figma.viewport.scrollAndZoomIntoView([frame]);
             // ⬇️ Move y for next card
             yOffset += frame.height + 24;
         }
