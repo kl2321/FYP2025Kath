@@ -1,12 +1,22 @@
 // /api/summarize.js
 export default async function handler(req, res) {
-  const { text } = req.body;
+  const { text, avoid } = req.body;
 
   if (!text) {
     return res.status(400).json({ error: 'Missing text to summarize' });
   }
 
   try {
+    const messages = [
+      {
+        role: "system",
+        content: "You are a meeting assistant. Your job is to summarize meeting transcripts. Your summary should highlight only new key points based on the current transcript, and avoid repeating any points mentioned previously."
+      },
+      {
+        role: "user",
+        content: `Here is the current transcript:\n\n${text}\n\nAvoid repeating the following previously summarized content:\n\n${avoid || 'N/A'}`
+      }
+    ];
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: 'POST',
       headers: {
@@ -15,17 +25,21 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: "You are a meeting minute assistant talented at summarizing transcript into meeting minutes。" },
-          { role: "user", content: `Please summarize the following for the meeting：\n\n${text}` }
-        ]
+
+        // messages: [
+        //   { role: "system", content: "You are a meeting minute assistant talented at summarizing transcript into meeting minutes。" },
+        //   { role: "user", content: `Please summarize the following for the meeting：\n\n${text}` }
+        // ]
       })
     });
 
     const data = await openaiRes.json();
     const summary = data.choices?.[0]?.message?.content ?? '';
 
-    res.status(200).json({ summary });
+    res.status(200).json({ 
+        transcript: text,
+        summary
+     });
 
   } catch (err) {
     console.error("❌ summarize error:", err);
