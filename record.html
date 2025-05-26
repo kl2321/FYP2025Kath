@@ -221,6 +221,7 @@
               avoid: previousSummary })
           });
           const data = await res.json();
+          const summary = data.summary || '';
 
           if (!data.summary) {
             console.warn("⛔ No summary returned from OpenAI. Skipping save.");
@@ -228,8 +229,9 @@
             return;
           }
           // const summary = data.summary || '';
-          // const transcript = data.transcript || combined;
+          //const transcript = data.transcript || combined;
           
+          const transcript = combined;
           previousSummary = summary;
           console.log("🧠  transcript sent to summarizer:\n", combined);
 
@@ -238,13 +240,13 @@
 
           
           // save to Supabase
-          await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+          const saveRes = await fetch('https://fyp-2025-kath.vercel.app/api/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               session: sessionId,
-              transcript: combined,
-              summary: data.summary
+              transcript,
+              summary
             })
           });
 
