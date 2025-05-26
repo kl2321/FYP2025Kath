@@ -204,21 +204,31 @@
       async function summarizeChunks() {
         const currentCombined = transcriptChunks.join('\n');
         fullTranscriptHistory.push(currentCombined);
-        const combined=fullTranscriptHistory.join('\n');
+        const combined = fullTranscriptHistory.join('\n');
         const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
         textArea.value = `🧠 Summarizing full content... (${duration} min)`;
 
         try {
-          const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
+          console.log("📤 Sending to summarizer:", {
+          text: combined,
+          avoid: previousSummary
+        });
+            const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               text: combined,
-              avoid: previousSummary || ''  })
+              avoid: previousSummary })
           });
           const data = await res.json();
-          const summary = data.summary || '';
-          const transcript = data.transcript || combined;
+
+          if (!data.summary) {
+            console.warn("⛔ No summary returned from OpenAI. Skipping save.");
+            textArea.value = '⚠️ Summary failed. Skipped this round.';
+            return;
+          }
+          // const summary = data.summary || '';
+          // const transcript = data.transcript || combined;
           
           previousSummary = summary;
           console.log("🧠  transcript sent to summarizer:\n", combined);
@@ -238,7 +248,14 @@
             })
           });
 
-          console.log("📦 Full result saved.");
+          if (!saveRes.ok) {
+            const errText = await saveRes.text();
+            console.error("❌ Save to Supabase failed:", errText);
+          } else {
+            console.log("📦 Full result saved.");
+          }   
+
+          //console.log("📦 Full result saved.");
 
           // begin the next 5mins loop
           if (!isManuallyStopped) {
@@ -248,8 +265,8 @@
             startSegmentRecording(); // ✅ 继续循环
           }
         } catch (err) {
-          console.error("❌ Final summary error:", err);
-          textArea.value = '❌ Final summary failed.';
+          console.error("❌ Error in summarizeChunks:", err);
+          textArea.value = '❌ Error during summarizing or saving.';
         }
 
         startBtn.disabled = false;
