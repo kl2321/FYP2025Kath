@@ -46,22 +46,22 @@
     //startBtn.onclick = startRecording;
     //stopBtn.onclick = stopRecording;
 
-    if (autoStart) {
-      console.log("⚙️ Auto-start triggered");
-      //isManuallyStopped = false;
-      startBtn.click();
-      // isManuallyStopped = false;
-      // recordingCycleCount = 0;
-      // transcriptChunks.length = 0;
-      // sessionStartTime = Date.now();
-      // startSegmentRecording();
-    }
+    // if (autoStart) {
+    //   console.log("⚙️ Auto-start triggered");
+    //   //isManuallyStopped = false;
+    //   startBtn.click();
+    //   // isManuallyStopped = false;
+    //   // recordingCycleCount = 0;
+    //   // transcriptChunks.length = 0;
+    //   // sessionStartTime = Date.now();
+    //   // startSegmentRecording();
+    // }
 
     startBtn.onclick = () => {
       //isManuallyStopped = false;
-      if (recordingCycleCount === 0) {
-        isManuallyStopped = false;
-      };
+      // if (recordingCycleCount === 0) {
+      //   isManuallyStopped = false;
+      // };
       transcriptChunks.length = 0;
       sessionStartTime = Date.now();
       totalSeconds = 0;
@@ -270,6 +270,13 @@
   window.onload = () => {
     window.opener?.postMessage({ type: 'ready-to-record' }, '*');
     console.log("📤 record.html sent ready-to-record");
+
+    if (autoStart) {
+        console.log("⚙️ Auto-start triggered");
+        isManuallyStopped = false;
+        startBtn.click();
+
+
   };
     // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
   window.addEventListener('message', (event) => {
