@@ -73,6 +73,7 @@
    async function startSegmentRecording() {
     if (isManuallyStopped) {
       console.log("🛑 Manually stopped, summarizing...");
+      console.log("🎯 isManuallyStopped:", isManuallyStopped);
       await summarizeChunks();
       return;
     }
@@ -106,6 +107,7 @@
 
         recorder.onstop = async () => {
           console.log(" Recording stopped");
+          console.log("🎯 isManuallyStopped:", isManuallyStopped);
           await handleSegmentAnalysis();
           if (isManuallyStopped || recordingCycleCount >= MAX_CYCLE) {
             await summarizeChunks();
@@ -218,7 +220,7 @@
       // }
 
       function stopRecording() {
-        isManuallyStopped = true;
+        //isManuallyStopped = true;
 
         if (recorder && recorder.state === 'recording') {
           recorder.stop();
