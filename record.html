@@ -134,6 +134,8 @@
 
       function stopRecording() {
        // isManuallyStopped = true;
+       console.log("📍 stopRecording() called");
+       console.log("⛔ isManuallyStopped:", isManuallyStopped);
 
         if (recorder && recorder.state === 'recording') {
           recorder.stop();
