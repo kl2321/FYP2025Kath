@@ -59,9 +59,9 @@
 
     startBtn.onclick = () => {
       //isManuallyStopped = false;
-      if (recordingCycleCount === 0) {
-        isManuallyStopped = false;
-      };
+      // if (recordingCycleCount === 0) {
+      //   isManuallyStopped = false;
+      // };
       transcriptChunks.length = 0;
       sessionStartTime = Date.now();
       totalSeconds = 0;
@@ -76,8 +76,8 @@
     //if (autoStart) startRecording();
 
    async function startSegmentRecording() {
-    // if (isManuallyStopped) {
-    //   console.log("🛑 Manually stopped, summarizing...");
+    if (isManuallyStopped) {
+      console.log("🛑 Manually stopped, summarizing...");
       //console.log("🎯 isManuallyStopped:", isManuallyStopped);
       await summarizeChunks();
       return;
