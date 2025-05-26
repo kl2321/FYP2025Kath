@@ -76,8 +76,8 @@
     //if (autoStart) startRecording();
 
    async function startSegmentRecording() {
-    if (isManuallyStopped) {
-      console.log("🛑 Manually stopped, summarizing...");
+    // if (isManuallyStopped) {
+    //   console.log("🛑 Manually stopped, summarizing...");
       //console.log("🎯 isManuallyStopped:", isManuallyStopped);
       await summarizeChunks();
       return;
