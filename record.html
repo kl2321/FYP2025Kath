@@ -47,8 +47,10 @@
     //stopBtn.onclick = stopRecording;
 
     startBtn.onclick = () => {
-      isManuallyStopped = false;
-      recordingCycleCount = 0;
+      //isManuallyStopped = false;
+      if (recordingCycleCount === 0) {
+        isManuallyStopped = false;
+      };
       transcriptChunks.length = 0;
       sessionStartTime = Date.now();
       totalSeconds = 0;
@@ -62,6 +64,8 @@
     //if (autoStart) startRecording();
 
     if (autoStart) {
+      console.log("⚙️ Auto-start triggered");
+      //isManuallyStopped = false;
       startBtn.onclick();
       // isManuallyStopped = false;
       // recordingCycleCount = 0;
