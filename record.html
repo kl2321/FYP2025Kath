@@ -66,8 +66,6 @@
       recordingCycleCount = 0;
       transcriptChunks.length = 0;
       sessionStartTime = Date.now();
-      totalSeconds = 0;
-
       startSegmentRecording();
     }
 
@@ -75,13 +73,13 @@
    async function startSegmentRecording() {
     if (isManuallyStopped) {
       console.log("🛑 Manually stopped, summarizing...");
-      console.log("🎯 isManuallyStopped:", isManuallyStopped);
+      //console.log("🎯 isManuallyStopped:", isManuallyStopped);
       await summarizeChunks();
       return;
     }
 
     if (recordingCycleCount >= MAX_CYCLE) {
-      console.log("⏰ Reached 5-minute limit. Summarizing and continuing...")
+      console.log("⏰ Reached minute limit. Summarizing and continuing...")
       await summarizeChunks();
       recordingCycleCount =0;
       transcriptChunks.length =0;
@@ -189,13 +187,13 @@
 
           textArea.value = `⏱️ ${duration} min transcript:\n${combined}\n\n🧠 Summary:\n${data.summary}`;
 
-          window.opener?.postMessage({
-            pluginMessage: {
-              type:'analyze-transcript',
-              transcript: combined,
-              summary:data.summary
-            }
-          }, '*');
+          // window.opener?.postMessage({
+          //   pluginMessage: {
+          //     type:'analyze-transcript',
+          //     transcript: combined,
+          //     summary:data.summary
+          //   }
+          // }, '*');
 
           // 可选：保存整段到 Supabase
           await fetch('https://fyp-2025-kath.vercel.app/api/save', {
@@ -263,6 +261,10 @@
       pollStop(sessionId);
   }
 
+  window.onload = () => {
+    window.opener?.postMessage({ type: 'ready-to-record' }, '*');
+    console.log("📤 record.html sent ready-to-record");
+  };
     // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
   window.addEventListener('message', (event) => {
     const { type } = event.data;
@@ -271,10 +273,7 @@
   });
 
   // ✅ 通知插件 UI：我已经准备好了
-  window.onload = () => {
-    window.opener?.postMessage({ type: 'ready-to-record' }, '*');
-    console.log("📤 record.html sent ready-to-record");
-  };
+  
   </script>
 </body>
 </html>

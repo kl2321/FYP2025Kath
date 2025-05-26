@@ -195,6 +195,7 @@
       }
     });
 
+    let lastFetchedTime = null;
 
     function poll(sessionId) {
       const interval = setInterval(async () => {
@@ -209,12 +210,24 @@
 
           const data = await res.json();
           //console.log("📥 Got from Supabase:", data);
+          const newItems = data.filter(item =>
+            item.created_at && (!lastFetchedTime || new Date(item.created_at) > new Date(lastFetchedTime))
+          );
 
-          if (Array.isArray(data) && data.length > 0 && data[0].summary) {
-            clearInterval(interval);
+          for (const item of newItems) {
+            lastFetchedTime = item.created_at;
 
-            const item = data[0];
+            // 👇 更新 UI 文本框
             resultBox.textContent = `📝 Transcript:\n${item.transcript}\n\n🧠 Summary:\n${item.summary}`;
+
+            // 👇 发回 Figma 插件
+           
+
+          // if (Array.isArray(data) && data.length > 0 && data[0].summary) {
+          //   clearInterval(interval);
+
+          //   const item = data[0];
+          //   resultBox.textContent = `📝 Transcript:\n${item.transcript}\n\n🧠 Summary:\n${item.summary}`;
 
             parent.postMessage({
               pluginMessage: {
