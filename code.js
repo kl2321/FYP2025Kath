@@ -9,9 +9,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 figma.showUI(__html__, { width: 480, height: 700 });
-let yOffset = 0; // 🧭 To stack summary cards downward
+let yOffset = null; // ⬅️ 用 null 表示“未初始化”
 figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
-    if (yOffset === 0) {
+    if (yOffset === null) {
         const { y: viewY } = figma.viewport.bounds;
         yOffset = viewY + 40;
     }
@@ -60,7 +60,7 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             // ⬇️ Move y for next card
             figma.currentPage.appendChild(frame);
             figma.viewport.scrollAndZoomIntoView([frame]);
-            yOffset = frame.y + frame.height + 24;
+            yOffset = yOffset + frame.height + 24;
             //yOffset += frame.height + 24;
         }
         catch (err) {

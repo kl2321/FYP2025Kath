@@ -1,9 +1,9 @@
 figma.showUI(__html__, { width: 480, height: 700 });
 
-let yOffset = 0; // 🧭 To stack summary cards downward
+let yOffset: number | null = null ; // ⬅️ 用 null 表示“未初始化”
 
 figma.ui.onmessage = async (msg) => {
-  if (yOffset === 0) {
+  if (yOffset === null) {
     const { y: viewY } = figma.viewport.bounds;
     yOffset = viewY + 40;
 }
@@ -32,7 +32,7 @@ figma.ui.onmessage = async (msg) => {
       frame.counterAxisAlignItems = 'MIN';
       const { x: viewX, width: viewWidth } = figma.viewport.bounds;
       frame.x = viewX + (viewWidth / 2) - 250; // 卡片宽度约 250，居中显示
-      frame.y = yOffset;
+      frame.y = yOffset!;
       frame.name = "Summary Card";
 
       // 📄 Add summary
@@ -60,7 +60,7 @@ figma.ui.onmessage = async (msg) => {
       figma.currentPage.appendChild(frame);
       figma.viewport.scrollAndZoomIntoView([frame]);
 
-      yOffset = frame.y + frame.height + 24;
+      yOffset = yOffset! + frame.height + 24;
 
       //yOffset += frame.height + 24;
 
