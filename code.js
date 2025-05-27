@@ -9,8 +9,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 figma.showUI(__html__, { width: 480, height: 700 });
-let yOffset = 100; // 🧭 To stack summary cards downward
+let yOffset = 0; // 🧭 To stack summary cards downward
 figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
+    if (yOffset === 0) {
+        const { y: viewY } = figma.viewport.bounds;
+        yOffset = viewY + 40;
+    }
     console.log("📨 Figma received pluginMessage:", msg);
     if (msg.type === 'test') {
         figma.notify("✅ Test message received from UI!");
@@ -31,7 +35,8 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             frame.itemSpacing = 8;
             frame.layoutMode = 'VERTICAL';
             frame.counterAxisAlignItems = 'MIN';
-            frame.x = 100;
+            const { x: viewX, width: viewWidth } = figma.viewport.bounds;
+            frame.x = viewX + (viewWidth / 2) - 250; // 卡片宽度约 250，居中显示
             frame.y = yOffset;
             frame.name = "Summary Card";
             // 📄 Add summary
