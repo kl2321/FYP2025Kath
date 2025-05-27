@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     const messages = [
       {
         role: "system",
-        content: "You are a meeting assistant. Your job is to summarize meeting transcripts. Your summary should highlight only new key points based on the current transcript, and avoid repeating any points mentioned previously."
+        content: "You are a meeting assistant. Your job is to summarize meeting transcripts. Your summary should highlight only new key points based on the current transcript, and avoid repeating any points mentioned previously, summarize the key point into a short overall summary, focus on the decisions the team members are making or to be made, followed by categorizing into explicit and tacit knowledge in bullet points."
       },
       {
         role: "user",
