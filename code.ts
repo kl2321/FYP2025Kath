@@ -15,7 +15,9 @@ figma.ui.onmessage = async (msg) => {
 
       // 🧱 Create a frame as the "card"
       const frame = figma.createFrame();
-      frame.resizeWithoutConstraints(400, 180);
+      frame.resizeWithoutConstraints(500, 0);
+      frame.primaryAxisSizingMode = 'AUTO'; // ⬅️ 自动高度
+      frame.counterAxisSizingMode = 'FIXED'; // ⬅️ 固定宽度
       frame.fills = [{ type: 'SOLID', color: { r: 0.97, g: 0.97, b: 0.97 } }];
       frame.paddingTop = 16;
       frame.paddingBottom = 16;
@@ -33,6 +35,8 @@ figma.ui.onmessage = async (msg) => {
       summaryText.characters = `🧠 Summary:\n${msg.summary}`;
       summaryText.fontSize = 14;
       summaryText.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
+      summaryText.textAutoResize = "HEIGHT";  // ⬅️ 自动调整高度
+      summaryText.resize(468, summaryText.height); // ⬅️ 固定最大宽度（-左右padding）
       await figma.loadFontAsync(summaryText.fontName as FontName);
       frame.appendChild(summaryText);
 
@@ -48,7 +52,12 @@ figma.ui.onmessage = async (msg) => {
       figma.viewport.scrollAndZoomIntoView([frame]);
 
       // ⬇️ Move y for next card
-      yOffset += frame.height + 24;
+      figma.currentPage.appendChild(frame);
+      figma.viewport.scrollAndZoomIntoView([frame]);
+
+      yOffset = frame.y + frame.height + 24;
+
+      //yOffset += frame.height + 24;
 
     } catch (err) {
       console.error('❌ Font load error:', err);
