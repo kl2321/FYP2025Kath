@@ -19,10 +19,26 @@
       margin-top: 0;
     }
     button {
-      padding: 8px 16px;
+      padding: 10px 18px;
+      margin: 8px 8px 16px 0;
       font-weight: bold;
-      margin-right: 8px;
+      margin-right: 6px;
     }
+    #spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-top-color: #333;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
   </style>
 </head>
 <body>
@@ -30,7 +46,8 @@
   <button id="openBtn">Open Recorder</button>
   <button id="stopBtn">Stop Recording</button>
 
-  <div id="result">⏳ Waiting for results...</div>
+  <div id="result">⏳ Waiting for results... <span id="spinner"></span></div>
+
 
   <script>
     const openBtn = document.getElementById('openBtn');
@@ -63,6 +80,10 @@
     };
 
     function poll(sessionId) {
+       const container = document.getElementById('cardsContainer') || document.createElement('div');
+      container.id = 'cardsContainer';
+      document.body.appendChild(container);
+
       setInterval(async () => {
         try {
           const res = await fetch(`https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/sessions?session_id=eq.${sessionId}&order=created_at.desc&limit=1`, {
@@ -77,8 +98,12 @@
           if (item && item.summary && item.summary !== lastShownSummary) {
             const card = document.createElement('div');
             card.className = 'card';
-            card.innerHTML = `<h3>🧠 Summary</h3><p>${item.summary}</p><h3>📝 Transcript</h3><p>${item.transcript}</p>`;
-            resultBox.prepend(card);
+            card.innerHTML = `<h3>🧠 Summary</h3><p>${item.summary}</p>`;
+
+            container.prepend(card);
+            
+            
+            //resultBox.prepend(card);
 
             parent.postMessage({
               pluginMessage: {
