@@ -59,46 +59,61 @@
     const resultBox = document.getElementById('result');
     let sessionId = null;
     let lastShownSummary = '';
-    let recorderWindow = null;
+ 
     // ✅ 提前注册 message handler
-    window.addEventListener('message', function handler(e) {
-      if (e.data?.type === 'ready-to-record') {
-        console.log("✅ Recorder window is ready");
-        console.log("🛎️ Got message from record:", e.data);
+    // window.addEventListener('message', function handler(e) {
+    //   if (e.data?.type === 'ready-to-record') {
+    //     console.log("✅ Recorder window is ready");
+    //     console.log("🛎️ Got message from record:", e.data);
 
         
 
-        const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
-        console.log("📤 Sending set-max-cycle:", intervalMin);
-        recorderWindow?.postMessage({ type: 'set-max-cycle', value: intervalMin }, '*');
+    //     const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
+    //     console.log("📤 Sending set-max-cycle:", intervalMin);
+    //     recorderWindow?.postMessage({ type: 'set-max-cycle', value: intervalMin }, '*');
 
-        window.removeEventListener('message', handler);
-      }
+    //     window.removeEventListener('message', handler);
+    //   }
+    // });
+
+    openBtn.onclick = async () => {
+  sessionId = Date.now().toString();
+
+  // ⏱️ 获取用户输入分钟数
+  const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
+
+  // 📤 发送 set_cycle 指令到 Supabase
+  try {
+    await fetch('https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals', {
+      method: 'POST',
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        command: 'set_cycle',
+        value: intervalMin
+      })
     });
 
-    openBtn.onclick = () => {
-      sessionId = Date.now().toString();
-      // 🆕 从 input 获取分钟数，并转换为数字
-      //const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
-      // window.open(
-      //   `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
-      //   'recorder',
-      //   'width=500,height=400'
-      // );
-      const recorderWindow = window.open(
-        `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
-        'recorder',
-        'width=500,height=400'
-);
+    console.log("✅ Sent set_cycle to Supabase:", intervalMin);
+  } catch (err) {
+    console.error("❌ Failed to send set_cycle:", err);
+  }
 
-      poll(sessionId);
-//       window.addEventListener('message', function handler(e) {
-//         if (e.data?.type === 'ready-to-record') {
-//           recorderWindow.postMessage({ type: 'set-max-cycle', value: intervalMin }, '*');
-//           window.removeEventListener('message', handler);
-//         }
-// });
-    };
+  // 🔗 打开 recorder 页面
+  window.open(
+    `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
+    'recorder',
+    'width=500,height=400'
+  );
+
+  poll(sessionId);
+};
+
 
     stopBtn.onclick = async () => {
       await fetch('https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals', {

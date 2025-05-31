@@ -313,6 +313,37 @@
       pollStop(sessionId);
   }
 
+  function pollCycleSetting(sessionId) {
+  console.log("🛎️ Starting pollCycleSetting for sessionId:", sessionId);
+  const interval = setInterval(async () => {
+    const url = `https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.set_cycle`;
+
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'apikey': 'YOUR_API_KEY',
+          'Authorization': 'Bearer YOUR_BEARER_TOKEN',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const item = data[0];
+        if (item?.value && typeof item.value === 'number') {
+          const cycle = Math.round((item.value * 60) / 30);
+          MAX_CYCLE = cycle;
+          console.log(`⚙️ MAX_CYCLE updated from Supabase: ${item.value} minutes → ${MAX_CYCLE}`);
+          clearInterval(interval); // ✅ 只设置一次即可
+        }
+      }
+    } catch (err) {
+      console.error("❌ pollCycleSetting error:", err);
+    }
+  }, 1000);
+}
+
+
   window.onload = () => {
     window.opener?.postMessage({ type: 'ready-to-record' }, '*');
     console.log("📤 record.html sent ready-to-record");
@@ -325,21 +356,21 @@
 
   };
     // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
-  window.addEventListener('message', (event) => {
-    const { type, value } = event.data;
-    if (type === 'start-recording') startBtn.click();
-    if (type === 'stop-recording') stopBtn.click(); 
-    if (type === 'set-max-cycle') {
-      console.log("🛠️ Setting MAX_CYCLE to:", value);
-      if (typeof value === 'number' && value > 0) {
-        MAX_CYCLE = Math.round((value * 60)/30);
-        console.log("⏱️ MAX_CYCLE set to:", MAX_CYCLE);
-      } else {
-        console.warn("⚠️ Invalid interval input:", value);
-      }
-    }
+  // window.addEventListener('message', (event) => {
+  //   const { type, value } = event.data;
+  //   if (type === 'start-recording') startBtn.click();
+  //   if (type === 'stop-recording') stopBtn.click(); 
+  //   if (type === 'set-max-cycle') {
+  //     console.log("🛠️ Setting MAX_CYCLE to:", value);
+  //     if (typeof value === 'number' && value > 0) {
+  //       MAX_CYCLE = Math.round((value * 60)/30);
+  //       console.log("⏱️ MAX_CYCLE set to:", MAX_CYCLE);
+  //     } else {
+  //       console.warn("⚠️ Invalid interval input:", value);
+  //     }
+  //   }
      
-  });
+  // });
 
  
   
