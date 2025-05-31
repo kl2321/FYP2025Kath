@@ -34,7 +34,7 @@
 
     const transcriptChunks = [];
     let recordingCycleCount = 0;
-    const MAX_CYCLE = 2; // 30s * 10 = 5min
+    let MAX_CYCLE = 10; // 30s * 10 = 5min
     let isManuallyStopped = false;
     let previousSummary = ''; // record last summary looop
 
@@ -326,9 +326,19 @@
   };
     // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
   window.addEventListener('message', (event) => {
-    const { type } = event.data;
+    const { type, value } = event.data;
     if (type === 'start-recording') startBtn.click();
-    if (type === 'stop-recording') stopBtn.click();  
+    if (type === 'stop-recording') stopBtn.click(); 
+    if (type === 'set-max-cycle') {
+      console.log("🛠️ Setting MAX_CYCLE to:", value);
+      if (typeof value === 'number' && value > 0) {
+        MAX_CYCLE = Math.round((value * 60)/30);
+        console.log("⏱️ MAX_CYCLE set to:", MAX_CYCLE);
+      } else {
+        console.warn("⚠️ Invalid interval input:", value);
+      }
+    }
+     
   });
 
  
