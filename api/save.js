@@ -10,6 +10,15 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
+  let body = req.body;
+  if (typeof req.body === 'string') {
+    try {
+      body = JSON.parse(req.body);
+    } catch (err) {
+      return res.status(400).json({ error: 'Invalid JSON format' });
+    }
+  }
+  
 
   try {
     const body = await getJsonBody(req);
