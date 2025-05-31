@@ -59,11 +59,27 @@
     const resultBox = document.getElementById('result');
     let sessionId = null;
     let lastShownSummary = '';
+    let recorderWindow = null;
+    // ✅ 提前注册 message handler
+    window.addEventListener('message', function handler(e) {
+      if (e.data?.type === 'ready-to-record') {
+        console.log("✅ Recorder window is ready");
+        console.log("🛎️ Got message from record:", e.data);
+
+        
+
+        const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
+        console.log("📤 Sending set-max-cycle:", intervalMin);
+        recorderWindow?.postMessage({ type: 'set-max-cycle', value: intervalMin }, '*');
+
+        window.removeEventListener('message', handler);
+      }
+    });
 
     openBtn.onclick = () => {
       sessionId = Date.now().toString();
       // 🆕 从 input 获取分钟数，并转换为数字
-      const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
+      //const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
       // window.open(
       //   `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
       //   'recorder',
@@ -76,12 +92,12 @@
 );
 
       poll(sessionId);
-      window.addEventListener('message', function handler(e) {
-        if (e.data?.type === 'ready-to-record') {
-          recorderWindow.postMessage({ type: 'set-max-cycle', value: intervalMin }, '*');
-          window.removeEventListener('message', handler);
-        }
-});
+//       window.addEventListener('message', function handler(e) {
+//         if (e.data?.type === 'ready-to-record') {
+//           recorderWindow.postMessage({ type: 'set-max-cycle', value: intervalMin }, '*');
+//           window.removeEventListener('message', handler);
+//         }
+// });
     };
 
     stopBtn.onclick = async () => {
