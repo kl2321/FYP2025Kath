@@ -1,15 +1,15 @@
 // /api/summarize.js
-let body = req.body;
-if (typeof req.body === 'string') {
-  try {
-    body = JSON.parse(req.body);
-  } catch (err) {
-    return res.status(400).json({ error: 'Invalid JSON format' });
-  }
-}
+// let body = req.body;
+// if (typeof req.body === 'string') {
+//   try {
+//     body = JSON.parse(req.body);
+//   } catch (err) {
+//     return res.status(400).json({ error: 'Invalid JSON format' });
+//   }
+// }
 
 export default async function handler(req, res) {
-  const { text, avoid } = body;
+  const { text, avoid } = req.body;
 
   if (!text) {
     return res.status(400).json({ error: 'Missing text to summarize' });
