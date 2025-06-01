@@ -18,6 +18,18 @@
     .card h3 {
       margin-top: 0;
     }
+    .card button.toggle-btn {
+      float: right;
+      font-size: 18px;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+    .details {
+      display: none;
+      margin-top: 10px;
+    }
+
     button {
       padding: 10px 18px;
       margin: 8px 8px 16px 0;
@@ -49,6 +61,8 @@
 
   <button id="openBtn">Open Recorder</button>
   <button id="stopBtn">Stop Recording</button>
+
+   <div id="cardsContainer"></div>
   
   
 
@@ -56,7 +70,7 @@
   <script>
     const openBtn = document.getElementById('openBtn');
     const stopBtn = document.getElementById('stopBtn');
-    const resultBox = document.getElementById('result');
+    //const resultBox = document.getElementById('result');
     let sessionId = null;
     let lastShownSummary = '';
  
@@ -77,10 +91,10 @@
     // });
 
     openBtn.onclick = async () => {
-  sessionId = Date.now().toString();
+      sessionId = Date.now().toString();
 
   // ⏱️ 获取用户输入分钟数
-  const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
+      const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
 
   // 📤 发送 set_cycle 指令到 Supabase
   try {
@@ -129,9 +143,9 @@
     };
 
     function poll(sessionId) {
-       const container = document.getElementById('cardsContainer') || document.createElement('div');
-      container.id = 'cardsContainer';
-      document.body.appendChild(container);
+       const container = document.getElementById('cardsContainer');
+      // container.id = 'cardsContainer';
+      // document.body.appendChild(container);
 
       setInterval(async () => {
         try {
@@ -147,9 +161,41 @@
           if (item && item.summary && item.summary !== lastShownSummary) {
             const card = document.createElement('div');
             card.className = 'card';
-            card.innerHTML = `<h3>🧠 Summary</h3><p>${item.summary}</p>`;
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'toggle-btn';
+            toggleBtn.textContent = '+';
+            const summaryHeader = document.createElement('h3');
+            summaryHeader.textContent = '🧠 Summary';
+            summaryHeader.appendChild(toggleBtn);
 
+            const summaryPara = document.createElement('p');
+            summaryPara.textContent = item.summary;
+
+            const details = document.createElement('div');
+            details.className = 'details';
+            details.innerHTML = `
+              <h4>📌 Decision</h4><ul>${(item.decision || []).map(d => `<li>${d}</li>`).join('')}</ul>
+              <h4>📘 Explicit</h4><ul>${(item.explicit || []).map(e => `<li>${e}</li>`).join('')}</ul>
+              <h4>💡 Tacit</h4><ul>${(item.tacit || []).map(t => `<li>${t}</li>`).join('')}</ul>
+              <h4>🧠 Reasoning</h4><p>${item.reasoning || ''}</p>
+              <h4>🔗 Suggestions</h4><ul>${(item.suggestions || []).map(s => `<li>${s}</li>`).join('')}</ul>
+            `;
+
+             toggleBtn.onclick = () => {
+              const isShown = details.style.display === 'block';
+              details.style.display = isShown ? 'none' : 'block';
+              toggleBtn.textContent = isShown ? '+' : '−';
+            };
+
+            card.appendChild(summaryHeader);
+            card.appendChild(summaryPara);
+            card.appendChild(details);
             container.prepend(card);
+            
+            
+            // card.innerHTML = `<h3>🧠 Summary</h3><p>${item.summary}</p>`;
+
+            // container.prepend(card);
             
             
             //resultBox.prepend(card);
@@ -158,7 +204,12 @@
               pluginMessage: {
                 type: 'analyze-transcript',
                 transcript: item.transcript,
-                summary: item.summary
+                summary: item.summary,
+                decision: item.decision,
+                explicit: item.explicit,
+                tacit: item.tacit,
+                reasoning: item.reasoning,
+                suggestions: item.suggestions
               }
             }, '*');
 

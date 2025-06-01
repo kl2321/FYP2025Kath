@@ -22,7 +22,18 @@ export default async function handler(req, res) {
 
   try {
     const body = await getJsonBody(req);
-    const { session, transcript, summary } = body;
+    //const { session, transcript, summary } = body;
+    const {
+    session,
+    transcript,
+    summary,
+    decision,
+    explicit,
+    tacit,
+    reasoning,
+    suggestions,
+    is_final
+  } = body;
 
     if (!session || !transcript || !summary) {
       return res.status(400).json({ error: 'Missing fields' });
@@ -38,7 +49,13 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         session_id: session,
         transcript,
-        summary
+        summary,
+        decision,
+        explicit,
+        tacit,
+        reasoning,
+        suggestions,
+        is_final: is_final || false
       })
     });
 

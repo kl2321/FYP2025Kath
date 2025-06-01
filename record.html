@@ -36,7 +36,13 @@
     let recordingCycleCount = 0;
     let MAX_CYCLE = 10; // 30s * 10 = 5min
     let isManuallyStopped = false;
-    let previousSummary = ''; // record last summary looop
+    //let previousSummary = ''; // record last summary looop
+    let previousSummary = {
+      summary: '',
+      decision: [],
+      explicit: [],
+      tacit: []
+    };
 
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get("session");
@@ -168,38 +174,7 @@
         }
       }
 
-      async function finalSummarize() {
-        const fullTranscript = fullTranscriptHistory.join('\n');
-        const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
-        textArea.value = `📦 Finalizing full content... (${duration} min)`;
-
-        try {
-          const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: fullTranscript })
-          });
-          const data = await res.json();
-
-          textArea.value = `⏱️ Final transcript:\n${fullTranscript}\n\n🧠 Final Summary:\n${data.summary}`;
-
-          await fetch('https://fyp-2025-kath.vercel.app/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              session: sessionId,
-              transcript: fullTranscript,
-              summary: data.summary,
-              is_final: true // optional field
-            })
-          });
-          console.log("✅ Final summary saved.");
-        } catch (err) {
-          console.error('❌ Final summary failed:', err);
-          textArea.value = '❌ Final summary failed.';
-        }
-      }
-            
+      
       
       async function summarizeChunks() {
         const currentCombined = transcriptChunks.join('\n');
@@ -209,19 +184,27 @@
         textArea.value = `🧠 Summarizing full content... (${duration} min)`;
 
         try {
-          console.log("📤 Sending to summarizer:", {
-          text: combined,
-          avoid: previousSummary
-        });
+        //   console.log("📤 Sending to summarizer:", {
+        //   text: combined,
+        //   avoid: previousSummary
+        // });
+         const avoidCombined = [
+          previousSummary.summary,
+          ...previousSummary.decision,
+          ...previousSummary.explicit,
+          ...previousSummary.tacit
+        ].join('\n');
+
+
             const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               text: combined,
-              avoid: previousSummary })
+              avoid: avoidCombined })
           });
           const data = await res.json();
-          const summary = data.summary || '';
+          //const summary = data.summary || '';
 
           if (!data.summary) {
             console.warn("⛔ No summary returned from OpenAI. Skipping save.");
@@ -232,11 +215,18 @@
           //const transcript = data.transcript || combined;
           
           const transcript = combined;
-          previousSummary = summary;
-          console.log("🧠  transcript sent to summarizer:\n", combined);
+          previousSummary.summary += '\n' + (data.summary || '');
+          previousSummary.decision = [...previousSummary.decision, ...(data.decision || [])];
+          previousSummary.explicit = [...previousSummary.explicit, ...(data.explicit || [])];
+          previousSummary.tacit = [...previousSummary.tacit, ...(data.tacit || [])];
+
+          textArea.value = `⏱️ ${duration} min transcript:\n${transcript}\n\n🧠 Summary:\n${data.summary}`;
+
+          // previousSummary = summary;
+          // console.log("🧠  transcript sent to summarizer:\n", combined);
 
 
-          textArea.value = `⏱️ ${duration} min transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
+          // textArea.value = `⏱️ ${duration} min transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
 
           
           // save to Supabase
@@ -246,7 +236,12 @@
             body: JSON.stringify({
               session: sessionId,
               transcript,
-              summary
+              summary: data.summary,
+              decision: data.decision,
+              explicit: data.explicit,
+              tacit: data.tacit,
+              reasoning: data.reasoning,
+              suggestions: data.suggestions
             })
           });
 
@@ -274,6 +269,44 @@
         startBtn.disabled = false;
         stopBtn.disabled = true;
       }
+
+      async function finalSummarize() {
+        const fullTranscript = fullTranscriptHistory.join('\n');
+        const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
+        textArea.value = `📦 Finalizing full content... (${duration} min)`;
+
+        try {
+          const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: fullTranscript })
+          });
+          const data = await res.json();
+
+          textArea.value = `⏱️ Final transcript:\n${fullTranscript}\n\n🧠 Final Summary:\n${data.summary}`;
+
+          await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              session: sessionId,
+              transcript: fullTranscript,
+              summary: data.summary,
+              decision: data.decision,
+              explicit: data.explicit,
+              tacit: data.tacit,
+              reasoning: data.reasoning,
+              suggestions: data.suggestions,
+              is_final: true
+            })
+          });
+          console.log("✅ Final summary saved.");
+        } catch (err) {
+          console.error('❌ Final summary failed:', err);
+          textArea.value = '❌ Final summary failed.';
+        }
+      }
+            
 
     function pollStop(sessionId) {
       console.log("🔁 Starting pollStop for sessionId:", sessionId);
@@ -356,25 +389,7 @@
     }
 
   };
-    // ✅ 外部控制的监听器（ui.html 发送 postMessage 控制）
-  // window.addEventListener('message', (event) => {
-  //   const { type, value } = event.data;
-  //   if (type === 'start-recording') startBtn.click();
-  //   if (type === 'stop-recording') stopBtn.click(); 
-  //   if (type === 'set-max-cycle') {
-  //     console.log("🛠️ Setting MAX_CYCLE to:", value);
-  //     if (typeof value === 'number' && value > 0) {
-  //       MAX_CYCLE = Math.round((value * 60)/30);
-  //       console.log("⏱️ MAX_CYCLE set to:", MAX_CYCLE);
-  //     } else {
-  //       console.warn("⚠️ Invalid interval input:", value);
-  //     }
-  //   }
-     
-  // });
-
- 
-  
+   
   </script>
 </body>
 </html>
