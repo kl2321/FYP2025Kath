@@ -19,17 +19,17 @@ export default async function handler(req, res) {
     const messages = [
       {
         role: "system",
-        content: "You are a meeting assistant. You will analyze transcripts and return structured summaries in JSON format."
+        content: "You are a meeting assistant. You will analyze transcripts and return structured summaries in JSON format. Ignore the part that is irrelevant to the team's project work or collaboration."
       },
       {
         role: "user",
         content: `You will be given a meeting transcript. Please:
 1. Provide a one-sentence summary of the new content.
-2. Identify any decisions made or discussed.
-3. Extract explicit knowledge (factual, documented).
-4. Extract tacit knowledge (experiential or intuitive).
-5. Provide reasoning behind decisions.
-6. Suggest related tools, materials, or examples.
+2. Identify any decisions made or discussed, intepret from the transcript the problem they are solving, the group is discussing....
+3. Extract explicit knowledge (factual, documented) that supports or against the decision.
+4. Extract tacit knowledge (experiential or intuitive)that supports or against the decision.
+5. Provide reasoning behind decisions, their logic flow: the team dicussed A -> B -> C....
+6. Suggest related tools, materials, hyperlink or examples for the team to explore further related to the decision they are making or problems they are solving.
 
 Avoid repeating any of the previously summarized content below:
 ${avoid || 'N/A'}
