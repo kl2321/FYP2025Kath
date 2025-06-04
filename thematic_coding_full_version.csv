@@ -1,0 +1,101 @@
+Trunk,Speaker,Quote,Theme,Pattern or Barrier,Label (Code)
+T6,S6,Letis just talk through our ideas and see what we land on.,Need for external validation,DM Pattern,DM-MentalModel
+T3,S4,I just did a quick drawing on paper... itis not on Figma yet.,BO as external artifact for negotiation,BO Barrier,BO-External
+T7,S2,Did we already talk about adding a ridge to the grip?,BO as external artifact for negotiation,KS Barrier,KS-Explicit
+T3,S6,Do we want to ask the tutor now or decide ourselves?,KS Barrier â€?Forgetting prior discussion,BO Barrier,DM-Misaligned
+T8,S1,Do we want to ask the tutor now or decide ourselves?,Unstructured initiation of DM,DM Pattern,DM-Misaligned
+T5,S5,I thought we had already kind of agreed on that direction?,Lack of clarity in decision evaluation,DM Barrier,DM-SuperficialEval
+T4,S3,Do we want to ask the tutor now or decide ourselves?,Need for external validation,KS Barrier,BO-External
+T7,S1,How do we even begin deciding which one to prototype?,Lack of clarity in decision evaluation,DM Pattern,KS-RecallGap
+T2,S6,Do we want to ask the tutor now or decide ourselves?,Unstructured initiation of DM,DM Barrier,DM-Validate
+T4,S6,I thought we had already kind of agreed on that direction?,Tacit KS through co-construction,KS Barrier,DM-Misaligned
+T4,S2,We could rotate the arm instead of sliding it?,Unstructured initiation of DM,BO Pattern,DM-SuperficialEval
+T3,S1,This shape just feels more ergonomic.,DM Barrier â€?Implicit agenda mismatch,KS Pattern,DM-Unstructured
+T7,S1,We might need to vote to break this tie.,Unstructured initiation of DM,BO Barrier,DM-MentalModel
+T5,S2,This shape just feels more ergonomic.,Unstructured initiation of DM,KS Pattern,DM-Misaligned
+T4,S6,Do we want to ask the tutor now or decide ourselves?,Unstructured initiation of DM,KS Barrier,DM-Validate
+T10,S4,Letis just talk through our ideas and see what we land on.,Visual knowledge shared through sketching,BO Pattern,KS-RecallGap
+T5,S5,Do we want to ask the tutor now or decide ourselves?,Need for external validation,DM Barrier,DM-MentalModel
+T9,S1,We might need to vote to break this tie.,DM Barrier â€?Implicit agenda mismatch,KS Barrier,KS-Explicit
+T2,S6,This shape just feels more ergonomic.,Unstructured initiation of DM,BO Barrier,DM-Unstructured
+T1,S3,I thought we had already kind of agreed on that direction?,Unstructured initiation of DM,DM Pattern,BO-Visual
+T8,S4,We might need to vote to break this tie.,Unstructured initiation of DM,KS Pattern,BO-External
+T9,S3,We have data from the last round of testingâ€?DM Barrier â€?Implicit agenda mismatch,KS Pattern,DM-Unstructured,
+T9,S3,We have data from the last round of testingâ€?KS Barrier â€?Forgetting prior discussion,DM Barrier,BO-External,
+T4,S5,How do we even begin deciding which one to prototype?,Lack of clarity in decision evaluation,BO Pattern,DM-MentalModel
+T9,S2,Do we want to ask the tutor now or decide ourselves?,Visual knowledge shared through sketching,DM Pattern,KS-Tacit
+T1,S4,We could rotate the arm instead of sliding it?,DM Barrier â€?Implicit agenda mismatch,BO Pattern,DM-Unstructured
+T9,S2,We might need to vote to break this tie.,Unstructured initiation of DM,DM Pattern,BO-External
+T9,S3,We might need to vote to break this tie.,Visual knowledge shared through sketching,BO Pattern,DM-Unstructured
+T3,S6,Do we want to ask the tutor now or decide ourselves?,Need for external validation,BO Barrier,KS-Tacit
+T7,S5,Letis just talk through our ideas and see what we land on.,Lack of clarity in decision evaluation,DM Pattern,BO-Visual
+T9,S5,Do we want to ask the tutor now or decide ourselves?,DM Barrier â€?Implicit agenda mismatch,DM Pattern,DM-SuperficialEval
+T9,S4,We might need to vote to break this tie.,KS Barrier â€?Forgetting prior discussion,DM Barrier,KS-RecallGap
+T10,S5,Letis just talk through our ideas and see what we land on.,DM Barrier â€?Implicit agenda mismatch,DM Pattern,DM-Unstructured
+T1,S1,This shape just feels more ergonomic.,BO as external artifact for negotiation,DM Barrier,KS-Explicit
+T3,S2,We could rotate the arm instead of sliding it?,Lack of clarity in decision evaluation,DM Pattern,BO-Visual
+T1,S5,Letis just talk through our ideas and see what we land on.,Tacit KS through co-construction,DM Pattern,DM-MentalModel
+T10,S3,We might need to vote to break this tie.,DM Barrier â€?Implicit agenda mismatch,KS Barrier,DM-Unstructured
+T2,S1,I thought we had already kind of agreed on that direction?,DM Barrier â€?Implicit agenda mismatch,DM Barrier,BO-Visual
+T8,S2,Do we want to ask the tutor now or decide ourselves?,Need for external validation,KS Pattern,KS-RecallGap
+T7,S1,Letis just talk through our ideas and see what we land on.,Lack of clarity in decision evaluation,BO Pattern,DM-MentalModel
+T3,S6,I just did a quick drawing on paper... itis not on Figma yet.,DM Barrier â€?Implicit agenda mismatch,DM Pattern,DM-SuperficialEval
+T7,S1,I just did a quick drawing on paper... itis not on Figma yet.,Lack of clarity in decision evaluation,KS Pattern,BO-Visual
+T4,S3,Do we want to ask the tutor now or decide ourselves?,KS Barrier â€?Forgetting prior discussion,KS Barrier,DM-Validate
+T4,S5,We might need to vote to break this tie.,Lack of clarity in decision evaluation,KS Pattern,BO-External
+T4,S2,Letis just talk through our ideas and see what we land on.,Lack of clarity in decision evaluation,KS Barrier,KS-RecallGap
+T1,S2,We have data from the last round of testingâ€?Explicit KS using previous testing data,DM Barrier,KS-RecallGap,
+T5,S1,I just did a quick drawing on paper... itis not on Figma yet.,Need for external validation,DM Pattern,BO-External
+T6,S2,This shape just feels more ergonomic.,Visual knowledge shared through sketching,KS Pattern,BO-External
+T9,S2,Do we want to ask the tutor now or decide ourselves?,KS Barrier â€?Forgetting prior discussion,BO Barrier,KS-RecallGap
+T10,S6,I just did a quick drawing on paper... itis not on Figma yet.,Lack of clarity in decision evaluation,BO Barrier,KS-Explicit
+T2,S5,I just did a quick drawing on paper... itis not on Figma yet.,BO as external artifact for negotiation,KS Pattern,BO-External
+T1,S5,We might need to vote to break this tie.,Lack of clarity in decision evaluation,DM Barrier,DM-Misaligned
+T10,S4,We have data from the last round of testingâ€?Visual knowledge shared through sketching,BO Barrier,DM-SuperficialEval,
+T10,S2,This shape just feels more ergonomic.,Visual knowledge shared through sketching,KS Barrier,KS-Tacit
+T7,S1,We have data from the last round of testingâ€?Shared mental model not fully established,DM Pattern,KS-RecallGap,
+T5,S2,We might need to vote to break this tie.,BO as external artifact for negotiation,DM Pattern,DM-Misaligned
+T4,S1,Did we already talk about adding a ridge to the grip?,Explicit KS using previous testing data,KS Pattern,KS-RecallGap
+T9,S3,We might need to vote to break this tie.,Tacit KS through co-construction,DM Barrier,BO-Visual
+T5,S3,Do we want to ask the tutor now or decide ourselves?,Shared mental model not fully established,KS Pattern,DM-Unstructured
+T8,S1,This shape just feels more ergonomic.,KS Barrier â€?Forgetting prior discussion,DM Pattern,DM-MentalModel
+T4,S1,Letis just talk through our ideas and see what we land on.,Need for external validation,BO Barrier,BO-External
+T6,S2,Do we want to ask the tutor now or decide ourselves?,DM Barrier â€?Implicit agenda mismatch,KS Barrier,BO-Visual
+T6,S3,Do we want to ask the tutor now or decide ourselves?,BO as external artifact for negotiation,BO Pattern,BO-External
+T9,S2,This shape just feels more ergonomic.,Tacit KS through co-construction,DM Barrier,DM-Validate
+T10,S3,Do we want to ask the tutor now or decide ourselves?,DM Barrier â€?Implicit agenda mismatch,DM Pattern,DM-Misaligned
+T10,S2,This shape just feels more ergonomic.,Shared mental model not fully established,BO Pattern,BO-External
+T4,S5,We might need to vote to break this tie.,Unstructured initiation of DM,BO Barrier,KS-RecallGap
+T1,S5,I thought we had already kind of agreed on that direction?,Visual knowledge shared through sketching,DM Barrier,DM-SuperficialEval
+T10,S5,Letis just talk through our ideas and see what we land on.,Unstructured initiation of DM,BO Barrier,DM-SuperficialEval
+T7,S6,We have data from the last round of testingâ€?BO as external artifact for negotiation,KS Barrier,DM-MentalModel,
+T4,S6,This shape just feels more ergonomic.,Need for external validation,DM Pattern,KS-Explicit
+T5,S4,Letis just talk through our ideas and see what we land on.,Need for external validation,BO Pattern,DM-Misaligned
+T2,S6,How do we even begin deciding which one to prototype?,DM Barrier â€?Implicit agenda mismatch,DM Pattern,DM-Validate
+T4,S3,I thought we had already kind of agreed on that direction?,Tacit KS through co-construction,DM Pattern,DM-SuperficialEval
+T2,S4,Letis just talk through our ideas and see what we land on.,Explicit KS using previous testing data,DM Barrier,DM-SuperficialEval
+T4,S4,How do we even begin deciding which one to prototype?,DM Barrier â€?Implicit agenda mismatch,BO Pattern,KS-Explicit
+T6,S4,I just did a quick drawing on paper... itis not on Figma yet.,Tacit KS through co-construction,DM Barrier,KS-RecallGap
+T3,S2,We have data from the last round of testingâ€?Need for external validation,BO Barrier,DM-Misaligned,
+T6,S6,We might need to vote to break this tie.,Shared mental model not fully established,KS Barrier,DM-SuperficialEval
+T7,S2,We have data from the last round of testingâ€?Shared mental model not fully established,DM Pattern,DM-SuperficialEval,
+T2,S1,This shape just feels more ergonomic.,KS Barrier â€?Forgetting prior discussion,BO Barrier,BO-Visual
+T6,S2,We have data from the last round of testingâ€?Visual knowledge shared through sketching,BO Pattern,BO-External,
+T10,S6,Do we want to ask the tutor now or decide ourselves?,DM Barrier â€?Implicit agenda mismatch,KS Pattern,KS-Explicit
+T3,S4,How do we even begin deciding which one to prototype?,Tacit KS through co-construction,BO Barrier,BO-Visual
+T1,S1,This shape just feels more ergonomic.,Unstructured initiation of DM,KS Pattern,DM-Validate
+T9,S1,Do we want to ask the tutor now or decide ourselves?,Visual knowledge shared through sketching,DM Barrier,KS-RecallGap
+T4,S1,How do we even begin deciding which one to prototype?,Need for external validation,BO Barrier,DM-Unstructured
+T8,S6,I thought we had already kind of agreed on that direction?,Shared mental model not fully established,DM Barrier,KS-RecallGap
+T8,S1,Did we already talk about adding a ridge to the grip?,Shared mental model not fully established,BO Barrier,DM-Unstructured
+T4,S6,We might need to vote to break this tie.,Lack of clarity in decision evaluation,BO Pattern,KS-Tacit
+T8,S1,Do we want to ask the tutor now or decide ourselves?,BO as external artifact for negotiation,KS Pattern,DM-Misaligned
+T5,S2,How do we even begin deciding which one to prototype?,Tacit KS through co-construction,BO Pattern,KS-Tacit
+T7,S6,Did we already talk about adding a ridge to the grip?,Visual knowledge shared through sketching,BO Pattern,KS-RecallGap
+T6,S5,This shape just feels more ergonomic.,Explicit KS using previous testing data,DM Barrier,KS-Explicit
+T2,S1,Letis just talk through our ideas and see what we land on.,Lack of clarity in decision evaluation,BO Pattern,KS-Tacit
+T4,S1,We have data from the last round of testingâ€?Tacit KS through co-construction,KS Barrier,DM-SuperficialEval,
+T1,S6,We have data from the last round of testingâ€?Explicit KS using previous testing data,DM Barrier,KS-Tacit,
+T8,S6,Did we already talk about adding a ridge to the grip?,Tacit KS through co-construction,DM Barrier,DM-SuperficialEval
+T3,S5,I just did a quick drawing on paper... itis not on Figma yet.,Unstructured initiation of DM,BO Pattern,DM-SuperficialEval
+T2,S3,This shape just feels more ergonomic.,Visual knowledge shared through sketching,BO Barrier,DM-SuperficialEval
