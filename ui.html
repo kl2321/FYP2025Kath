@@ -74,7 +74,7 @@
     let sessionId = null;
     let lastShownSummary = '';
  
-    // ✅ 提前注册 message handler
+    // 提前注册 message handler
     // window.addEventListener('message', function handler(e) {
     //   if (e.data?.type === 'ready-to-record') {
     //     console.log("✅ Recorder window is ready");
@@ -93,10 +93,10 @@
     openBtn.onclick = async () => {
       sessionId = Date.now().toString();
 
-  // ⏱️ 获取用户输入分钟数
+  //  获取用户输入分钟数
       const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
 
-  // 📤 发送 set_cycle 指令到 Supabase
+  //  发送 set_cycle 指令到 Supabase
   try {
     await fetch('https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals', {
       method: 'POST',
@@ -118,7 +118,7 @@
     console.error("❌ Failed to send set_cycle:", err);
   }
 
-  // 🔗 打开 recorder 页面
+  //  打开 recorder 页面
   window.open(
     `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
     'recorder',
@@ -165,7 +165,7 @@
             toggleBtn.className = 'toggle-btn';
             toggleBtn.textContent = '+';
             const summaryHeader = document.createElement('h3');
-            summaryHeader.textContent = '🧠 Summary';
+            summaryHeader.textContent = ' Summary';
             summaryHeader.appendChild(toggleBtn);
 
             const summaryPara = document.createElement('p');
@@ -175,7 +175,7 @@
             details.className = 'details';
             details.innerHTML = `
               <h4>📌 Decision</h4><ul>${(item.decision || []).map(d => `<li>${d}</li>`).join('')}</ul>
-              <h4>📘 Explicit</h4><ul>${(item.explicit || []).map(e => `<li>${e}</li>`).join('')}</ul>
+              <h4>💡 Explicit</h4><ul>${(item.explicit || []).map(e => `<li>${e}</li>`).join('')}</ul>
               <h4>💡 Tacit</h4><ul>${(item.tacit || []).map(t => `<li>${t}</li>`).join('')}</ul>
               <h4>🧠 Reasoning</h4><p>${item.reasoning || ''}</p>
               <h4>🔗 Suggestions</h4><ul>${(item.suggestions || []).map(s => `<li>${s}</li>`).join('')}</ul>

@@ -24,12 +24,12 @@ export default async function handler(req, res) {
       {
         role: "user",
         content: `You will be given a meeting transcript. Please:
-1. Provide a one-sentence summary of the new content.
+1. Provide a brief summary of the new content, summarized in bullet points.
 2. Identify any decisions made or discussed, intepret from the transcript the problem they are solving, the group is discussing....
 3. Extract explicit knowledge (factual, documented) that supports or against the decision.
 4. Extract tacit knowledge (experiential or intuitive)that supports or against the decision.
-5. Provide reasoning behind decisions, their logic flow: the team dicussed A -> B -> C....
-6. Suggest related tools, materials, hyperlink or examples for the team to explore further related to the decision they are making or problems they are solving.
+5. Provide reasoning behind decisions, their logic flow in this format: the team dicussed A -> B -> C....
+6. Review and critically evaluate teams' current decisions and discussed points, Suggest related tools, materials, hyperlink or examples for the team to improve their decissions and enhance their knowledge.
 
 Avoid repeating any of the previously summarized content below:
 ${avoid || 'N/A'}
@@ -44,7 +44,7 @@ Return ONLY structured JSON in the format:
   "suggestions": ["...", "..."]
 }
 
-Transcript:
+Transcript:S
 ${text}`
       }
     ];
@@ -66,7 +66,7 @@ ${text}`
     });
 
     const data = await openaiRes.json();
-    // 🛡️ 安全检查
+    //  safety check
     if (!data || !data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
     console.warn("🟨 OpenAI returned empty or malformed response:", JSON.stringify(data, null, 2));
     return res.status(200).json({ summary: '' }); // fallback 防止 500 错误

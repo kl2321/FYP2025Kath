@@ -107,11 +107,11 @@
           console.log("🎯 isManuallyStopped:", isManuallyStopped);
           await handleSegmentAnalysis();
            if (isManuallyStopped) {
-            await finalSummarize(); // ⬅️ 手动停止时做最终总结
+            await finalSummarize(); //  手动停止时做最终总结
           } else if (recordingCycleCount >= MAX_CYCLE) {
-            await summarizeChunks(); // ⬅️ 自动每 1-5 分钟总结
+            await summarizeChunks(); //  自动每 1-5 分钟总结
           } else {
-            startSegmentRecording(); // ⬅️ 否则继续
+            startSegmentRecording(); //  否则继续
           }
           // if (isManuallyStopped || recordingCycleCount >= MAX_CYCLE) {
           //   await summarizeChunks();

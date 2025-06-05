@@ -64,12 +64,12 @@ figma.ui.onmessage = async (msg) => {
       };
 
       // 🟦 1. Summary card - white
-      await createCard("🧠 Summary:", msg.summary, { r: 0.97, g: 0.97, b: 0.97 }, 0);
+      await createCard(" Summary:", msg.summary, { r: 0.97, g: 0.97, b: 0.97 }, 0);
 
       // 🟨 2. Decision + Knowledge card - light blue
       let combinedKnowledge = [];
       if (msg.decision) combinedKnowledge.push("📌 Decision:", ...msg.decision);
-      if (msg.explicit) combinedKnowledge.push("📘 Explicit:", ...msg.explicit);
+      if (msg.explicit) combinedKnowledge.push("💡Explicit:", ...msg.explicit);
       if (msg.tacit) combinedKnowledge.push("💡 Tacit:", ...msg.tacit);
       await createCard("📋 Decisions & Knowledge", combinedKnowledge, { r: 0.9, g: 0.95, b: 1 }, 1);
 

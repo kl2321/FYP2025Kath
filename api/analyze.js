@@ -80,7 +80,7 @@ export default async function handler(req, res) {
         summary: gptRes.data.choices[0].message.content,
       });
     } catch (err) {
-      console.error('🔥 Error during processing:', err?.response?.data || err.message);
+      console.error(' Error during processing:', err?.response?.data || err.message);
       return res.status(500).json({
         error: 'Processing failed',
         detail: err?.response?.data || err.message,
