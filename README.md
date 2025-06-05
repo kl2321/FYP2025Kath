@@ -1,42 +1,42 @@
-Below are the steps to get your plugin running. You can also find instructions at:
+# AI Knowledge Card — Figma Meeting Summary Plugin
 
-  https://www.figma.com/plugin-docs/plugin-quickstart-guide/
+This is the implementation code for the **AI Knowledge Card** Figma plugin, designed to automatically record meetings, transcribe audio, analyze decision making behavior, and generate structured summaries inside Figma.
 
-This plugin template uses Typescript and NPM, two standard tools in creating JavaScript applications.
+ **Note**: This plugin is not yet published on the Figma Community. To use it, you must download all files locally and run it on your own machine.
 
-First, download Node.js which comes with NPM. This will allow you to install TypeScript and other
-libraries. You can find the download link here:
+---
 
-  https://nodejs.org/en/download/
+## ✨ What This Plugin Does
 
-Next, install TypeScript using the command:
+This plugin enables design teams to:
+- Record meeting discussions via an external browser interface.
+- Automatically transcribe and analyze audio using OpenAI’s Whisper and GPT models.
+- Generate structured summaries and insert them into the Figma canvas as visual cards.
+- Organize key discussion elements such as decisions, explicit and tacit knowledge, reasoning, and improvement suggestions.
 
-  npm install -g typescript
+---
 
-Finally, in the directory of your plugin, get the latest type definitions for the plugin API by running:
+##  File Overview
 
-  npm install --save-dev @figma/plugin-typings
+| File / Folder        | Purpose                                                                 |
+|----------------------|-------------------------------------------------------------------------|
+| `code.ts`            | Main Figma plugin logic. Creates summary cards inside Figma using the plugin message system. |
+| `ui.html`            | Plugin user interface. Opens the recorder, displays summaries, and polls Supabase for updates. |
+| `record.html`        | External recording interface. Handles 30s audio chunks, triggers summarization every N minutes, and allows manual stop. |
+| `analyze.js`         | API endpoint that sends audio to OpenAI Whisper for transcription and then summarizes it via GPT. |
+| `summarize.js`       | API endpoint that receives full transcripts and returns structured JSON summaries. |
+| `save.js`            | Saves each transcript and summary to Supabase.                          |
+| `get.js`             | Fetches the latest summary from Supabase for polling by UI.            |
+| `stop.js`            | Sends a stop signal via Supabase to halt recording externally.         |
 
-If you are familiar with JavaScript, TypeScript will look very familiar. In fact, valid JavaScript code
-is already valid Typescript code.
+---
 
-TypeScript adds type annotations to variables. This allows code editors such as Visual Studio Code
-to provide information about the Figma API while you are writing code, as well as help catch bugs
-you previously didn't notice.
+## 🚀 Getting Started (Local Setup)
 
-For more information, visit https://www.typescriptlang.org/
+1. **Install Node.js + NPM**  
+   Download and install Node.js, which includes NPM:  
+    https://nodejs.org/en/download/
 
-Using TypeScript requires a compiler to convert TypeScript (code.ts) into JavaScript (code.js)
-for the browser to run.
-
-We recommend writing TypeScript code using Visual Studio code:
-
-1. Download Visual Studio Code if you haven't already: https://code.visualstudio.com/.
-2. Open this directory in Visual Studio Code.
-3. Compile TypeScript to JavaScript: Run the "Terminal > Run Build Task..." menu item,
-    then select "npm: watch". You will have to do this again every time
-    you reopen Visual Studio Code.
-
-That's it! Visual Studio Code will regenerate the JavaScript file every time you save.
-
-Just pushed at 2025-05-22
+2. **Install TypeScript globally**  
+   ```bash
+   npm install -g typescript
