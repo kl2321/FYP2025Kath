@@ -19,22 +19,22 @@ export default async function handler(req, res) {
     const messages = [
       {
         role: "system",
-        content: "You are a meeting assistant. You will analyze transcripts and return structured summaries in JSON format. Ignore the part that is irrelevant to the team's project work or collaboration."
+        content: "You are a meeting assistant for a student group project. You will analyze transcripts and return structured summaries in JSON format. Ignore the part that is irrelevant to the team's project work or collaboration."
       },
       {
         role: "user",
         content: `You will be given a meeting transcript. Please:
 1. Provide a brief summary of the new content, summarized in bullet points.
-2. Identify any decisions made or discussed, intepret from the transcript the problem they are solving, the group is discussing....
-3. Extract explicit knowledge (factual, documented) that supports or against the decision.
-4. Extract tacit knowledge (experiential or intuitive)that supports or against the decision.
-5. Provide reasoning behind decisions, their logic flow in this format: the team dicussed A -> B -> C....
-6. Review and critically evaluate teams' current decisions and discussed points, Suggest related tools, materials, hyperlink or examples for the team to improve their decissions and enhance their knowledge.
+2. Identify any decisions made or discussed, interpret from the transcript the problem they are solving, the group is discussing.
+3. Extract explicit knowledge (factual, documented) that supports or goes against the decision.
+4. Extract tacit knowledge (experiential or intuitive) that supports or goes against the decision.
+5. Provide reasoning behind decisions, their logic flow in this format: the team discussed A -> B -> C...
+6. Review and critically evaluate the team's current decisions and discussed points. Suggest related tools, materials, hyperlinks or examples to improve their decisions and enhance knowledge.
 
 Avoid repeating any of the previously summarized content below:
 ${avoid || 'N/A'}
 
-Return ONLY structured JSON in the format:
+Return ONLY structured JSON. Do not add commentary, explanation, or Markdown code block. The format should be::
 {
   "summary": "...",
   "decision": ["..."],
@@ -72,9 +72,21 @@ ${text}`
     return res.status(200).json({ summary: '' }); // fallback 防止 500 错误
     }
     
+    // let parsed;
+    // try {
+    //   parsed = JSON.parse(data.choices[0].message.content);
+    // } catch (e) {
+    //   console.error("❌ Failed to parse GPT output:", data.choices[0].message.content);
+    //   return res.status(200).json({ summary: '', transcript: text });
+    // }
+
     let parsed;
     try {
-      parsed = JSON.parse(data.choices[0].message.content);
+      const content = data.choices[0].message.content.trim();
+      const jsonString = content
+        .replace(/^```json\s*/i, '')
+        .replace(/```$/, '');
+      parsed = JSON.parse(jsonString);
     } catch (e) {
       console.error("❌ Failed to parse GPT output:", data.choices[0].message.content);
       return res.status(200).json({ summary: '', transcript: text });
@@ -88,7 +100,7 @@ ${text}`
     res.status(200).json({ 
         transcript: text,
         summary: parsed.summary || '',
-        ecision: parsed.decision || [],
+        decision: parsed.decision || [],
         explicit: parsed.explicit || [],
         tacit: parsed.tacit || [],
         reasoning: parsed.reasoning || '',
