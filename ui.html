@@ -55,6 +55,10 @@
 </head>
 <body>
   <h2>🎤 Analyze Meeting</h2>
+  <label style="display:block; margin:8px 0 4px;">📄 Attach PDF (optional):</label>
+  <input id="pdfInput" type="file" accept="application/pdf" />
+  <small id="pdfStatus" style="display:block; color:#666; margin-bottom:12px;"></small>
+
   <label for="cycleInput">⏱️ Summary interval (minutes):</label>
   <input id="cycleInput" type="number" value="5" min="1" style="width: 60px; margin-left: 8px; margin-bottom: 12px;" />
   <br><br>
@@ -73,6 +77,10 @@
     //const resultBox = document.getElementById('result');
     let sessionId = null;
     let lastShownSummary = '';
+
+    let recorderWindow = null;
+    let pdfTextCache = ""; // store extracted pdf text
+
  
     // 提前注册 message handler
     // window.addEventListener('message', function handler(e) {
@@ -119,7 +127,7 @@
   }
 
   //  打开 recorder 页面
-  window.open(
+  recorderWindow = window.open(
     `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
     'recorder',
     'width=500,height=400'
@@ -127,6 +135,39 @@
 
   poll(sessionId);
 };
+
+const pdfInput = document.getElementById('pdfInput');
+const pdfStatus = document.getElementById('pdfStatus');
+
+pdfInput.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  pdfStatus.textContent = "⏳ Extracting text from PDF...";
+  try {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    const res = await fetch('https://fyp-2025-kath.vercel.app/api/ingest_pdf', {
+      method: 'POST',
+      body: form
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.text) {
+      pdfStatus.textContent = "❌ Failed to read PDF.";
+      return;
+    }
+    pdfTextCache = data.text;
+    pdfStatus.textContent = `✅ PDF loaded (${(data.text.length/1000).toFixed(1)}k chars)`;
+
+    // 如果录音窗口已打开，把 PDF 文本传给它
+    if (recorderWindow) {
+      recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, '*');
+    }
+  } catch (err) {
+    console.error("❌ PDF upload/parse error:", err);
+    pdfStatus.textContent = "❌ PDF parse error.";
+  }
+});
 
 
     stopBtn.onclick = async () => {

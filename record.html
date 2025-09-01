@@ -17,6 +17,7 @@
   <textarea id="textArea" placeholder="Transcript and summary will appear here..."></textarea>
 
   <script>
+    let contextPdfText = ""; //  store PDF text sent from UI
 
     let totalSeconds = 0;
     let sessionStartTime = null;
@@ -201,7 +202,9 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               text: combined,
-              avoid: avoidCombined })
+              avoid: avoidCombined,
+              context_pdf: contextPdfText
+             })
           });
           const data = await res.json();
           //const summary = data.summary || '';
@@ -279,7 +282,10 @@
           const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: fullTranscript })
+            body: JSON.stringify({ text: fullTranscript,
+              context_pdf: contextPdfText
+
+             })
           });
           const data = await res.json();
 
@@ -376,7 +382,13 @@
     }
   }, 1000);
 }
-
+window.addEventListener('message', (event) => {
+  const msg = event.data;
+  if (msg?.type === 'set-context-pdf') {
+    contextPdfText = msg.text || "";
+    console.log("📚 Received PDF context from UI. Length:", contextPdfText.length);
+  }
+});
 
   window.onload = () => {
     window.opener?.postMessage({ type: 'ready-to-record' }, '*');

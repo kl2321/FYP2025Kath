@@ -9,7 +9,7 @@
 // }
 
 export default async function handler(req, res) {
-  const { text, avoid } = req.body;
+  const { text, avoid, context_pdf } = req.body;
 
   if (!text) {
     return res.status(400).json({ error: 'Missing text to summarize' });
@@ -23,8 +23,12 @@ export default async function handler(req, res) {
       },
       {
         role: "user",
-        content: `You will be given a meeting transcript. Please:
-1. Provide a brief summary of the new content, summarized in bullet points.
+        content: `You will be given:
+(1) the latest meeting transcript; and
+(2) optional project reference material extracted from a PDF (context).
+:
+Your job: 
+1. Produce a concise, non-redundant update focused on new content. Where helpful, draw on the PDF context to support or challenge the teams' points.
 2. Identify any decisions made or discussed, interpret from the transcript the problem they are solving, the group is discussing.
 3. Extract explicit knowledge (factual, documented) that supports or goes against the decision.
 4. Extract tacit knowledge (experiential or intuitive) that supports or goes against the decision.
@@ -33,6 +37,8 @@ export default async function handler(req, res) {
 
 Avoid repeating any of the previously summarized content below:
 ${avoid || 'N/A'}
+
+When using the PDF, cite inline as [PDF].
 
 Return ONLY structured JSON. Do not add commentary, explanation, or Markdown code block. The format should be::
 {
@@ -44,8 +50,11 @@ Return ONLY structured JSON. Do not add commentary, explanation, or Markdown cod
   "suggestions": ["...", "..."]
 }
 
-Transcript:S
-${text}`
+Transcript:
+${text}
+PDF Context:
+${context_pdf ? context_pdf.slice(0, 12000) : 'N/A'}`
+
       }
     ];
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
