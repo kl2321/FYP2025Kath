@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
 <head>
   <meta charset="UTF-8" />
   <style>
@@ -53,6 +53,14 @@
     to { transform: rotate(360deg); }
   }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script>
+    // 2) 必须设置 worker 源，否则某些环境会报错/卡住
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+    }
+  </script>
 </head>
 <body>
   <h2>🎤 Analyze Meeting</h2>
@@ -99,41 +107,7 @@
     //   }
     // });
 
-    const pdfInput = document.getElementById('pdfInput');
-const pdfStatus = document.getElementById('pdfStatus'); // 可选的状态文本
-
-pdfInput.addEventListener('change', async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  pdfStatus && (pdfStatus.textContent = "⏳ Extracting text from PDF (client-side)...");
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-
-    // pdf.js 前端解析
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = '';
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const text = content.items.map(item => item.str).join(' ');
-      fullText += text + '\n';
-    }
-
-    // 简单清洗，避免过长空白
-    pdfTextCache = fullText.replace(/\n{3,}/g, '\n\n').trim();
-    pdfStatus && (pdfStatus.textContent = `✅ PDF loaded (${(pdfTextCache.length/1000).toFixed(1)}k chars)`);
-
-    // 若 recorder 窗口已打开，立刻发送
-    if (recorderWindow && !recorderWindow.closed) {
-      recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, 'https://fyp-2025-kath.vercel.app');
-    }
-  } catch (err) {
-    console.error("❌ PDF parse error:", err);
-    pdfStatus && (pdfStatus.textContent = "❌ PDF parse error.");
-  }
-});
-
+    
     openBtn.onclick = async () => {
       sessionId = Date.now().toString();
 
@@ -205,6 +179,48 @@ pdfInput.addEventListener('change', async (e) => {
 //   }
 // });
 
+const pdfInput = document.getElementById('pdfInput');
+    const pdfStatus = document.getElementById('pdfStatus'); // 可选的状态文本
+
+    pdfInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      pdfStatus && (pdfStatus.textContent = "⏳ Extracting text from PDF (client-side)...");
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+
+        // pdf.js 前端解析
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const text = content.items.map(item => item.str).join(' ');
+          fullText += text + '\n';
+        }
+
+        // 简单清洗，避免过长空白
+        pdfTextCache = fullText.replace(/\n{3,}/g, '\n\n').trim();
+        pdfStatus && (pdfStatus.textContent = `✅ PDF loaded (${(pdfTextCache.length/1000).toFixed(1)}k chars)`);
+
+        // 若 recorder 窗口已打开，立刻发送
+        if (recorderWindow && !recorderWindow.closed) {
+          recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, 'https://fyp-2025-kath.vercel.app');
+        }
+      } catch (err) {
+        console.error("❌ PDF parse error:", err);
+        pdfStatus && (pdfStatus.textContent = "❌ PDF parse error.");
+      }
+    });
+
+    // recorder 准备好时，补发一次 PDF 文本（防止顺序问题）
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'ready-to-record' && pdfTextCache) {
+        const targetOrigin = 'https://fyp-2025-kath.vercel.app';
+        recorderWindow?.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, targetOrigin);
+      }
+    });
 
     stopBtn.onclick = async () => {
       await fetch('https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals', {
