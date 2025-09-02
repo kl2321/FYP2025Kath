@@ -419,17 +419,17 @@ window.addEventListener('message', (event) => {
   }
 });
 
-  // window.onload = () => {
-  //   window.opener?.postMessage({ type: 'ready-to-record' }, '*');
-  //   console.log("📤 record.html sent ready-to-record");
+  window.onload = () => {
+    window.opener?.postMessage({ type: 'ready-to-record' }, '*');
+    console.log("📤 record.html sent ready-to-record");
 
-  //   if (autoStart) {
-  //       console.log("⚙️ Auto-start triggered");
-  //       //isManuallyStopped = false;
-  //       startBtn.click();
-  //   }
+    if (autoStart) {
+        console.log("⚙️ Auto-start triggered");
+        //isManuallyStopped = false;
+        startBtn.click();
+    }
 
-  // };
+  };
 
   window.opener?.postMessage({ type: 'ready-to-record' }, '*');
    
