@@ -9,6 +9,28 @@
 // }
 
 export default async function handler(req, res) {
+
+  // 添加 CORS 头部
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  let body;
+  try {
+    // 安全解析 JSON
+    if (typeof req.body === 'string') {
+      body = JSON.parse(req.body);
+    } else {
+      body = req.body;
+    }
+  } catch (err) {
+    console.error('JSON parse error:', err);
+    return res.status(400).json({ error: 'Invalid JSON' });
+  }
+
   const { text, avoid, context_pdf } = req.body;
 
   if (!text) {

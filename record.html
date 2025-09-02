@@ -96,7 +96,9 @@
     
     async function startRecording() {
       try {
+        console.log("🎙️ waiting for microphone access");
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("✅ 麦克风权限获取成功");
         recorder = new MediaRecorder(stream);
         //recorder.start();
         chunks = [];
@@ -184,6 +186,12 @@
         const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
         textArea.value = `🧠 Summarizing full content... (${duration} min)`;
 
+        console.log("📤 发送到 summarizer 的数据:", {
+          text: combined.substring(0, 100) + '...',
+          avoid: previousSummary.summary ? previousSummary.summary.substring(0, 50) + '...' : 'empty',
+          context_pdf: contextPdfText ? `${contextPdfText.length} chars` : 'empty'
+        });
+
         try {
         //   console.log("📤 Sending to summarizer:", {
         //   text: combined,
@@ -196,18 +204,29 @@
           ...previousSummary.tacit
         ].join('\n');
 
+        const requestBody = {
+          text: combined,
+          avoid: avoidCombined || '', // 确保是字符串
+          context_pdf: contextPdfText || '' // 确保是字符串
+        };
+
+        console.log("📋 最终请求体:", JSON.stringify(requestBody).substring(0, 200) + '...');
+
 
             const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              text: combined,
-              avoid: avoidCombined,
-              context_pdf: contextPdfText || null
-             })
+            body: JSON.stringify(requestBody)
           });
           const data = await res.json();
           //const summary = data.summary || '';
+
+           if (!res.ok) {
+          const errorText = await res.text();
+          console.error("❌ summarize 失败:", errorText);
+          textArea.value = '❌ Summarize failed: ' + errorText;
+          return;
+        }
 
           if (!data.summary) {
             console.warn("⛔ No summary returned from OpenAI. Skipping save.");
@@ -233,6 +252,7 @@
 
           
           // save to Supabase
+           console.log("📦 保存到 Supabase...");
           const saveRes = await fetch('https://fyp-2025-kath.vercel.app/api/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -279,14 +299,23 @@
         textArea.value = `📦 Finalizing full content... (${duration} min)`;
 
         try {
+          const requestBody = {
+            text: fullTranscript,
+            context_pdf: contextPdfText || ''
+          };
+
           const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: fullTranscript,
-              context_pdf: contextPdfText || null
-
-             })
+            body: JSON.stringify(requestBody)
           });
+
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.error("❌ 最终总结失败:", errorText);
+            textArea.value = '❌ Final summarize failed: ' + errorText;
+            return;
+          }
           const data = await res.json();
 
           textArea.value = `⏱️ Final transcript:\n${fullTranscript}\n\n🧠 Final Summary:\n${data.summary}`;
