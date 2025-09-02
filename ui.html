@@ -448,7 +448,9 @@ if (pdfTextCache) {
       console.log('✅ PDF内容已保存到Supabase');
       pdfStatus.textContent += ' (已保存到会话)';
     } else {
-      console.error('❌ PDF保存失败');
+      const errorText = await pdfRes.text();
+      console.error('❌ PDF保存失败 - 状态码:', pdfRes.status);
+      console.error('❌ 错误详情:', errorText);
     }
   } catch (err) {
     console.error('❌ PDF保存异常:', err);
