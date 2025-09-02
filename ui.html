@@ -442,6 +442,8 @@ if (pdfTextCache) {
       })
     });
 
+    console.log('📊 save_pdf响应状态:', pdfRes.status); // 添加这行
+
     if (pdfRes.ok) {
       console.log('✅ PDF内容已保存到Supabase');
       pdfStatus.textContent += ' (已保存到会话)';
