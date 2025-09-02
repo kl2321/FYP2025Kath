@@ -18,8 +18,8 @@ export default async function handler(req, res) {
     const supabaseRes = await fetch("https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/pdf_context", {
       method: "POST",
       headers: {
-        apikey: "你的key",
-        Authorization: "Bearer 你的key", 
+        apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A",
+        Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A", 
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ session_id, pdf_text, filename: filename || 'unknown.pdf' })
