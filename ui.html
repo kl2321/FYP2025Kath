@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -315,10 +315,294 @@ const pdfInput = document.getElementById('pdfInput');
     }
   </script>
 </body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 16px;
+    }
+    .card {
+      background: #f3f3f3;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .card h3 {
+      margin-top: 0;
+    }
+    .card button.toggle-btn {
+      float: right;
+      font-size: 18px;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+    .details {
+      display: none;
+      margin-top: 10px;
+    }
+
+    button {
+      padding: 10px 18px;
+      margin: 8px 8px 16px 0;
+      font-weight: bold;
+      margin-right: 6px;
+    }
+    #spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-top-color: #333;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  </style>
+</head>
+<body>
+  <h2>🎤 Analyze Meeting</h2>
+  <label style="display:block; margin:8px 0 4px;">📄 Attach PDF (optional):</label>
+  <input id="pdfInput" type="file" accept="application/pdf" />
+  <small id="pdfStatus" style="display:block; color:#666; margin-bottom:12px;"></small>
+
+  <label for="cycleInput">⏱️ Summary interval (minutes):</label>
+  <input id="cycleInput" type="number" value="5" min="1" style="width: 60px; margin-left: 8px; margin-bottom: 12px;" />
+  <br><br>
+
+  <button id="openBtn">Open Recorder</button>
+  <button id="stopBtn">Stop Recording</button>
+
+   <div id="cardsContainer"></div>
+  
+  <script>
+    // Load PDF.js library dynamically
+    const loadPdfJs = () => {
+      return new Promise((resolve, reject) => {
+        // First, load the main library
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+        script.onload = () => {
+          // Then set the worker
+          if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+            console.log('✅ PDF.js loaded successfully');
+            resolve();
+          } else {
+            reject(new Error('PDF.js failed to load'));
+          }
+        };
+        script.onerror = () => reject(new Error('Failed to load PDF.js script'));
+        document.head.appendChild(script);
+      });
+    };
+
+    // Initialize PDF.js when the page loads
+    let pdfJsLoaded = false;
+    loadPdfJs().then(() => {
+      pdfJsLoaded = true;
+    }).catch(err => {
+      console.error('Failed to load PDF.js:', err);
+    });
+
+    const openBtn = document.getElementById('openBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    let sessionId = null;
+    let lastShownSummary = '';
+    let recorderWindow = null;
+    let pdfTextCache = "";
+
+    openBtn.onclick = async () => {
+      sessionId = Date.now().toString();
+
+      const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
+
+      try {
+        await fetch('https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals', {
+          method: 'POST',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            session_id: sessionId,
+            command: 'set_cycle',
+            value: intervalMin
+          })
+        });
+
+        console.log("✅ Sent set_cycle to Supabase:", intervalMin);
+      } catch (err) {
+        console.error("❌ Failed to send set_cycle:", err);
+      }
+
+      recorderWindow = window.open(
+        `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
+        'recorder',
+        'width=500,height=400'
+      );
+
+      poll(sessionId);
+    };
+
+    const pdfInput = document.getElementById('pdfInput');
+    const pdfStatus = document.getElementById('pdfStatus');
+
+    pdfInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Check if PDF.js is loaded
+      if (!pdfJsLoaded || !window.pdfjsLib) {
+        pdfStatus.textContent = "⌛ Loading PDF library...";
+        try {
+          await loadPdfJs();
+          pdfJsLoaded = true;
+        } catch (err) {
+          pdfStatus.textContent = "❌ Failed to load PDF library";
+          console.error("PDF.js load error:", err);
+          return;
+        }
+      }
+
+      pdfStatus.textContent = "⏳ Extracting text from PDF (client-side)...";
+      
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+
+        // Use pdfjsLib to parse the PDF
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const text = content.items.map(item => item.str).join(' ');
+          fullText += text + '\n';
+        }
+
+        // Clean up excessive whitespace
+        pdfTextCache = fullText.replace(/\n{3,}/g, '\n\n').trim();
+        pdfStatus.textContent = `✅ PDF loaded (${(pdfTextCache.length/1000).toFixed(1)}k chars)`;
+
+        // Send to recorder window if open
+        if (recorderWindow && !recorderWindow.closed) {
+          recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, 'https://fyp-2025-kath.vercel.app');
+        }
+      } catch (err) {
+        console.error("❌ PDF parse error:", err);
+        pdfStatus.textContent = "❌ PDF parse error: " + err.message;
+      }
+    });
+
+    // Send PDF context when recorder is ready
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'ready-to-record' && pdfTextCache) {
+        const targetOrigin = 'https://fyp-2025-kath.vercel.app';
+        recorderWindow?.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, targetOrigin);
+      }
+    });
+
+    stopBtn.onclick = async () => {
+      await fetch('https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals', {
+        method: 'POST',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ session_id: sessionId, command: 'stop' })
+      });
+    };
+
+    function poll(sessionId) {
+      const container = document.getElementById('cardsContainer');
+
+      setInterval(async () => {
+        try {
+          const res = await fetch(`https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/sessions?session_id=eq.${sessionId}&order=created_at.desc&limit=1`, {
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A ',
+              'Content-Type': 'application/json'
+            }
+          });
+          const data = await res.json();
+          const item = data?.[0];
+          if (item && item.summary && item.summary !== lastShownSummary) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'toggle-btn';
+            toggleBtn.textContent = '+';
+            const summaryHeader = document.createElement('h3');
+            summaryHeader.textContent = ' Summary';
+            summaryHeader.appendChild(toggleBtn);
+
+            const summaryPara = document.createElement('p');
+            summaryPara.textContent = item.summary;
+
+            const details = document.createElement('div');
+            details.className = 'details';
+            details.innerHTML = `
+              <h4>📌 Decision</h4><ul>${(item.decision || []).map(d => `<li>${d}</li>`).join('')}</ul>
+              <h4>💡 Explicit</h4><ul>${(item.explicit || []).map(e => `<li>${e}</li>`).join('')}</ul>
+              <h4>💡 Tacit</h4><ul>${(item.tacit || []).map(t => `<li>${t}</li>`).join('')}</ul>
+              <h4>🧠 Reasoning</h4><p>${item.reasoning || ''}</p>
+              <h4>🔗 Suggestions</h4><ul>${(item.suggestions || []).map(s => `<li>${s}</li>`).join('')}</ul>
+            `;
+
+            toggleBtn.onclick = () => {
+              const isShown = details.style.display === 'block';
+              details.style.display = isShown ? 'none' : 'block';
+              toggleBtn.textContent = isShown ? '+' : '−';
+            };
+
+            card.appendChild(summaryHeader);
+            card.appendChild(summaryPara);
+            card.appendChild(details);
+            container.prepend(card);
+
+            parent.postMessage({
+              pluginMessage: {
+                type: 'analyze-transcript',
+                transcript: item.transcript,
+                summary: item.summary,
+                decision: item.decision,
+                explicit: item.explicit,
+                tacit: item.tacit,
+                reasoning: item.reasoning,
+                suggestions: item.suggestions
+              }
+            }, '*');
+
+            lastShownSummary = item.summary;
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+        }
+      }, 2000);
+    }
+  </script>
+</body>
 </html>
-
-
-
 
 <!-- <!DOCTYPE html>
 <html lang="en">
