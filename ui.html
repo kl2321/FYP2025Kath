@@ -722,7 +722,7 @@ const pdfInput = document.getElementById('pdfInput');
 
         // If PDF content exists, save it to Supabase for later use
         if (pdfTextCache) {
-          await fetch('https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals', {
+          await fetch('https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/pdf_contexts', {
             method: 'POST',
             headers: {
               'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
@@ -732,9 +732,7 @@ const pdfInput = document.getElementById('pdfInput');
             },
             body: JSON.stringify({
               session_id: sessionId,
-              command: 'set_pdf_context',
-              value: 0,  // Just a placeholder number
-              text_content: pdfTextCache.slice(0, 50000)  // Limit to 50k chars to avoid size issues
+              pdf_content: pdfTextCache.slice(0, 50000)  // Limit to 50k chars
             })
           });
           console.log("✅ Saved PDF context to Supabase for session:", sessionId);

@@ -458,7 +458,7 @@ window.addEventListener('message', (event) => {
     // Get PDF context from Supabase
     async function fetchPDFContext(sessionId) {
       try {
-        const url = `https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.set_pdf_context`;
+        const url = `https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/pdf_contexts?session_id=eq.${sessionId}`;
         const res = await fetch(url, {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
@@ -468,8 +468,8 @@ window.addEventListener('message', (event) => {
         });
         
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0 && data[0]?.text_content) {
-          contextPdfText = data[0].text_content;
+        if (Array.isArray(data) && data.length > 0 && data[0]?.pdf_content) {
+          contextPdfText = data[0].pdf_content;
           console.log("📚 Retrieved PDF context from Supabase. Length:", contextPdfText.length);
         }
       } catch (err) {
