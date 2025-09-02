@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -407,4 +407,380 @@ window.addEventListener('message', (event) => {
   </script>
 </body>
 </html>
+ -->
 
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: sans-serif; padding: 16px; }
+    button { padding: 8px 16px; margin-right: 8px; }
+    textarea { width: 100%; height: 200px; margin-top: 12px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>🎙️ Record Meeting</h2>
+  <button id="startBtn">Start</button>
+  <button id="stopBtn" disabled>Stop</button>
+  
+  <textarea id="textArea" placeholder="Transcript and summary will appear here..."></textarea>
+
+  <script>
+    let contextPdfText = ""; // Store PDF text from Supabase
+    let totalSeconds = 0;
+    let sessionStartTime = null;
+    const fullTranscriptHistory = [];
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const textArea = document.getElementById('textArea');
+
+    let recorder;
+    let chunks = [];
+    const transcriptChunks = [];
+    let recordingCycleCount = 0;
+    let MAX_CYCLE = 10;
+    let isManuallyStopped = false;
+    let previousSummary = {
+      summary: '',
+      decision: [],
+      explicit: [],
+      tacit: []
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get("session");
+    const autoStart = urlParams.get("start") === "true";
+
+    console.log("🔎 Extracted sessionId:", sessionId);
+
+    // Get PDF context from Supabase
+    async function fetchPDFContext(sessionId) {
+      try {
+        const url = `https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.set_pdf_context`;
+        const res = await fetch(url, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0 && data[0]?.text_content) {
+          contextPdfText = data[0].text_content;
+          console.log("📚 Retrieved PDF context from Supabase. Length:", contextPdfText.length);
+        }
+      } catch (err) {
+        console.error("❌ Failed to fetch PDF context:", err);
+      }
+    }
+
+    // Fetch PDF context when page loads
+    if (sessionId) {
+      fetchPDFContext(sessionId);
+    }
+
+    startBtn.onclick = () => {
+      transcriptChunks.length = 0;
+      sessionStartTime = Date.now();
+      totalSeconds = 0;
+      startSegmentRecording();
+    };
+    
+    stopBtn.onclick = () => {
+      isManuallyStopped = true;
+      stopRecording();
+    };
+
+    async function startSegmentRecording() {
+      if (isManuallyStopped) {
+        console.log("🛑 Manually stopped, summarizing...");
+        await summarizeChunks();
+        return;
+      }
+
+      if (recordingCycleCount >= MAX_CYCLE) {
+        console.log("⏰ Reached minute limit. Summarizing and continuing...")
+        await summarizeChunks();
+        recordingCycleCount = 0;
+        transcriptChunks.length = 0;
+        if (!isManuallyStopped) {
+          startSegmentRecording();
+        }
+        return;
+      }
+      await startRecording();
+      setTimeout(() => {
+        if (!isManuallyStopped) {
+          stopRecording();
+        }
+      }, 30000);
+    }
+    
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recorder = new MediaRecorder(stream);
+        chunks = [];
+
+        recorder.ondataavailable = (e) => chunks.push(e.data);
+
+        recorder.onstop = async () => {
+          console.log(" Recording stopped");
+          await handleSegmentAnalysis();
+          if (isManuallyStopped) {
+            await finalSummarize();
+          } else if (recordingCycleCount >= MAX_CYCLE) {
+            await summarizeChunks();
+          } else {
+            startSegmentRecording();
+          }
+        };
+        recorder.start();
+        textArea.value = '🎙️ Recording...';
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+      } catch (err) {
+        console.error('❌ Microphone error:', err);
+        textArea.value = '❌ Microphone access denied.';
+      }
+    }
+
+    function stopRecording() {
+      console.log("🔴 stopRecording() called");
+      if (recorder && recorder.state === 'recording') {
+        recorder.stop();
+      } else if (recordingCycleCount > 0) {
+        summarizeChunks();
+      }
+    }
+
+    async function handleSegmentAnalysis() {
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      if (blob.size === 0) {
+        textArea.value = '❌ No audio recorded.';
+        return;
+      }
+
+      textArea.value = '📄 Uploading and analyzing...';
+
+      const form = new FormData();
+      form.append('file', blob, 'audio.webm');
+
+      try {
+        const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', {
+          method: 'POST',
+          body: form
+        });
+
+        const result = await res.json();
+        console.log("✅ Analysis result:", result);
+
+        transcriptChunks.push(result.transcript || '');
+        recordingCycleCount++;
+
+        const durationMin = Math.floor((Date.now() - sessionStartTime) / 60000);
+        textArea.value = `⏱️ Total time: ${durationMin} min\n✅ Segment ${recordingCycleCount} done`;
+      } catch (err) {
+        console.error('❌ Analysis failed:', err);
+        textArea.value = '❌ Failed to analyze this chunk.';
+      }
+    }
+    
+    async function summarizeChunks() {
+      const currentCombined = transcriptChunks.join('\n');
+      fullTranscriptHistory.push(currentCombined);
+      const combined = fullTranscriptHistory.join('\n');
+      const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
+      textArea.value = `🧠 Summarizing full content... (${duration} min)`;
+
+      try {
+        const avoidCombined = [
+          previousSummary.summary,
+          ...previousSummary.decision,
+          ...previousSummary.explicit,
+          ...previousSummary.tacit
+        ].join('\n');
+
+        const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            text: combined,
+            avoid: avoidCombined,
+            context_pdf: contextPdfText  // Use the PDF context from Supabase
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (!data.summary) {
+          console.warn("⛔ No summary returned from OpenAI. Skipping save.");
+          textArea.value = '⚠️ Summary failed. Skipped this round.';
+          return;
+        }
+        
+        const transcript = combined;
+        previousSummary.summary += '\n' + (data.summary || '');
+        previousSummary.decision = [...previousSummary.decision, ...(data.decision || [])];
+        previousSummary.explicit = [...previousSummary.explicit, ...(data.explicit || [])];
+        previousSummary.tacit = [...previousSummary.tacit, ...(data.tacit || [])];
+
+        textArea.value = `⏱️ ${duration} min transcript:\n${transcript}\n\n🧠 Summary:\n${data.summary}`;
+
+        // Save to Supabase
+        const saveRes = await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session: sessionId,
+            transcript,
+            summary: data.summary,
+            decision: data.decision,
+            explicit: data.explicit,
+            tacit: data.tacit,
+            reasoning: data.reasoning,
+            suggestions: data.suggestions
+          })
+        });
+
+        if (!saveRes.ok) {
+          const errText = await saveRes.text();
+          console.error("❌ Save to Supabase failed:", errText);
+        } else {
+          console.log("📦 Full result saved.");
+        }
+
+        if (!isManuallyStopped) {
+          console.log("🔄 Restarting next cycle...");
+          recordingCycleCount = 0;
+          transcriptChunks.length = 0;
+          startSegmentRecording();
+        }
+      } catch (err) {
+        console.error("❌ Error in summarizeChunks:", err);
+        textArea.value = '❌ Error during summarizing or saving.';
+      }
+
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+
+    async function finalSummarize() {
+      const fullTranscript = fullTranscriptHistory.join('\n');
+      const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
+      textArea.value = `📦 Finalizing full content... (${duration} min)`;
+
+      try {
+        const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            text: fullTranscript,
+            context_pdf: contextPdfText  // Use the PDF context from Supabase
+          })
+        });
+        
+        const data = await res.json();
+
+        textArea.value = `⏱️ Final transcript:\n${fullTranscript}\n\n🧠 Final Summary:\n${data.summary}`;
+
+        await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session: sessionId,
+            transcript: fullTranscript,
+            summary: data.summary,
+            decision: data.decision,
+            explicit: data.explicit,
+            tacit: data.tacit,
+            reasoning: data.reasoning,
+            suggestions: data.suggestions,
+            is_final: true
+          })
+        });
+        console.log("✅ Final summary saved.");
+      } catch (err) {
+        console.error('❌ Final summary failed:', err);
+        textArea.value = '❌ Final summary failed.';
+      }
+    }
+
+    function pollStop(sessionId) {
+      console.log("🔍 Starting pollStop for sessionId:", sessionId);
+      const interval = setInterval(async () => {
+        const url = `https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.stop`;
+
+        try {
+          const res = await fetch(url, {
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!res.ok) {
+            const error = await res.text();
+            console.error("❌ Supabase fetch failed:", error);
+            return;
+          }
+
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            clearInterval(interval);
+            console.log("🛑 Stop command received. Stopping recorder...");
+            isManuallyStopped = true; 
+            stopRecording();
+          }
+        } catch (err) {
+          console.error("❌ Polling error:", err);
+        }
+      }, 1000);
+    }
+
+    function pollCycleSetting(sessionId) {
+      console.log("🛎️ Starting pollCycleSetting for sessionId:", sessionId);
+      const interval = setInterval(async () => {
+        const url = `https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.set_cycle`;
+
+        try {
+          const res = await fetch(url, {
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const item = data[0];
+            if (item?.value && typeof item.value === 'number') {
+              const cycle = Math.round((item.value * 60) / 30);
+              MAX_CYCLE = cycle;
+              console.log(`⚙️ MAX_CYCLE updated from Supabase: ${item.value} minutes → ${MAX_CYCLE}`);
+              clearInterval(interval);
+            }
+          }
+        } catch (err) {
+          console.error("❌ pollCycleSetting error:", err);
+        }
+      }, 1000);
+    }
+
+    if (sessionId) {
+      pollStop(sessionId);
+      pollCycleSetting(sessionId);
+    }
+
+    // No longer need to listen for postMessage
+    // window.addEventListener('message', (event) => { ... });
+
+    window.opener?.postMessage({ type: 'ready-to-record' }, '*');
+  </script>
+</body>
+</html>
