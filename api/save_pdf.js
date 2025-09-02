@@ -15,6 +15,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing session_id or pdf_text' });
     }
 
+    // 🆕 清理PDF文本，移除null字符和其他问题字符
+const cleanPdfText = pdf_text
+  .replace(/\u0000/g, '') // 移除null字符
+  .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // 移除控制字符
+  .trim();
+
+console.log('📤 发送到Supabase...');
+
+    
+
     const supabaseRes = await fetch("https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/pdf_context", {
       method: "POST",
       headers: {
@@ -22,7 +32,7 @@ export default async function handler(req, res) {
         Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A", 
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ session_id, pdf_text, filename: filename || 'unknown.pdf' })
+      body: JSON.stringify({ session_id, pdf_text: cleanPdfText, filename: filename || 'unknown.pdf' })
     });
 
     if (!supabaseRes.ok) {
