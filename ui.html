@@ -400,6 +400,7 @@ const pdfInput = document.getElementById('pdfInput');
     let lastShownSummary = '';
     let recorderWindow = null;
     let pdfTextCache = "";
+    let pdfFileName = '';
 
     openBtn.onclick = async () => {
       sessionId = Date.now().toString();
@@ -426,6 +427,33 @@ const pdfInput = document.getElementById('pdfInput');
       } catch (err) {
         console.error("❌ Failed to send set_cycle:", err);
       }
+
+      // 🆕 新增：如果有PDF内容，保存到Supabase
+if (pdfTextCache) {
+  try {
+    console.log('📚 保存PDF内容到Supabase...');
+    const pdfRes = await fetch('https://fyp-2025-kath.vercel.app/api/save_pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        pdf_text: pdfTextCache,
+        filename: pdfFileName || 'context.pdf'
+      })
+    });
+
+    if (pdfRes.ok) {
+      console.log('✅ PDF内容已保存到Supabase');
+      pdfStatus.textContent += ' (已保存到会话)';
+    } else {
+      console.error('❌ PDF保存失败');
+    }
+  } catch (err) {
+    console.error('❌ PDF保存异常:', err);
+  }
+}
+
+
 
       recorderWindow = window.open(
         `https://fyp-2025-kath.vercel.app/record.html?session=${sessionId}&start=true`,
@@ -477,6 +505,7 @@ const pdfInput = document.getElementById('pdfInput');
     pdfInput.addEventListener('change', async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      pdfFileName = file.name; // 🆕 存储文件名
 
       pdfStatus.textContent = "⏳ Extracting text from PDF...";
       
