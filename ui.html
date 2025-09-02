@@ -317,7 +317,6 @@ const pdfInput = document.getElementById('pdfInput');
 </body>
 </html> -->
 
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -390,35 +389,6 @@ const pdfInput = document.getElementById('pdfInput');
    <div id="cardsContainer"></div>
   
   <script>
-    // Load PDF.js library dynamically
-    const loadPdfJs = () => {
-      return new Promise((resolve, reject) => {
-        // First, load the main library
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
-        script.onload = () => {
-          // Then set the worker
-          if (window.pdfjsLib) {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-            console.log('✅ PDF.js loaded successfully');
-            resolve();
-          } else {
-            reject(new Error('PDF.js failed to load'));
-          }
-        };
-        script.onerror = () => reject(new Error('Failed to load PDF.js script'));
-        document.head.appendChild(script);
-      });
-    };
-
-    // Initialize PDF.js when the page loads
-    let pdfJsLoaded = false;
-    loadPdfJs().then(() => {
-      pdfJsLoaded = true;
-    }).catch(err => {
-      console.error('Failed to load PDF.js:', err);
-    });
-
     const openBtn = document.getElementById('openBtn');
     const stopBtn = document.getElementById('stopBtn');
     let sessionId = null;
@@ -458,47 +428,48 @@ const pdfInput = document.getElementById('pdfInput');
         'width=500,height=400'
       );
 
+      // Send PDF text if already loaded
+      if (pdfTextCache && recorderWindow) {
+        setTimeout(() => {
+          recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, 'https://fyp-2025-kath.vercel.app');
+        }, 1000);
+      }
+
       poll(sessionId);
     };
 
     const pdfInput = document.getElementById('pdfInput');
     const pdfStatus = document.getElementById('pdfStatus');
 
+    // Use server-side PDF processing instead of client-side
     pdfInput.addEventListener('change', async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Check if PDF.js is loaded
-      if (!pdfJsLoaded || !window.pdfjsLib) {
-        pdfStatus.textContent = "⌛ Loading PDF library...";
-        try {
-          await loadPdfJs();
-          pdfJsLoaded = true;
-        } catch (err) {
-          pdfStatus.textContent = "❌ Failed to load PDF library";
-          console.error("PDF.js load error:", err);
-          return;
-        }
-      }
-
-      pdfStatus.textContent = "⏳ Extracting text from PDF (client-side)...";
+      pdfStatus.textContent = "⏳ Extracting text from PDF (server-side)...";
       
       try {
-        const arrayBuffer = await file.arrayBuffer();
-
-        // Use pdfjsLib to parse the PDF
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let fullText = '';
+        // Create FormData and send to your API
+        const formData = new FormData();
+        formData.append('file', file, file.name);
         
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          const text = content.items.map(item => item.str).join(' ');
-          fullText += text + '\n';
+        const res = await fetch('https://fyp-2025-kath.vercel.app/api/ingest_pdf', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Server error: ${errorText}`);
         }
-
-        // Clean up excessive whitespace
-        pdfTextCache = fullText.replace(/\n{3,}/g, '\n\n').trim();
+        
+        const data = await res.json();
+        
+        if (!data?.text) {
+          throw new Error("No text extracted from PDF");
+        }
+        
+        pdfTextCache = data.text;
         pdfStatus.textContent = `✅ PDF loaded (${(pdfTextCache.length/1000).toFixed(1)}k chars)`;
 
         // Send to recorder window if open
@@ -506,8 +477,8 @@ const pdfInput = document.getElementById('pdfInput');
           recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, 'https://fyp-2025-kath.vercel.app');
         }
       } catch (err) {
-        console.error("❌ PDF parse error:", err);
-        pdfStatus.textContent = "❌ PDF parse error: " + err.message;
+        console.error("❌ PDF processing error:", err);
+        pdfStatus.textContent = "❌ PDF processing error: " + err.message;
       }
     });
 
@@ -603,6 +574,7 @@ const pdfInput = document.getElementById('pdfInput');
   </script>
 </body>
 </html>
+
 
 <!-- <!DOCTYPE html>
 <html lang="en">
