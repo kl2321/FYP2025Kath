@@ -316,7 +316,6 @@ const pdfInput = document.getElementById('pdfInput');
   </script>
 </body>
 </html> -->
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -375,8 +374,14 @@ const pdfInput = document.getElementById('pdfInput');
 </head>
 <body>
   <h2>🎤 Analyze Meeting</h2>
-  <label style="display:block; margin:8px 0 4px;">📄 Attach PDF (optional):</label>
-  <input id="pdfInput" type="file" accept="application/pdf" />
+  <label style="display:block; margin:8px 0 4px;">📄 Add Context (optional):</label>
+  <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+    <button id="pdfBtn" style="padding: 6px 12px; margin: 0;">Upload PDF</button>
+    <button id="textBtn" style="padding: 6px 12px; margin: 0;">Paste Text</button>
+  </div>
+  <input id="pdfInput" type="file" accept="application/pdf" style="display: none;" />
+  <textarea id="contextText" placeholder="Paste your project documentation or context here..." 
+           style="width: 100%; height: 100px; display: none; margin-bottom: 8px;"></textarea>
   <small id="pdfStatus" style="display:block; color:#666; margin-bottom:12px;"></small>
 
   <label for="cycleInput">⏱️ Summary interval (minutes):</label>
@@ -438,15 +443,42 @@ const pdfInput = document.getElementById('pdfInput');
       poll(sessionId);
     };
 
+    const pdfBtn = document.getElementById('pdfBtn');
+    const textBtn = document.getElementById('textBtn');
     const pdfInput = document.getElementById('pdfInput');
+    const contextText = document.getElementById('contextText');
     const pdfStatus = document.getElementById('pdfStatus');
 
-    // Use server-side PDF processing instead of client-side
+    // Toggle between PDF upload and text paste
+    pdfBtn.onclick = () => {
+      pdfInput.style.display = 'block';
+      contextText.style.display = 'none';
+      pdfInput.click(); // Auto-open file picker
+    };
+
+    textBtn.onclick = () => {
+      contextText.style.display = 'block';
+      pdfInput.style.display = 'none';
+      pdfStatus.textContent = 'Type or paste your context below';
+    };
+
+    // Handle text input
+    contextText.addEventListener('input', (e) => {
+      pdfTextCache = e.target.value;
+      pdfStatus.textContent = `✅ Text added (${(pdfTextCache.length/1000).toFixed(1)}k chars)`;
+      
+      // Send to recorder window if open
+      if (recorderWindow && !recorderWindow.closed) {
+        recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, 'https://fyp-2025-kath.vercel.app');
+      }
+    });
+
+    // Use server-side PDF processing with fallback
     pdfInput.addEventListener('change', async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      pdfStatus.textContent = "⏳ Extracting text from PDF (server-side)...";
+      pdfStatus.textContent = "⏳ Extracting text from PDF...";
       
       try {
         // Create FormData and send to your API
@@ -458,12 +490,14 @@ const pdfInput = document.getElementById('pdfInput');
           body: formData
         });
         
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Server error: ${errorText}`);
-        }
-        
         const data = await res.json();
+        
+        if (data?.error) {
+          // If PDF extraction failed, show text input as fallback
+          contextText.style.display = 'block';
+          pdfStatus.textContent = "⚠️ Could not extract PDF text. Please paste the content manually.";
+          return;
+        }
         
         if (!data?.text) {
           throw new Error("No text extracted from PDF");
@@ -478,7 +512,9 @@ const pdfInput = document.getElementById('pdfInput');
         }
       } catch (err) {
         console.error("❌ PDF processing error:", err);
-        pdfStatus.textContent = "❌ PDF processing error: " + err.message;
+        // Show text input as fallback
+        contextText.style.display = 'block';
+        pdfStatus.textContent = "❌ PDF upload failed. Please paste the text instead.";
       }
     });
 
@@ -574,6 +610,7 @@ const pdfInput = document.getElementById('pdfInput');
   </script>
 </body>
 </html>
+
 
 
 <!-- <!DOCTYPE html>

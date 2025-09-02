@@ -203,7 +203,7 @@
             body: JSON.stringify({ 
               text: combined,
               avoid: avoidCombined,
-              context_pdf: contextPdfText
+              context_pdf: contextPdfText || null
              })
           });
           const data = await res.json();
@@ -283,7 +283,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: fullTranscript,
-              context_pdf: contextPdfText
+              context_pdf: contextPdfText || null
 
              })
           });
