@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 <head>
   <meta charset="UTF-8" />
   <style>
@@ -98,6 +99,41 @@
     //   }
     // });
 
+    const pdfInput = document.getElementById('pdfInput');
+const pdfStatus = document.getElementById('pdfStatus'); // 可选的状态文本
+
+pdfInput.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  pdfStatus && (pdfStatus.textContent = "⏳ Extracting text from PDF (client-side)...");
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+
+    // pdf.js 前端解析
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const text = content.items.map(item => item.str).join(' ');
+      fullText += text + '\n';
+    }
+
+    // 简单清洗，避免过长空白
+    pdfTextCache = fullText.replace(/\n{3,}/g, '\n\n').trim();
+    pdfStatus && (pdfStatus.textContent = `✅ PDF loaded (${(pdfTextCache.length/1000).toFixed(1)}k chars)`);
+
+    // 若 recorder 窗口已打开，立刻发送
+    if (recorderWindow && !recorderWindow.closed) {
+      recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, 'https://fyp-2025-kath.vercel.app');
+    }
+  } catch (err) {
+    console.error("❌ PDF parse error:", err);
+    pdfStatus && (pdfStatus.textContent = "❌ PDF parse error.");
+  }
+});
+
     openBtn.onclick = async () => {
       sessionId = Date.now().toString();
 
@@ -136,38 +172,38 @@
   poll(sessionId);
 };
 
-const pdfInput = document.getElementById('pdfInput');
-const pdfStatus = document.getElementById('pdfStatus');
+// const pdfInput = document.getElementById('pdfInput');
+// const pdfStatus = document.getElementById('pdfStatus');
 
-pdfInput.addEventListener('change', async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+// pdfInput.addEventListener('change', async (e) => {
+//   const file = e.target.files?.[0];
+//   if (!file) return;
 
-  pdfStatus.textContent = "⏳ Extracting text from PDF...";
-  try {
-    const form = new FormData();
-    form.append('file', file, file.name);
-    const res = await fetch('https://fyp-2025-kath.vercel.app/api/ingest_pdf', {
-      method: 'POST',
-      body: form
-    });
-    const data = await res.json();
-    if (!res.ok || !data?.text) {
-      pdfStatus.textContent = "❌ Failed to read PDF.";
-      return;
-    }
-    pdfTextCache = data.text;
-    pdfStatus.textContent = `✅ PDF loaded (${(data.text.length/1000).toFixed(1)}k chars)`;
+//   pdfStatus.textContent = "⏳ Extracting text from PDF...";
+//   try {
+//     const form = new FormData();
+//     form.append('file', file, file.name);
+//     const res = await fetch('https://fyp-2025-kath.vercel.app/api/ingest_pdf', {
+//       method: 'POST',
+//       body: form
+//     });
+//     const data = await res.json();
+//     if (!res.ok || !data?.text) {
+//       pdfStatus.textContent = "❌ Failed to read PDF.";
+//       return;
+//     }
+//     pdfTextCache = data.text;
+//     pdfStatus.textContent = `✅ PDF loaded (${(data.text.length/1000).toFixed(1)}k chars)`;
 
-    // 如果录音窗口已打开，把 PDF 文本传给它
-    if (recorderWindow) {
-      recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, '*');
-    }
-  } catch (err) {
-    console.error("❌ PDF upload/parse error:", err);
-    pdfStatus.textContent = "❌ PDF parse error.";
-  }
-});
+//     // 如果录音窗口已打开，把 PDF 文本传给它
+//     if (recorderWindow) {
+//       recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, '*');
+//     }
+//   } catch (err) {
+//     console.error("❌ PDF upload/parse error:", err);
+//     pdfStatus.textContent = "❌ PDF parse error.";
+//   }
+// });
 
 
     stopBtn.onclick = async () => {
