@@ -31,11 +31,37 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid JSON' });
   }
 
-  const { text, avoid, context_pdf } = req.body;
+  //const { text, avoid, context_pdf } = req.body;
+  const { text, avoid, session_id } = req.body;
 
   if (!text) {
-    return res.status(400).json({ error: 'Missing text to summarize' });
+  return res.status(400).json({ error: 'Missing text to summarize' });
+}
+
+// 新增：从Supabase获取PDF内容
+let context_pdf = '';
+if (session_id) {
+  try {
+    console.log('获取PDF上下文 for session:', session_id);
+    const pdfResponse = await fetch(`https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/pdf_context?session_id=eq.${session_id}&order=created_at.desc&limit=1`, {
+      headers: {
+        apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A",
+        Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A",
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (pdfResponse.ok) {
+      const pdfData = await pdfResponse.json();
+      if (pdfData.length > 0) {
+        context_pdf = pdfData[0].pdf_text;
+        console.log('PDF上下文获取成功, 长度:', context_pdf.length);
+      }
+    }
+  } catch (pdfErr) {
+    console.warn('PDF获取失败，继续without PDF:', pdfErr.message);
   }
+}
 
   try {
     const messages = [

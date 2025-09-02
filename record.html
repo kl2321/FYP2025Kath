@@ -207,7 +207,7 @@
         const requestBody = {
           text: combined,
           avoid: avoidCombined || '', // 确保是字符串
-          context_pdf: contextPdfText || '' // 确保是字符串
+          session_id: sessionId  // 确保是字符串
         };
 
         console.log("📋 最终请求体:", JSON.stringify(requestBody).substring(0, 200) + '...');
@@ -301,7 +301,7 @@
         try {
           const requestBody = {
             text: fullTranscript,
-            context_pdf: contextPdfText || ''
+            session_id: sessionId 
           };
 
           const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
