@@ -7,7 +7,7 @@
 //     return res.status(400).json({ error: 'Invalid JSON format' });
 //   }
 // }
-
+const config = require('../lib/config');
 export default async function handler(req, res) {
 
   // 添加 CORS 头部
@@ -40,16 +40,32 @@ export default async function handler(req, res) {
 
 // 新增：从Supabase获取PDF内容
 let context_pdf = '';
+// if (session_id) {
+//   try {
+//     console.log('获取PDF上下文 for session:', session_id);
+//     const pdfResponse = await fetch(`https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/pdf_context?session_id=eq.${session_id}&order=created_at.desc&limit=1`, {
+//       headers: {
+//         apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A",
+//         Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A",
+//         'Content-Type': 'application/json'
+//       }
+//     });
+
 if (session_id) {
-  try {
-    console.log('获取PDF上下文 for session:', session_id);
-    const pdfResponse = await fetch(`https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/pdf_context?session_id=eq.${session_id}&order=created_at.desc&limit=1`, {
-      headers: {
-        apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A",
-        Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A",
-        'Content-Type': 'application/json'
-      }
-    });
+    try {
+      console.log('获取PDF上下文 for session:', session_id);
+      
+      // 使用集中配置的Supabase URL和密钥
+      const pdfResponse = await fetch(
+        `${config.supabase.url}/rest/v1/pdf_context?session_id=eq.${session_id}&order=created_at.desc&limit=1`, 
+        {
+          headers: {
+            apikey: config.supabase.anonKey,
+            Authorization: `Bearer ${config.supabase.anonKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
     
     if (pdfResponse.ok) {
       const pdfData = await pdfResponse.json();
@@ -105,22 +121,34 @@ ${context_pdf ? context_pdf.slice(0, 12000) : 'N/A'}`
 
       }
     ];
-    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    const openaiRes = await fetch(`${config.openai.apiUrl}/chat/completions`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${config.openai.apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4o-mini",  
         messages
-
-        // messages: [
-        //   { role: "system", content: "You are a meeting minute assistant talented at summarizing transcript into meeting minutes。" },
-        //   { role: "user", content: `Please summarize the following for the meeting：\n\n${text}` }
-        // ]
       })
     });
+
+    // const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    //   method: 'POST',
+    //   headers: {
+    //     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    //     'Content-Type': 'application/json'
+    //   },
+    //   body: JSON.stringify({
+    //     model: "gpt-4o-mini",
+    //     messages
+
+    //     // messages: [
+    //     //   { role: "system", content: "You are a meeting minute assistant talented at summarizing transcript into meeting minutes。" },
+    //     //   { role: "user", content: `Please summarize the following for the meeting：\n\n${text}` }
+    //     // ]
+    //   })
+    // });
 
     const data = await openaiRes.json();
     //  safety check
@@ -147,9 +175,20 @@ ${context_pdf ? context_pdf.slice(0, 12000) : 'N/A'}`
     } catch (e) {
       console.error("❌ Failed to parse GPT output:", data.choices[0].message.content);
       return res.status(200).json({ summary: '', transcript: text });
+
+      if (config.isDevelopment) {
+        return res.status(200).json({ 
+          summary: '', 
+          transcript: text,
+          error: 'Failed to parse GPT response',
+          raw_response: data.choices[0].message.content
+        });
+      }
+      
+      return res.status(200).json({ summary: '', transcript: text });
     }
 
-
+    
 
     
     const summary = data.choices?.[0]?.message?.content ?? '';
@@ -167,5 +206,17 @@ ${context_pdf ? context_pdf.slice(0, 12000) : 'N/A'}`
   } catch (err) {
     console.error("❌ summarize error:", err);
     res.status(500).json({ error: 'Summarize failed' });
+
+    if (config.isDevelopment) {
+      return res.status(500).json({ 
+        error: 'Summarize failed',
+        detail: err.message,
+        stack: err.stack
+      });
+    }
+    
+    res.status(500).json({ error: 'Summarize failed' });
+
+
   }
 }
