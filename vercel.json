@@ -1,10 +1,70 @@
 {
   "functions": {
     "api/analyze.js": {
-      "memory": 512
+      "memory": 512,
+      "maxDuration": 30
+    },
+    "api/summarize.js": {
+      "memory": 512,
+      "maxDuration": 30
+    },
+    "api/save.js": {
+      "memory": 256,
+      "maxDuration": 10
+    },
+    "api/get.js": {
+      "memory": 256,
+      "maxDuration": 10
+    },
+    "api/stop.js": {
+      "memory": 256,
+      "maxDuration": 10
+    },
+    "api/save_pdf.js": {
+      "memory": 256,
+      "maxDuration": 10
+    },
+    "api/ingest_pdf.js": {
+      "memory": 512,
+      "maxDuration": 15
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/record.html",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "microphone=(self)"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
 }
-
-
-

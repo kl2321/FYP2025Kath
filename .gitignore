@@ -1,8 +1,51 @@
-# Node
-*.log
-*.log.*
-node_modules
+# # Node
+# *.log
+# *.log.*
+# node_modules
 
-out/
+# out/
+# dist/
+# code.js
+# 环境变量文件（重要！不要提交密钥）
+.env
+.env.local
+.env.production
+.env.development
+
+# 依赖
+node_modules/
+
+# Vercel
+.vercel
+.vercel/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 编辑器配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# 构建输出
 dist/
-code.js
+build/
+.next/
+out/
+
+# 测试覆盖率
+coverage/
+.nyc_output/

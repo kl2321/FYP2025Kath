@@ -1,3 +1,4 @@
+const config = require('../lib/config');
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -38,14 +39,15 @@ export default async function handler(req, res) {
     if (!session || !transcript || !summary) {
       return res.status(400).json({ error: 'Missing fields' });
     }
-
-    const supabaseRes = await fetch("https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/sessions", {
+    const supabaseRes = await fetch(`${config.supabase.url}/rest/v1/sessions`, {
       method: "POST",
       headers: {
-        apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A",
-        Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A",
+        apikey: config.supabase.anonKey,
+        Authorization: `Bearer ${config.supabase.anonKey}`,
         "Content-Type": "application/json"
       },
+
+  
       body: JSON.stringify({
         session_id: session,
         transcript,
