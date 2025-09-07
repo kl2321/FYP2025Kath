@@ -115,27 +115,33 @@
 //   });
 // }
 
-// api/ingest_pdf.js - Fixed version with proper PDF text extraction
+// api/ingest_pdf.js - Vercel compatible version without pdf-parse
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
-import pdf from 'pdf-parse';
 import config from '../lib/config.js';
 
+// Vercel requires this configuration
 export const apiConfig = {
   api: {
-    bodyParser: false, // Disable for file uploads
+    bodyParser: false,
   },
 };
 
 export default async function handler(req, res) {
   console.log('📄 /api/ingest_pdf called');
+  console.log('Method:', req.method);
+  console.log('Origin:', req.headers.origin);
   
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Enhanced CORS headers for Vercel
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
+  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
+    console.log('OPTIONS request - returning 200');
     return res.status(200).end();
   }
 
@@ -143,129 +149,259 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Create form parser
+  // Create form parser with error handling
   const form = new IncomingForm({
     uploadDir: '/tmp',
     keepExtensions: true,
-    maxFileSize: 10 * 1024 * 1024, // 10MB limit
+    maxFileSize: 10 * 1024 * 1024, // 10MB
   });
 
-  // Parse the uploaded file
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error('❌ Form parse error:', err);
-      return res.status(500).json({ 
-        error: 'Form parse error', 
-        detail: err.message 
-      });
-    }
+  console.log('📥 Parsing form data...');
 
-    // Get the uploaded PDF file
-    const rawFile = Array.isArray(files.file) ? files.file[0] : files.file;
-    if (!rawFile || !rawFile.filepath) {
-      return res.status(400).json({ error: 'PDF file is missing' });
-    }
-
-    console.log('📁 PDF file received:', {
-      name: rawFile.originalFilename,
-      size: rawFile.size,
-      type: rawFile.mimetype
-    });
-
-    try {
-      // Read the PDF file buffer
-      const pdfBuffer = fs.readFileSync(rawFile.filepath);
-      
-      // Use pdf-parse to extract text properly
-      console.log('🔍 Extracting text from PDF...');
-      
-      let extractedText = '';
-      let metadata = {};
-      
-      try {
-        // Parse PDF with pdf-parse library
-        const pdfData = await pdf(pdfBuffer, {
-          // Options for better text extraction
-          max: 0, // Parse all pages (0 = no limit)
-          version: 'v2.0.550'
-        });
-        
-        // Extract clean text
-        extractedText = pdfData.text || '';
-        
-        // Get metadata
-        metadata = {
-          pages: pdfData.numpages,
-          info: pdfData.info,
-          version: pdfData.version
-        };
-        
-        console.log('✅ PDF parsed successfully');
-        console.log(`📊 Extracted ${extractedText.length} characters from ${pdfData.numpages} pages`);
-        
-        // Clean and normalize the extracted text
-        extractedText = cleanPdfText(extractedText);
-        
-      } catch (parseErr) {
-        console.error('⚠️ PDF parsing error:', parseErr);
-        
-        // Fallback: Try basic text extraction
-        extractedText = await fallbackTextExtraction(pdfBuffer);
-      }
-      
-      // Clean up temp file
-      try {
-        fs.unlinkSync(rawFile.filepath);
-        console.log('🗑️ Temp file cleaned');
-      } catch (cleanupErr) {
-        console.warn('Could not clean temp file:', cleanupErr.message);
-      }
-      
-      // Check if we got meaningful text
-      if (!extractedText || extractedText.trim().length < 10) {
-        return res.status(200).json({
-          text: '',
-          message: 'Could not extract text from PDF. The file might be image-based or encrypted.',
-          error: true,
-          hint: 'For image-based PDFs, please use OCR software first or copy the text manually.'
-        });
-      }
-      
-      // Return extracted text
-      return res.status(200).json({
-        success: true,
-        text: extractedText,
-        message: 'PDF processed successfully',
-        metadata: {
-          filename: rawFile.originalFilename,
-          size: rawFile.size,
-          text_length: extractedText.length,
-          pages: metadata.pages || 'unknown',
-          processed_at: new Date().toISOString()
+  // Parse uploaded file with promise wrapper
+  const parseForm = () => {
+    return new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) {
+          console.error('❌ Form parse error:', err);
+          reject(err);
+        } else {
+          resolve({ fields, files });
         }
       });
-      
-    } catch (error) {
-      console.error('❌ PDF processing error:', error);
-      
-      // Clean up temp file on error
-      try {
-        fs.unlinkSync(rawFile.filepath);
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-      
-      return res.status(500).json({
-        error: 'PDF processing failed',
-        detail: config.isDevelopment ? error.message : 'Unable to process PDF file',
-        hint: 'Please ensure the file is a valid PDF and not corrupted'
+    });
+  };
+
+  try {
+    const { fields, files } = await parseForm();
+    
+    // Get uploaded PDF file
+    const rawFile = Array.isArray(files.file) ? files.file[0] : files.file;
+    
+    if (!rawFile || !rawFile.filepath) {
+      console.error('❌ No file uploaded');
+      return res.status(400).json({ 
+        error: 'No PDF file uploaded',
+        detail: 'Please select a PDF file to upload'
       });
     }
-  });
+
+    console.log('📁 File received:', {
+      name: rawFile.originalFilename,
+      size: rawFile.size,
+      type: rawFile.mimetype,
+      path: rawFile.filepath
+    });
+
+    // Read file buffer
+    let pdfBuffer;
+    try {
+      pdfBuffer = fs.readFileSync(rawFile.filepath);
+      console.log('✅ File read successfully, size:', pdfBuffer.length);
+    } catch (readErr) {
+      console.error('❌ Failed to read file:', readErr);
+      throw new Error('Failed to read uploaded file');
+    }
+
+    // Extract text using fallback method (no external dependencies)
+    let extractedText = '';
+    
+    try {
+      console.log('🔍 Extracting text from PDF...');
+      extractedText = await extractPdfTextFallback(pdfBuffer);
+      
+      if (!extractedText || extractedText.trim().length < 10) {
+        // Try alternative extraction
+        extractedText = extractBasicPdfText(pdfBuffer);
+      }
+      
+      console.log('📝 Extracted text length:', extractedText.length);
+      
+    } catch (extractErr) {
+      console.error('⚠️ Text extraction error:', extractErr);
+      extractedText = '';
+    }
+
+    // Clean up temp file
+    try {
+      fs.unlinkSync(rawFile.filepath);
+      console.log('🗑️ Temp file cleaned');
+    } catch (cleanErr) {
+      console.warn('Could not clean temp file:', cleanErr.message);
+    }
+
+    // Check if extraction was successful
+    if (!extractedText || extractedText.trim().length < 10) {
+      console.warn('⚠️ No meaningful text extracted');
+      return res.status(200).json({
+        success: false,
+        text: '',
+        message: 'Could not extract text from PDF. The file might be image-based, encrypted, or in an unsupported format.',
+        hint: 'Please try: 1) Using a different PDF, 2) Copying text manually, or 3) Using OCR software for scanned documents',
+        metadata: {
+          filename: rawFile.originalFilename,
+          size: rawFile.size
+        }
+      });
+    }
+
+    // Return successful extraction
+    return res.status(200).json({
+      success: true,
+      text: extractedText,
+      message: 'PDF processed successfully',
+      metadata: {
+        filename: rawFile.originalFilename,
+        size: rawFile.size,
+        text_length: extractedText.length,
+        processed_at: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Processing error:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Try to clean up temp file if it exists
+    try {
+      if (files?.file) {
+        const file = Array.isArray(files.file) ? files.file[0] : files.file;
+        if (file?.filepath) {
+          fs.unlinkSync(file.filepath);
+        }
+      }
+    } catch (cleanErr) {
+      // Ignore cleanup errors
+    }
+    
+    return res.status(500).json({
+      error: 'PDF processing failed',
+      detail: config.isDevelopment ? error.message : 'Unable to process PDF',
+      hint: 'Please ensure the file is a valid PDF'
+    });
+  }
 }
 
-// Clean and normalize PDF text
-function cleanPdfText(text) {
+/**
+ * Fallback PDF text extraction without external libraries
+ */
+async function extractPdfTextFallback(buffer) {
+  try {
+    // Convert buffer to string
+    const pdfString = buffer.toString('binary');
+    let extractedText = '';
+    
+    // Method 1: Extract text between BT and ET markers
+    const btEtPattern = /BT\s*(.*?)\s*ET/gs;
+    let match;
+    
+    while ((match = btEtPattern.exec(pdfString)) !== null) {
+      const content = match[1];
+      
+      // Extract text in parentheses (Tj operator)
+      const tjPattern = /\(((?:[^()\\]|\\[\\()])*)\)\s*Tj/g;
+      let tjMatch;
+      
+      while ((tjMatch = tjPattern.exec(content)) !== null) {
+        let text = tjMatch[1];
+        
+        // Decode escape sequences
+        text = text
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\b/g, '\b')
+          .replace(/\\f/g, '\f')
+          .replace(/\\(/g, '(')
+          .replace(/\\)/g, ')')
+          .replace(/\\\\/g, '\\')
+          .replace(/\\([0-9]{3})/g, (match, octal) => 
+            String.fromCharCode(parseInt(octal, 8))
+          );
+        
+        extractedText += text + ' ';
+      }
+      
+      // Also try TJ operator (array of strings)
+      const tjArrayPattern = /\[(.*?)\]\s*TJ/g;
+      while ((tjMatch = tjArrayPattern.exec(content)) !== null) {
+        const arrayContent = tjMatch[1];
+        const stringPattern = /\(((?:[^()\\]|\\[\\()])*)\)/g;
+        let stringMatch;
+        
+        while ((stringMatch = stringPattern.exec(arrayContent)) !== null) {
+          let text = stringMatch[1];
+          text = text.replace(/\\([0-9]{3})/g, (match, octal) => 
+            String.fromCharCode(parseInt(octal, 8))
+          );
+          extractedText += text;
+        }
+      }
+    }
+    
+    // Method 2: Extract from stream objects
+    if (extractedText.length < 50) {
+      const streamPattern = /stream\s*([\s\S]*?)\s*endstream/g;
+      
+      while ((match = streamPattern.exec(pdfString)) !== null) {
+        const streamContent = match[1];
+        
+        // Look for readable text
+        const readable = streamContent
+          .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        if (readable.length > 20 && !readable.includes('endobj')) {
+          extractedText += readable + '\n';
+        }
+      }
+    }
+    
+    // Clean extracted text
+    return cleanExtractedText(extractedText);
+    
+  } catch (err) {
+    console.error('Fallback extraction error:', err);
+    return '';
+  }
+}
+
+/**
+ * Basic PDF text extraction (simplified)
+ */
+function extractBasicPdfText(buffer) {
+  try {
+    const text = buffer.toString('utf8');
+    let extracted = '';
+    
+    // Extract text between parentheses
+    const parenPattern = /\(((?:[^()\\]|\\[\\()])*)\)/g;
+    let match;
+    
+    while ((match = parenPattern.exec(text)) !== null) {
+      const content = match[1]
+        .replace(/\\/g, '')
+        .replace(/[^\x20-\x7E]/g, '')
+        .trim();
+      
+      if (content.length > 3) {
+        extracted += content + ' ';
+      }
+    }
+    
+    return cleanExtractedText(extracted);
+    
+  } catch (err) {
+    console.error('Basic extraction error:', err);
+    return '';
+  }
+}
+
+/**
+ * Clean extracted text
+ */
+function cleanExtractedText(text) {
   if (!text) return '';
   
   return text
@@ -279,64 +415,18 @@ function cleanPdfText(text) {
     .replace(/ +/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     // Remove common PDF artifacts
-    .replace(/\f/g, '\n') // Form feed to newline
-    .replace(/\u00A0/g, ' ') // Non-breaking space to regular space
-    .replace(/\u2019/g, "'") // Smart quotes
-    .replace(/\u2018/g, "'")
-    .replace(/\u201C/g, '"')
-    .replace(/\u201D/g, '"')
-    .replace(/\u2013/g, '-') // En dash
-    .replace(/\u2014/g, '--') // Em dash
-    .replace(/\u2026/g, '...') // Ellipsis
-    // Trim each line
+    .replace(/\f/g, '\n')
+    .replace(/\u00A0/g, ' ')
+    // Fix common encoding issues
+    .replace(/â€™/g, "'")
+    .replace(/â€œ/g, '"')
+    .replace(/â€/g, '"')
+    .replace(/â€"/g, '—')
+    .replace(/â€"/g, '-')
+    // Trim
     .split('\n')
     .map(line => line.trim())
+    .filter(line => line.length > 0)
     .join('\n')
     .trim();
-}
-
-// Fallback text extraction method
-async function fallbackTextExtraction(buffer) {
-  console.log('⚠️ Using fallback text extraction method...');
-  
-  try {
-    // Convert buffer to string
-    const str = buffer.toString('utf8');
-    
-    // Look for text between stream markers
-    const streamPattern = /stream([\s\S]*?)endstream/g;
-    let text = '';
-    let match;
-    
-    while ((match = streamPattern.exec(str)) !== null) {
-      // Extract readable characters
-      const content = match[1]
-        .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      if (content.length > 10) {
-        text += content + '\n';
-      }
-    }
-    
-    // Also try to extract text in parentheses (common in PDFs)
-    const parenPattern = /\(((?:[^()\\]|\\[\\()])*)\)/g;
-    while ((match = parenPattern.exec(str)) !== null) {
-      const content = match[1]
-        .replace(/\\/g, '')
-        .replace(/[^\x20-\x7E]/g, '')
-        .trim();
-      
-      if (content.length > 5) {
-        text += content + ' ';
-      }
-    }
-    
-    return cleanPdfText(text);
-    
-  } catch (err) {
-    console.error('❌ Fallback extraction failed:', err);
-    return '';
-  }
 }
