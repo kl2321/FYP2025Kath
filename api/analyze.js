@@ -91,29 +91,29 @@
 
 // api/analyze.js
 // 音频处理中心 - 接收音频块，转录并分析
-
+// api/analyze.js - Fixed version with proper ES module imports
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
 
-// 引入集中配置
-const config = require('../lib/config');
+// Use ES module import for config
+import config from '../lib/config.js';  // Note: .js extension is required for ES modules
 
-// Vercel需要这个配置来处理文件上传
+// Vercel configuration for file upload handling
 export const apiConfig = {
   api: {
-    bodyParser: false,  // 禁用默认的body解析，因为我们处理文件上传
+    bodyParser: false,  // Disable default body parsing for file uploads
   },
 };
 
 export default async function handler(req, res) {
-  // 添加CORS头部
+  // Add CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
-  // 处理OPTIONS请求
+  // Handle OPTIONS request for CORS preflight
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -122,20 +122,20 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // 检查OpenAI配置
+  // Check OpenAI configuration
   if (!config.openai.apiKey) {
     console.error('OpenAI API key not configured');
     return res.status(500).json({ error: 'Server configuration error: Missing OpenAI API key' });
   }
 
-  // 创建表单解析器来处理文件上传
+  // Create form parser for file uploads
   const form = new IncomingForm({
-    uploadDir: '/tmp',        // Vercel的临时文件目录
-    keepExtensions: true,     // 保留文件扩展名
-    maxFileSize: 50 * 1024 * 1024,  // 50MB限制
+    uploadDir: '/tmp',        // Vercel's temp directory
+    keepExtensions: true,     // Keep file extensions
+    maxFileSize: 50 * 1024 * 1024,  // 50MB limit
   });
 
-  // 解析上传的表单数据
+  // Parse uploaded form data
   form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error('❌ Form parse error:', err);
@@ -145,7 +145,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 获取上传的音频文件
+    // Get uploaded audio file
     const rawFile = Array.isArray(files.file) ? files.file[0] : files.file;
     if (!rawFile || !rawFile.filepath) {
       return res.status(400).json({ error: 'Audio file is missing' });
@@ -158,13 +158,13 @@ export default async function handler(req, res) {
     });
 
     try {
-      // ========== Step 1: 音频转文字 (Whisper) ==========
+      // ========== Step 1: Speech to Text (Whisper) ==========
       const formData = new FormData();
       formData.append('file', fs.createReadStream(rawFile.filepath));
       formData.append('model', config.openai.whisperModel || 'whisper-1');
       
-      // 可选：添加语言提示
-      // formData.append('language', 'en'); // 或 'zh' 中文
+      // Optional: Add language hint
+      // formData.append('language', 'en'); // or 'zh' for Chinese
 
       console.log('🔤 Sending to Whisper API...');
       
@@ -174,18 +174,33 @@ export default async function handler(req, res) {
         {
           headers: {
             Authorization: `Bearer ${config.openai.apiKey}`,
-            ...formData.getHeaders(), // 包含 multipart boundary
+            ...formData.getHeaders(), // Include multipart boundary
           },
-          timeout: 60000, // 60秒超时
+          timeout: 60000, // 60 seconds timeout
         }
       );
 
-      const transcript = whisperRes.data.text;
+      const transcript = whisperRes.data.text || '';
       console.log('✅ Whisper transcript received, length:', transcript.length);
 
-      // ========== Step 2: 文本分析 (GPT) ==========
+      // Handle empty transcripts
+      if (!transcript || transcript.trim() === '') {
+        console.warn('⚠️ Empty transcript from Whisper');
+        return res.status(200).json({
+          success: true,
+          transcript: '[No speech detected in audio]',
+          summary: 'No content to analyze',
+          metadata: {
+            audioSize: rawFile.size,
+            transcriptLength: 0,
+            processedAt: new Date().toISOString(),
+          }
+        });
+      }
+
+      // ========== Step 2: Text Analysis (GPT) ==========
       
-      // 构建分析提示词
+      // Build analysis prompt
       const systemPrompt = `You are a meeting assistant analyzing team discussions. 
       Focus on project-related content and collaboration.
       Categorize insights into explicit knowledge (documented facts) and tacit knowledge (experiential insights).`;
@@ -208,36 +223,42 @@ ${transcript}`;
       const gptRes = await axios.post(
         `${config.openai.apiUrl}/chat/completions`,
         {
-          model: 'gpt-4o-mini', // 使用较快的模型处理实时转录
+          model: config.openai.model || 'gpt-4o-mini', // Use configured model
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
-          temperature: 0.3,  // 较低的温度使输出更一致
-          max_tokens: 500,   // 限制响应长度
+          temperature: 0.3,  // Lower temperature for more consistent output
+          max_tokens: 500,   // Limit response length
         },
         {
           headers: {
             Authorization: `Bearer ${config.openai.apiKey}`,
             'Content-Type': 'application/json',
           },
-          timeout: 30000, // 30秒超时
+          timeout: 30000, // 30 seconds timeout
         }
       );
 
-      // 检查GPT响应
+      // Check GPT response
       if (!gptRes.data?.choices?.[0]?.message?.content) {
         console.warn('⚠️ GPT returned empty response');
         return res.status(200).json({
+          success: true,
           transcript,
           summary: 'Unable to generate summary',
+          metadata: {
+            audioSize: rawFile.size,
+            transcriptLength: transcript.length,
+            processedAt: new Date().toISOString(),
+          }
         });
       }
 
       const summary = gptRes.data.choices[0].message.content;
       console.log('✅ GPT analysis complete');
 
-      // ========== Step 3: 清理临时文件 ==========
+      // ========== Step 3: Clean up temporary file ==========
       try {
         fs.unlinkSync(rawFile.filepath);
         console.log('🗑️ Temporary file cleaned up');
@@ -245,7 +266,7 @@ ${transcript}`;
         console.warn('Failed to clean up temp file:', cleanupErr.message);
       }
 
-      // ========== Step 4: 返回结果 ==========
+      // ========== Step 4: Return results ==========
       return res.status(200).json({
         success: true,
         transcript,
@@ -260,14 +281,14 @@ ${transcript}`;
     } catch (err) {
       console.error('❌ Error during processing:', err?.response?.data || err.message);
       
-      // 清理临时文件
+      // Clean up temp file on error
       try {
         fs.unlinkSync(rawFile.filepath);
       } catch (cleanupErr) {
-        // 忽略清理错误
+        // Ignore cleanup errors
       }
       
-      // 根据错误类型返回不同的响应
+      // Return different responses based on error type
       if (err.response?.status === 401) {
         return res.status(500).json({
           error: 'Authentication failed',
@@ -282,7 +303,7 @@ ${transcript}`;
         });
       }
       
-      // 在开发环境返回详细错误
+      // Return detailed error in development
       if (config.isDevelopment) {
         return res.status(500).json({
           error: 'Processing failed',
@@ -291,7 +312,7 @@ ${transcript}`;
         });
       }
       
-      // 生产环境返回通用错误
+      // Return generic error in production
       return res.status(500).json({
         error: 'Processing failed',
         detail: 'An error occurred while processing the audio'
