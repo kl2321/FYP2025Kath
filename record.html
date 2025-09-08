@@ -294,53 +294,117 @@
       }
 
       async function finalSummarize() {
-        const fullTranscript = fullTranscriptHistory.join('\n');
-        const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
-        textArea.value = `📦 Finalizing full content... (${duration} min)`;
+  // 检查是否有内容需要总结
+  if (!allChunks || allChunks.length === 0) {
+    console.log('No content to summarize');
+    return;
+  }
+  
+  const fullTranscript = allChunks.join(' ');
+  
+  // 检查转录文本是否为空
+  if (!fullTranscript || fullTranscript.trim().length === 0) {
+    console.log('Transcript is empty, skipping final summary');
+    return;
+  }
+  
+  console.log('🏁 Generating final summary...');
+  statusDiv.textContent = '🏁 Generating final summary...';
+  
+  try {
+    const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: fullTranscript,
+        avoid: previousSummaries.join('\n'),
+        session_id: sessionId
+      })
+    });
+    
+    if (!res.ok) {
+      const error = await res.json();
+      console.error('Summary failed:', error);
+      statusDiv.textContent = '⚠️ Final summary failed';
+      return;
+    }
+    
+    const data = await res.json();
+    
+    // 保存最终总结
+    await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session: sessionId,
+        transcript: fullTranscript,
+        summary: data.summary,
+        decision: data.decision,
+        explicit: data.explicit,
+        tacit: data.tacit,
+        reasoning: data.reasoning,
+        suggestions: data.suggestions,
+        is_final: true  // 标记为最终总结
+      })
+    });
+    
+    console.log('✅ Final summary saved');
+    statusDiv.textContent = '✅ Recording stopped and saved';
+    
+  } catch (err) {
+    console.error('Final summarize error:', err);
+    statusDiv.textContent = '⚠️ Final summary error';
+  }
+}
 
-        try {
-          const requestBody = {
-            text: fullTranscript,
-            session_id: sessionId 
-          };
+      // async function finalSummarize() {
+      //   const fullTranscript = fullTranscriptHistory.join('\n');
+      //   const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
+      //   textArea.value = `📦 Finalizing full content... (${duration} min)`;
 
-          const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-          });
+      //   try {
+      //     const requestBody = {
+      //       text: fullTranscript,
+      //       session_id: sessionId 
+      //     };
 
-          if (!res.ok) {
-            const errorText = await res.text();
-            console.error("❌ 最终总结失败:", errorText);
-            textArea.value = '❌ Final summarize failed: ' + errorText;
-            return;
-          }
-          const data = await res.json();
+      //     const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
+      //       method: 'POST',
+      //       headers: { 'Content-Type': 'application/json' },
+      //       body: JSON.stringify(requestBody)
+      //     });
 
-          textArea.value = `⏱️ Final transcript:\n${fullTranscript}\n\n🧠 Final Summary:\n${data.summary}`;
+      //     if (!res.ok) {
+      //       const errorText = await res.text();
+      //       console.error("❌ 最终总结失败:", errorText);
+      //       textArea.value = '❌ Final summarize failed: ' + errorText;
+      //       return;
+      //     }
+      //     const data = await res.json();
 
-          await fetch('https://fyp-2025-kath.vercel.app/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              session: sessionId,
-              transcript: fullTranscript,
-              summary: data.summary,
-              decision: data.decision,
-              explicit: data.explicit,
-              tacit: data.tacit,
-              reasoning: data.reasoning,
-              suggestions: data.suggestions,
-              is_final: true
-            })
-          });
-          console.log("✅ Final summary saved.");
-        } catch (err) {
-          console.error('❌ Final summary failed:', err);
-          textArea.value = '❌ Final summary failed.';
-        }
-      }
+      //     textArea.value = `⏱️ Final transcript:\n${fullTranscript}\n\n🧠 Final Summary:\n${data.summary}`;
+
+      //     await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+      //       method: 'POST',
+      //       headers: { 'Content-Type': 'application/json' },
+      //       body: JSON.stringify({
+      //         session: sessionId,
+      //         transcript: fullTranscript,
+      //         summary: data.summary,
+      //         decision: data.decision,
+      //         explicit: data.explicit,
+      //         tacit: data.tacit,
+      //         reasoning: data.reasoning,
+      //         suggestions: data.suggestions,
+      //         is_final: true
+      //       })
+      //     });
+      //     console.log("✅ Final summary saved.");
+      //   } catch (err) {
+      //     console.error('❌ Final summary failed:', err);
+      //     textArea.value = '❌ Final summary failed.';
+      //   }
+      // }
             
 
     function pollStop(sessionId) {
