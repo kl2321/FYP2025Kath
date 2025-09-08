@@ -516,34 +516,49 @@
     </div>
 
     <!-- Page 3: Recording -->
-    <div class="page" id="page3">
-      <h2 style="margin-bottom: 24px;">Start Recording</h2>
-      
-      <div class="info-message success" id="readyMessage">
-        <span>✅</span>
-        <span>Everything is set up! Click the button below to start recording.</span>
-      </div>
+<div class="page" id="page3">
+  <h2 style="margin-bottom: 24px;">Start Recording</h2>
+  
+  <div class="info-message success" id="readyMessage">
+    <span>✅</span>
+    <span>Everything is set up! Click the button below to start recording.</span>
+  </div>
 
-      <div class="recording-interface">
-        <button class="record-button" id="recordButton">
-          <span id="recordButtonText">Start Recording</span>
-        </button>
-        
-        <div class="recording-time" id="recordingTime">00:00</div>
-        <div class="recording-status" id="recordingStatus">Ready to record</div>
-      </div>
+  <div class="recording-interface">
+    <button class="record-button" id="recordButton">
+      <span id="recordButtonText">Open Recorder</span>
+    </button>
+    
+    <div class="recording-status" id="recordingStatus">Ready to record</div>
+    
+    <!-- 添加录音间隔设置 -->
+    <div style="margin-top: 30px;">
+      <label for="cycleInput">Summary interval (minutes):</label>
+      <input id="cycleInput" type="number" value="5" min="1" max="30" 
+             style="width: 80px; padding: 8px; margin-left: 10px;">
     </div>
-
-    <!-- Page 4: Summary & Results -->
-    <div class="page" id="page4">
-      <h2 style="margin-bottom: 24px;">Meeting Summary</h2>
-      
-      <div style="text-align: center; padding: 40px;">
-        <div style="font-size: 48px; margin-bottom: 20px;">✨</div>
-        <p>Processing your meeting recording...</p>
+    
+    <div style="margin-top: 40px;">
+      <div class="info-message info" style="text-align: left;">
+        <span>ℹ️</span>
+        <div>
+          <strong>Recording Instructions:</strong><br>
+          • A new window will open for recording<br>
+          • Allow microphone access when prompted<br>  
+          • Recording will auto-save every 5 minutes<br>
+          • You can stop recording from this page
+        </div>
       </div>
     </div>
   </div>
+  
+  <!-- 添加停止按钮（初始隐藏） -->
+  <div style="text-align: center; margin-top: 20px;">
+    <button class="btn btn-secondary" id="stopRecordingBtn" style="display: none;">
+      Stop Recording
+    </button>
+  </div>
+</div>
 
   <!-- Navigation -->
   <div class="navigation">
@@ -552,8 +567,8 @@
   </div>
 
   <script>
-    // ===== MODIFIED STORAGE SOLUTION FOR FIGMA PLUGIN =====
-    // Use in-memory storage and communicate with plugin for persistence
+    // // ===== MODIFIED STORAGE SOLUTION FOR FIGMA PLUGIN =====
+    // // Use in-memory storage and communicate with plugin for persistence
     
     // State Management (in-memory)
     let currentPage = 1;
@@ -574,12 +589,12 @@
       additionalContext: ''
     };
 
-    // Recording state
-    let isRecording = false;
-    let recordingStartTime = null;
-    let recordingInterval = null;
-    let mediaRecorder = null;
-    let audioChunks = [];
+    // // Recording state
+     let isRecording = false;
+    // let recordingStartTime = null;
+    // let recordingInterval = null;
+    // let mediaRecorder = null;
+    // let audioChunks = [];
 
     // ===== STORAGE FUNCTIONS (Modified for Figma) =====
     
@@ -893,31 +908,31 @@
       }
     }
 
-    function updateRecordingTime() {
-      const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-      const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
-      const seconds = (elapsed % 60).toString().padStart(2, '0');
-      document.getElementById('recordingTime').textContent = `${minutes}:${seconds}`;
-    }
+    // function updateRecordingTime() {
+    //   const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+    //   const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    //   const seconds = (elapsed % 60).toString().padStart(2, '0');
+    //   document.getElementById('recordingTime').textContent = `${minutes}:${seconds}`;
+    // }
 
-    async function processRecording(audioBlob) {
-      // Move to summary page
-      currentPage = 4;
-      updatePageDisplay();
+    // async function processRecording(audioBlob) {
+    //   // Move to summary page
+    //   currentPage = 4;
+    //   updatePageDisplay();
 
-      // Convert blob to base64 for Figma plugin communication
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        parent.postMessage({
-          pluginMessage: {
-            type: 'process-recording',
-            formData: formData,
-            audioData: reader.result
-          }
-        }, '*');
-      };
-      reader.readAsDataURL(audioBlob);
-    }
+    //   // Convert blob to base64 for Figma plugin communication
+    //   const reader = new FileReader();
+    //   reader.onloadend = () => {
+    //     parent.postMessage({
+    //       pluginMessage: {
+    //         type: 'process-recording',
+    //         formData: formData,
+    //         audioData: reader.result
+    //       }
+    //     }, '*');
+    //   };
+    //   reader.readAsDataURL(audioBlob);
+    // }
 
     // Form Validation
     function validateCurrentPage() {
@@ -1034,6 +1049,630 @@
 
     // Make changePage globally accessible
     window.changePage = changePage;
+
+    // ===== 配置管理 =====
+// 移除硬编码的BASE_URL，改为环境变量或动态配置
+// 修改 changePage 函数
+function changePage(direction) {
+  // 如果在录音页面且正在录音，先停止
+  if (currentPage === 3 && direction > 0 && isExternalRecording) {
+    stopExternalRecording();
+    return;
+  }
+  
+  // 保存当前页面数据
+  savePageData();
+  
+  // 验证
+  if (direction > 0 && !validateCurrentPage()) {
+    showMessage('Please fill in all required fields', 'warning');
+    return;
+  }
+  
+  // 切换页面
+  currentPage += direction;
+  if (currentPage < 1) currentPage = 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  
+  // 准备录音页面
+  if (currentPage === 3) {
+    prepareRecordingPage();
+  }
+  
+  updatePageDisplay();
+  animatePageTransition();
+}
+const API_CONFIG = {
+  // 从环境获取或使用默认值
+  BASE_URL: window.API_BASE_URL || 'https://fyp-2025-kath.vercel.app',
+  endpoints: {
+    controlSignals: '/api/stop',
+    sessions: '/api/get',
+    savePdf: '/api/save_pdf',
+    stopRecording: '/api/stop',
+    ingestPdf: '/api/ingest_pdf'
+  },
+  // 轮询配置
+  polling: {
+    interval: 2000,
+    maxRetries: 3,
+    timeout: 30000
+  }
+};
+
+// ===== 录音相关全局变量（保持不变）=====
+let recordingWindow = null;
+let recordingSessionId = null;
+let isExternalRecording = false;
+let pollInterval = null;
+let pollRetryCount = 0;
+
+// ===== 统一的API调用函数（新增）=====
+async function apiCall(endpoint, options = {}) {
+  const url = endpoint.startsWith('http') 
+    ? endpoint 
+    : `${API_CONFIG.BASE_URL}${endpoint}`;
+  
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers
+    },
+    ...options
+  };
+  
+  try {
+    const response = await fetch(url, defaultOptions);
+    
+    if (!response.ok) {
+      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+    }
+    
+    return response;
+  } catch (error) {
+    console.error(`API call error for ${endpoint}:`, error);
+    
+    // 增加重试逻辑
+    if (options.retry !== false && pollRetryCount < API_CONFIG.polling.maxRetries) {
+      pollRetryCount++;
+      console.log(`Retrying API call (${pollRetryCount}/${API_CONFIG.polling.maxRetries})...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return apiCall(endpoint, { ...options, retry: false });
+    }
+    
+    throw error;
+  }
+}
+
+// ===== 修改 toggleRecording 函数（保持不变）=====
+async function toggleRecording() {
+  await openExternalRecorder();
+}
+
+// ===== 优化的打开外部录音窗口函数 =====
+// ===== 优化的打开外部录音窗口函数（修复弹窗拦截）=====
+async function openExternalRecorder() {
+  // 生成session ID
+  recordingSessionId = Date.now().toString();
+  
+  // 获取录音间隔设置
+  const cycleInput = document.getElementById('cycleInput');
+  let intervalMin = cycleInput ? parseInt(cycleInput.value || '5', 10) : 5;
+  
+  // 验证间隔值
+  if (intervalMin < 1 || intervalMin > 60) {
+    console.warn('Invalid interval, using default 5 minutes');
+    intervalMin = 5;
+  }
+  
+  // 🎯 关键修复：先打开窗口，再做异步操作
+  const recordUrl = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=false`;
+  
+  // 立即打开窗口（在用户点击的同步上下文中）
+  recordingWindow = window.open(
+    'about:blank',  // 先打开空白窗口
+    'recorder',
+    'width=500,height=400,toolbar=no,menubar=no,resizable=yes'
+  );
+  
+  // 检查窗口是否成功打开
+  if (!recordingWindow) {
+    // 如果弹窗被拦截，提供替代方案
+    showPopupBlockedMessage();
+    return;
+  }
+  
+  // 显示加载中状态
+  recordingWindow.document.write(`
+    <html>
+      <head>
+        <title>Loading Recorder...</title>
+        <style>
+          body { 
+            font-family: sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0;
+          }
+          .loader {
+            text-align: center;
+          }
+          .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="loader">
+          <div class="spinner"></div>
+          <p>Initializing recorder...</p>
+        </div>
+      </body>
+    </html>
+  `);
+  
+  // 保存表单数据
+  try {
+    savePageData();
+    await saveToPluginStorage('meetingFormData', formData);
+  } catch (err) {
+    console.error('Error saving form data:', err);
+  }
+  
+  // 现在进行异步操作
+  try {
+    // 发送设置到API
+    await apiCall(API_CONFIG.endpoints.controlSignals, {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: recordingSessionId,
+        command: 'set_cycle',
+        value: intervalMin
+      })
+    });
+    console.log("✅ Set cycle interval:", intervalMin);
+    
+    // 如果有PDF内容，保存到服务器
+    if (formData.pdfText && formData.pdfText.trim().length > 0) {
+      await savePdfToServer(recordingSessionId, formData.pdfText);
+    }
+    
+    // 所有准备完成后，导航到实际的录音页面
+    if (recordingWindow && !recordingWindow.closed) {
+      recordingWindow.location.href = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=true`;
+    }
+    
+  } catch (err) {
+    console.error("Error setting up recording:", err);
+    if (recordingWindow && !recordingWindow.closed) {
+      recordingWindow.close();
+    }
+    showError('Failed to initialize recording. Please try again.');
+    return;
+  }
+  
+  // 更新UI状态
+  updateRecordingUI(true);
+  
+  isExternalRecording = true;
+  isRecording = true;
+  
+  // 开始轮询结果
+  startPolling(recordingSessionId);
+  
+  // 监听窗口关闭
+  checkRecordingWindowStatus();
+}
+
+// ===== 新增：显示弹窗被拦截的消息和替代方案 =====
+function showPopupBlockedMessage() {
+  const messageHTML = `
+    <div id="popupBlockedMessage" style="
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 2px solid #ff9800;
+      border-radius: 8px;
+      padding: 20px;
+      z-index: 10000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      max-width: 400px;
+    ">
+      <h3 style="margin-top: 0; color: #ff9800;">⚠️ Popup Blocked</h3>
+      <p>Your browser blocked the recording window. Please choose an option:</p>
+      
+      <div style="margin: 15px 0;">
+        <button onclick="allowPopupAndRetry()" style="
+          background: #4CAF50;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-right: 10px;
+        ">
+          Allow Popups & Retry
+        </button>
+        
+        <button onclick="openInNewTab()" style="
+          background: #2196F3;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          cursor: pointer;
+        ">
+          Open in New Tab
+        </button>
+      </div>
+      
+      <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+        <p style="margin: 0; font-size: 14px; color: #666;">
+          <strong>To enable popups:</strong><br>
+          1. Click the popup blocker icon in your browser's address bar<br>
+          2. Select "Always allow popups from this site"<br>
+          3. Click the recording button again
+        </p>
+      </div>
+      
+      <button onclick="closePopupMessage()" style="
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #999;
+      ">×</button>
+    </div>
+  `;
+  
+  // 添加到页面
+  const div = document.createElement('div');
+  div.innerHTML = messageHTML;
+  document.body.appendChild(div);
+}
+
+// ===== 辅助函数：重试打开弹窗 =====
+window.allowPopupAndRetry = function() {
+  closePopupMessage();
+  
+  // 提示用户先允许弹窗
+  alert('Please allow popups for this site in your browser settings, then click OK to retry.');
+  
+  // 重试打开
+  setTimeout(() => {
+    openExternalRecorder();
+  }, 100);
+};
+
+// ===== 辅助函数：在新标签页打开 =====
+window.openInNewTab = function() {
+  closePopupMessage();
+  
+  // 生成session ID
+  recordingSessionId = Date.now().toString();
+  
+  // 在新标签页打开
+  const recordUrl = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=true`;
+  const newTab = window.open(recordUrl, '_blank');
+  
+  if (newTab) {
+    // 更新UI状态
+    updateRecordingUI(true);
+    isExternalRecording = true;
+    isRecording = true;
+    
+    // 开始轮询
+    startPolling(recordingSessionId);
+    
+    // 设置记录窗口引用
+    recordingWindow = newTab;
+    checkRecordingWindowStatus();
+    
+    // 保存设置
+    saveRecordingSettings(recordingSessionId);
+  }
+};
+
+// ===== 辅助函数：关闭弹窗消息 =====
+window.closePopupMessage = function() {
+  const message = document.getElementById('popupBlockedMessage');
+  if (message) {
+    message.parentElement.remove();
+  }
+};
+
+// ===== 辅助函数：保存录音设置 =====
+async function saveRecordingSettings(sessionId) {
+  const cycleInput = document.getElementById('cycleInput');
+  const intervalMin = cycleInput ? parseInt(cycleInput.value || '5', 10) : 5;
+  
+  try {
+    await apiCall(API_CONFIG.endpoints.controlSignals, {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: sessionId,
+        command: 'set_cycle',
+        value: intervalMin
+      })
+    });
+    
+    if (formData.pdfText) {
+      await savePdfToServer(sessionId, formData.pdfText);
+    }
+  } catch (err) {
+    console.error('Error saving settings:', err);
+  }
+}
+
+// ===== 新增：监控录音窗口状态 =====
+function checkRecordingWindowStatus() {
+  const checkInterval = setInterval(() => {
+    if (recordingWindow && recordingWindow.closed) {
+      // 窗口被用户关闭
+      console.log('Recording window was closed by user');
+      clearInterval(checkInterval);
+      
+      if (isExternalRecording) {
+        // 如果还在录音中，停止录音
+        stopExternalRecording();
+      }
+    }
+    
+    if (!isExternalRecording) {
+      // 录音已停止，停止检查
+      clearInterval(checkInterval);
+    }
+  }, 1000);
+}
+
+// ===== 替代方案：使用内嵌iframe（如果允许）=====
+function openRecorderInIframe() {
+  const iframeHTML = `
+    <div id="recorderIframeContainer" style="
+      position: fixed;
+      top: 10%;
+      left: 10%;
+      width: 80%;
+      height: 80%;
+      background: white;
+      border: 2px solid #333;
+      border-radius: 8px;
+      z-index: 9999;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    ">
+      <div style="
+        background: #333;
+        color: white;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      ">
+        <span>Recording Window</span>
+        <button onclick="closeRecorderIframe()" style="
+          background: #ff4444;
+          color: white;
+          border: none;
+          padding: 5px 15px;
+          border-radius: 4px;
+          cursor: pointer;
+        ">Close</button>
+      </div>
+      <iframe 
+        id="recorderIframe"
+        src="${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=true"
+        style="width: 100%; height: calc(100% - 40px); border: none;">
+      </iframe>
+    </div>
+  `;
+  
+  const div = document.createElement('div');
+  div.innerHTML = iframeHTML;
+  document.body.appendChild(div);
+}
+
+window.closeRecorderIframe = function() {
+  const container = document.getElementById('recorderIframeContainer');
+  if (container) {
+    container.remove();
+    if (isExternalRecording) {
+      stopExternalRecording();
+    }
+  }
+};
+function startPolling(sessionId) {
+  let lastShownSummary = '';
+  let pollTimeoutId = null;
+  
+  // 设置超时
+  pollTimeoutId = setTimeout(() => {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      console.warn('Polling timeout reached');
+      showError('Recording timeout. Please check your connection and try again.');
+    }
+  }, API_CONFIG.polling.timeout);
+  
+  pollInterval = setInterval(async () => {
+    try {
+      const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${sessionId}`);
+      const data = await res.json();
+      
+      if (data && data.summary && data.summary !== lastShownSummary) {
+        lastShownSummary = data.summary;
+        
+        // 清除超时
+        if (pollTimeoutId) {
+          clearTimeout(pollTimeoutId);
+        }
+        
+        // 存储结果（增加数据验证）
+        formData.results = {
+          transcript: data.transcript || '',
+          summary: data.summary || '',
+          decisions: Array.isArray(data.decision) ? data.decision : [],
+          explicit: Array.isArray(data.explicit) ? data.explicit : [],
+          tacit: Array.isArray(data.tacit) ? data.tacit : [],
+          reasoning: data.reasoning || '',
+          suggestions: Array.isArray(data.suggestions) ? data.suggestions : []
+        };
+        
+        // 保存到本地存储
+        await saveToPluginStorage('lastMeetingResults', formData.results);
+        
+        // 如果录音已停止，显示结果
+        if (!isExternalRecording) {
+          clearInterval(pollInterval);
+          displaySummaryResults(formData.results);
+          
+          // 发送给Figma插件
+          sendResultsToFigma(data);
+        }
+      }
+    } catch (err) {
+      console.error('Polling error:', err);
+      // 不立即停止轮询，可能是临时网络问题
+    }
+  }, API_CONFIG.polling.interval);
+}
+
+// ===== 优化的PDF保存函数 =====
+async function savePdfToServer(sessionId, pdfText) {
+  if (!pdfText || pdfText.trim().length === 0) {
+    console.log('No PDF content to save');
+    return;
+  }
+  
+  try {
+    const res = await apiCall(API_CONFIG.endpoints.savePdf, {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: sessionId,
+        pdf_text: pdfText.substring(0, 500000), // 限制大小
+        filename: formData.pdfFileName || 'context.pdf',
+        metadata: {
+          uploadTime: new Date().toISOString(),
+          textLength: pdfText.length
+        }
+      })
+    });
+    
+    console.log('✅ PDF content saved to server');
+  } catch (err) {
+    console.error('Error saving PDF:', err);
+    // 不阻止录音继续，PDF是可选的
+  }
+}
+
+// ===== 新增辅助函数 =====
+function updateRecordingUI(isRecording, isProcessing = false) {
+  const recordButton = document.getElementById('recordButton');
+  const recordButtonText = document.getElementById('recordButtonText');
+  const recordingStatus = document.getElementById('recordingStatus');
+  const stopRecordingBtn = document.getElementById('stopRecordingBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  
+  if (isRecording) {
+    recordButton?.classList.add('recording');
+    if (recordButtonText) recordButtonText.textContent = 'Recording in Progress';
+    if (recordingStatus) recordingStatus.textContent = 'Recording in external window - DO NOT CLOSE';
+    if (stopRecordingBtn) stopRecordingBtn.style.display = 'block';
+    if (nextBtn) nextBtn.style.display = 'none';
+  } else if (isProcessing) {
+    recordButton?.classList.remove('recording');
+    if (recordButtonText) recordButtonText.textContent = 'Processing...';
+    if (recordingStatus) recordingStatus.textContent = 'Processing your recording...';
+    if (recordButton) recordButton.disabled = true;
+    if (stopRecordingBtn) stopRecordingBtn.style.display = 'none';
+  } else {
+    resetRecordingUI();
+  }
+}
+
+function resetRecordingUI() {
+  const recordButton = document.getElementById('recordButton');
+  const recordButtonText = document.getElementById('recordButtonText');
+  const recordingStatus = document.getElementById('recordingStatus');
+  const stopRecordingBtn = document.getElementById('stopRecordingBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  
+  recordButton?.classList.remove('recording');
+  if (recordButtonText) recordButtonText.textContent = 'Start Recording';
+  if (recordingStatus) recordingStatus.textContent = '';
+  if (recordButton) recordButton.disabled = false;
+  if (stopRecordingBtn) stopRecordingBtn.style.display = 'none';
+  if (nextBtn) nextBtn.style.display = 'block';
+}
+
+function sendResultsToFigma(data) {
+  parent.postMessage({
+    pluginMessage: {
+      type: 'analyze-transcript',
+      transcript: data.transcript,
+      summary: data.summary,
+      decision: data.decision,
+      explicit: data.explicit,
+      tacit: data.tacit,
+      reasoning: data.reasoning,
+      suggestions: data.suggestions
+    }
+  }, '*');
+}
+
+function showError(message) {
+  // 显示错误消息的函数
+  console.error(message);
+  const errorDiv = document.getElementById('errorMessage');
+  if (errorDiv) {
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    setTimeout(() => {
+      errorDiv.style.display = 'none';
+    }, 5000);
+  }
+}
+
+// ===== 修改原有函数的兼容性包装 =====
+async function startRecording() {
+  await openExternalRecorder();
+}
+
+function stopRecording() {
+  if (isExternalRecording) {
+    stopExternalRecording();
+  }
+}
+
+// ===== 初始化时检查环境 =====
+(function initializeAPIConfig() {
+  // 检查是否在开发环境
+  if (window.location.hostname === 'localhost') {
+    API_CONFIG.BASE_URL = 'http://localhost:3000';
+    console.log('Using local development server');
+  }
+  
+  // 检查是否有自定义配置
+  if (window.customAPIConfig) {
+    Object.assign(API_CONFIG, window.customAPIConfig);
+  }
+})();
   </script>
 </body>
 </html>
