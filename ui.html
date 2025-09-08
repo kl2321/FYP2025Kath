@@ -1085,7 +1085,37 @@ async function extractPdfText(file) {
     }
 
     // Make changePage globally accessible
-    window.changePage = changePage;
+   // window.changePage = changePage;
+   // 方法1：直接定义为全局函数
+window.changePage = function(direction) {
+  // 如果在录音页面且正在录音，先停止
+  if (currentPage === 3 && direction > 0 && isExternalRecording) {
+    stopExternalRecording();
+    return;
+  }
+  
+  // 保存当前页面数据
+  savePageData();
+  
+  // 验证
+  if (direction > 0 && !validateCurrentPage()) {
+    showMessage('Please fill in all required fields', 'warning');
+    return;
+  }
+  
+  // 切换页面
+  currentPage += direction;
+  if (currentPage < 1) currentPage = 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  
+  // 准备录音页面
+  if (currentPage === 3) {
+    prepareRecordingPage();
+  }
+  
+  updatePageDisplay();
+  animatePageTransition();
+}
 
     // ===== 配置管理 =====
 // 移除硬编码的BASE_URL，改为环境变量或动态配置
