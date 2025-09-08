@@ -587,6 +587,8 @@
         sentimentAnalysis: false
       },
       additionalContext: ''
+      pdfText: '',        // 添加这行
+      pdfFileName: ''     // 添加这行
     };
 
     // // Recording state
@@ -804,6 +806,13 @@
         `;
         fileList.appendChild(fileItem);
 
+        // Special handling for PDF files
+    if (file.type === 'application/pdf') {
+      extractPdfText(file);
+    }
+
+        
+
         // Send file to plugin for processing
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -819,6 +828,31 @@
         reader.readAsDataURL(file);
       });
     }
+
+    // Add new function for PDF text extraction
+async function extractPdfText(file) {
+  const formData = new FormData();
+  formData.append('file', file, file.name);
+  
+  try {
+    const res = await fetch(`${API_CONFIG.BASE_URL}/api/ingest_pdf`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await res.json();
+    
+    if (data?.text) {
+      window.formData.pdfText = data.text;
+      window.formData.pdfFileName = file.name;
+      console.log('✅ PDF text extracted:', (data.text.length/1000).toFixed(1) + 'k chars');
+    }
+  } catch (err) {
+    console.error('Error extracting PDF text:', err);
+  }
+}
+
+    
 
     // Make removeFile globally accessible
     window.removeFile = function(fileName) {
@@ -1246,6 +1280,7 @@ async function openExternalRecorder() {
     
     // 如果有PDF内容，保存到服务器
     if (formData.pdfText && formData.pdfText.trim().length > 0) {
+      console.log('📚 Saving PDF content to Supabase...');
       await savePdfToServer(recordingSessionId, formData.pdfText);
     }
     
@@ -1553,7 +1588,6 @@ function startPolling(sessionId) {
   }, API_CONFIG.polling.interval);
 }
 
-// ===== 优化的PDF保存函数 =====
 async function savePdfToServer(sessionId, pdfText) {
   if (!pdfText || pdfText.trim().length === 0) {
     console.log('No PDF content to save');
@@ -1561,11 +1595,11 @@ async function savePdfToServer(sessionId, pdfText) {
   }
   
   try {
-    const res = await apiCall(API_CONFIG.endpoints.savePdf, {
+    const res = await apiCall(`${API_CONFIG.BASE_URL}/api/save_pdf`, {
       method: 'POST',
       body: JSON.stringify({
-        session_id: sessionId,
-        pdf_text: pdfText.substring(0, 500000), // 限制大小
+        session_id: sessionId,  // 确保使用session_id而不是sessionId
+        pdf_text: pdfText.substring(0, 500000),
         filename: formData.pdfFileName || 'context.pdf',
         metadata: {
           uploadTime: new Date().toISOString(),
@@ -1577,7 +1611,6 @@ async function savePdfToServer(sessionId, pdfText) {
     console.log('✅ PDF content saved to server');
   } catch (err) {
     console.error('Error saving PDF:', err);
-    // 不阻止录音继续，PDF是可选的
   }
 }
 
