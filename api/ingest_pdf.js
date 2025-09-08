@@ -432,9 +432,12 @@
 // }
 
 // api/ingest_pdf.js - Final version with pdf-parse
+// api/ingest_pdf.js - Fixed for Vercel deployment
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
-import pdf from 'pdf-parse';
+
+// Fix for Vercel - use the core library directly
+import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 export const config = {
   api: {
@@ -481,7 +484,7 @@ export default async function handler(req, res) {
       // Read PDF file
       const dataBuffer = fs.readFileSync(rawFile.filepath);
       
-      // Parse PDF using pdf-parse
+      // Parse PDF
       const data = await pdf(dataBuffer);
       
       // Extract and clean text
@@ -531,9 +534,7 @@ export default async function handler(req, res) {
           message: 'Could not extract meaningful text from PDF',
           hint: 'The PDF might be scanned/image-based. Please copy and paste the text manually.',
           metadata: {
-            pages: data.numpages || 0,
-            version: data.version,
-            info: data.info
+            pages: data.numpages || 0
           }
         });
       }
@@ -548,8 +549,6 @@ export default async function handler(req, res) {
         metadata: {
           pages: data.numpages,
           text_length: extractedText.length,
-          version: data.version,
-          info: data.info,
           processed_at: new Date().toISOString()
         }
       });
@@ -559,23 +558,14 @@ export default async function handler(req, res) {
       
       // Clean up temp file on error
       try {
-        fs.unlinkSync(rawFile.filepath);
+        if (rawFile && rawFile.filepath) {
+          fs.unlinkSync(rawFile.filepath);
+        }
       } catch (e) {
         // Ignore cleanup errors
       }
       
-      // Check for specific error types
-      if (error.message.includes('encrypted')) {
-        return res.status(200).json({
-          success: false,
-          text: '',
-          message: 'PDF is password protected',
-          hint: 'Please remove the password protection or copy the text manually.',
-          error: error.message
-        });
-      }
-      
-      // Generic error response
+      // Return error response
       return res.status(200).json({
         success: false,
         text: '',
