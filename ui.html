@@ -785,8 +785,8 @@ if (pdfTextCache) {
       // These endpoints should now use server-side environment variables
       // The actual keys are stored in Vercel environment settings
       endpoints: {
-        controlSignals: '/api/control_signals',
-        sessions: '/api/sessions',
+        controlSignals: '/api/stop',
+        sessions: '/api/get',
         savePdf: '/api/save_pdf',
         stopRecording: '/api/stop'
       }
@@ -1014,7 +1014,7 @@ if (pdfTextCache) {
 
       setInterval(async () => {
         try {
-          const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session_id=${sessionId}`);
+          const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${sessionId}`);
           const data = await res.json();
           const item = data;
           
