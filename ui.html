@@ -994,6 +994,12 @@ if (pdfTextCache) {
 
     // Stop recording
     stopBtn.onclick = async () => {
+
+      if (!sessionId) {
+    console.warn('No active session to stop');
+    showStatus('⚠️ No active recording session', 'error');
+    return;
+  }
       try {
         await apiCall(API_CONFIG.endpoints.controlSignals, {
           method: 'POST',
@@ -1003,8 +1009,11 @@ if (pdfTextCache) {
           })
         });
         console.log("✅ Stop command sent");
+        sessionId = null;
       } catch (err) {
         console.error("❌ Failed to stop recording:", err);
+
+        
       }
     };
 
