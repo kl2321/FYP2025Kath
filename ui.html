@@ -1,6 +1,3 @@
-// eslint-disable-next-line
-pdfText: '',
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -455,7 +452,7 @@ pdfText: '',
           <option value="">Select meeting type...</option>
           <option value="brainstorming">Brainstorming Session</option>
           <option value="decision-making">Decision Making</option>
-          <option value="onboarding">Project Onboarding</option>
+          <option value="progress-update">Progress Update</option>
           <option value="problem-solving">Problem Solving</option>
           <option value="retrospective">Retrospective</option>
         </select>
@@ -565,8 +562,8 @@ pdfText: '',
 
   <!-- Navigation -->
   <div class="navigation">
-    <button class="btn btn-secondary" id="prevBtn" >Previous</button>
-    <button class="btn btn-primary" id="nextBtn" >Next</button>
+    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
+    <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button>
   </div>
 
   <script>
@@ -590,8 +587,6 @@ pdfText: '',
         sentimentAnalysis: false
       },
       additionalContext: ''
-      pdfText: '',        // 添加这行
-      pdfFileName: ''     // 添加这行
     };
 
     // // Recording state
@@ -757,19 +752,6 @@ pdfText: '',
         });
       }
 
-      // Navigation buttons
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  
-  if (prevBtn) {
-    prevBtn.addEventListener('click', () => changePage(-1));
-  }
-  
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => changePage(1));
-  }
-  
-
       // Radio buttons visual feedback
       document.querySelectorAll('.radio-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -822,13 +804,6 @@ pdfText: '',
         `;
         fileList.appendChild(fileItem);
 
-        // Special handling for PDF files
-    if (file.type === 'application/pdf') {
-      extractPdfText(file);
-    }
-
-        
-
         // Send file to plugin for processing
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -844,31 +819,6 @@ pdfText: '',
         reader.readAsDataURL(file);
       });
     }
-
-    // Add new function for PDF text extraction
-async function extractPdfText(file) {
-  const formData = new FormData();
-  formData.append('file', file, file.name);
-  
-  try {
-    const res = await fetch(`${API_CONFIG.BASE_URL}/api/ingest_pdf`, {
-      method: 'POST',
-      body: formData
-    });
-    
-    const data = await res.json();
-    
-    if (data?.text) {
-      window.formData.pdfText = data.text;
-      window.formData.pdfFileName = file.name;
-      console.log('✅ PDF text extracted:', (data.text.length/1000).toFixed(1) + 'k chars');
-    }
-  } catch (err) {
-    console.error('Error extracting PDF text:', err);
-  }
-}
-
-    
 
     // Make removeFile globally accessible
     window.removeFile = function(fileName) {
@@ -1296,7 +1246,6 @@ async function openExternalRecorder() {
     
     // 如果有PDF内容，保存到服务器
     if (formData.pdfText && formData.pdfText.trim().length > 0) {
-      console.log('📚 Saving PDF content to Supabase...');
       await savePdfToServer(recordingSessionId, formData.pdfText);
     }
     
@@ -1604,6 +1553,7 @@ function startPolling(sessionId) {
   }, API_CONFIG.polling.interval);
 }
 
+// ===== 优化的PDF保存函数 =====
 async function savePdfToServer(sessionId, pdfText) {
   if (!pdfText || pdfText.trim().length === 0) {
     console.log('No PDF content to save');
@@ -1611,11 +1561,11 @@ async function savePdfToServer(sessionId, pdfText) {
   }
   
   try {
-    const res = await apiCall(`${API_CONFIG.BASE_URL}/api/save_pdf`, {
+    const res = await apiCall(API_CONFIG.endpoints.savePdf, {
       method: 'POST',
       body: JSON.stringify({
-        session_id: sessionId,  // 确保使用session_id而不是sessionId
-        pdf_text: pdfText.substring(0, 500000),
+        session_id: sessionId,
+        pdf_text: pdfText.substring(0, 500000), // 限制大小
         filename: formData.pdfFileName || 'context.pdf',
         metadata: {
           uploadTime: new Date().toISOString(),
@@ -1627,6 +1577,7 @@ async function savePdfToServer(sessionId, pdfText) {
     console.log('✅ PDF content saved to server');
   } catch (err) {
     console.error('Error saving PDF:', err);
+    // 不阻止录音继续，PDF是可选的
   }
 }
 
