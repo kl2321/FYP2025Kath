@@ -8,88 +8,270 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// Show the UI panel with defined width and height
-figma.showUI(__html__, { width: 480, height: 700 });
-let rootY = null; // Y position of the first card batch
-let rootX = null; // X position of the first card
-const CARD_WIDTH = 480;
-const CARD_GAP_X = 24; // Horizontal gap between cards
-const CARD_GAP_Y = 40; // Vertical gap between sets of 3 cards
-let cardSetCount = 0; // Track how many sets of cards have been placed
-// Handle messages from the UI
+// code.ts - Main plugin file
+figma.showUI(__html__, {
+    width: 400,
+    height: 600,
+    title: "AI Meeting Assistant"
+});
+// Message handling from UI
 figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("📨 Figma received pluginMessage:", msg);
-    if (msg.type === 'test') {
-        figma.notify("✅ Test message received from UI!");
-    }
-    if (msg.type === 'analyze-transcript') {
-        try {
-            yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
-            // Generate initial anchor position randomly based on current viewport
-            const { x: viewX, width: viewWidth, y: viewY } = figma.viewport.bounds;
-            if (rootX === null || rootY === null) {
-                rootX = viewX + Math.random() * (viewWidth - 3 * (CARD_WIDTH + CARD_GAP_X));
-                rootY = viewY + 40;
-            }
-            else {
-                // Offset new row by vertical spacing for each new set of 3 cards
-                rootY += CARD_GAP_Y + 240; // Estimated height of tallest card + spacing
-            }
-            // Card creation function
-            const createCard = (title, content, color, colIndex) => __awaiter(void 0, void 0, void 0, function* () {
-                const frame = figma.createFrame();
-                frame.resizeWithoutConstraints(CARD_WIDTH, 0);
-                frame.primaryAxisSizingMode = 'AUTO';
-                frame.counterAxisSizingMode = 'FIXED';
-                frame.fills = [{ type: 'SOLID', color: color }];
-                frame.paddingTop = 16;
-                frame.paddingBottom = 16;
-                frame.paddingLeft = 16;
-                frame.paddingRight = 16;
-                frame.itemSpacing = 8;
-                frame.layoutMode = 'VERTICAL';
-                frame.counterAxisAlignItems = 'MIN';
-                // Positioning: X based on column, Y based on current card set row
-                frame.x = rootX + colIndex * (CARD_WIDTH + CARD_GAP_X);
-                frame.y = rootY;
-                frame.name = `${title} Card`;
-                const textNode = figma.createText();
-                textNode.characters = `${title}\n` + (Array.isArray(content) ? content.join("\n• ") : content);
-                textNode.fontSize = 14;
-                textNode.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
-                textNode.textAutoResize = "HEIGHT";
-                textNode.resize(CARD_WIDTH - 32, textNode.height); // Account for padding
-                yield figma.loadFontAsync(textNode.fontName);
-                frame.appendChild(textNode);
-                figma.currentPage.appendChild(frame);
-                figma.viewport.scrollAndZoomIntoView([frame]);
-            });
-            // 🟦 1. Summary card - white
-            yield createCard(" Summary:", msg.summary, { r: 0.97, g: 0.97, b: 0.97 }, 0);
-            // 🟨 2. Decision + Knowledge card - light blue
-            let combinedKnowledge = [];
-            if (msg.decision)
-                combinedKnowledge.push("📌 Decision:", ...msg.decision);
-            if (msg.explicit)
-                combinedKnowledge.push("💡Explicit:", ...msg.explicit);
-            if (msg.tacit)
-                combinedKnowledge.push("💡 Tacit:", ...msg.tacit);
-            yield createCard("📋 Decisions & Knowledge", combinedKnowledge, { r: 0.9, g: 0.95, b: 1 }, 1);
-            // 🟪 3. Reasoning + Suggestions card - light yellow
-            let insights = [];
-            if (msg.reasoning)
-                insights.push("🧠 Reasoning:\n" + msg.reasoning);
-            if (msg.suggestions)
-                insights.push("🔗 Suggestions:", ...msg.suggestions);
-            yield createCard("🪄 Insights & Resources", insights, { r: 1, g: 0.98, b: 0.85 }, 2);
-            cardSetCount++;
-        }
-        catch (err) {
-            console.error('❌ Font load error:', err);
-            figma.notify('Font loading failed!');
-        }
+    console.log('Received message:', msg);
+    switch (msg.type) {
+        case 'process-recording':
+            yield handleRecordingProcess(msg.formData);
+            break;
+        case 'insert-summary':
+            yield insertSummaryToCanvas(msg.data, msg.summary);
+            break;
+        case 'resize':
+            figma.ui.resize(msg.width, msg.height);
+            break;
+        default:
+            console.log('Unknown message type:', msg.type);
     }
 });
+// Process recording with AI
+function handleRecordingProcess(formData) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Show processing state
+            figma.ui.postMessage({
+                type: 'processing-start'
+            });
+            // Here you would integrate with your AI service
+            // For now, simulating the process
+            // Simulate API call delay
+            yield new Promise(resolve => setTimeout(resolve, 2000));
+            // Mock results (replace with actual AI processing)
+            const results = {
+                overview: `${formData.meetingType} meeting for ${formData.module} module`,
+                decisions: [
+                    "Key decision 1 based on meeting discussion",
+                    "Key decision 2 from the analysis"
+                ],
+                actions: [
+                    "Action item 1 assigned to team member",
+                    "Action item 2 with deadline"
+                ],
+                participants: formData.teamMembers || ["Unknown Speaker 1", "Unknown Speaker 2"]
+            };
+            // Send results back to UI
+            figma.ui.postMessage({
+                type: 'processing-complete',
+                results: results
+            });
+        }
+        catch (error) {
+            console.error('Processing error:', error);
+            figma.ui.postMessage({
+                type: 'processing-error',
+                error: 'Failed to process recording'
+            });
+        }
+    });
+}
+// Insert summary into Figma canvas
+function insertSummaryToCanvas(data, summary) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // Load font
+            yield figma.loadFontAsync({ family: "Inter", style: "Regular" });
+            yield figma.loadFontAsync({ family: "Inter", style: "Bold" });
+            // Create frame for summary
+            const frame = figma.createFrame();
+            frame.name = "Meeting Summary - " + new Date().toLocaleDateString();
+            frame.resize(800, 600);
+            frame.fills = [{
+                    type: 'SOLID',
+                    color: { r: 0.98, g: 0.98, b: 0.98 }
+                }];
+            frame.cornerRadius = 8;
+            frame.effects = [{
+                    type: 'DROP_SHADOW',
+                    color: { r: 0, g: 0, b: 0, a: 0.1 },
+                    offset: { x: 0, y: 2 },
+                    radius: 10,
+                    visible: true,
+                    blendMode: 'NORMAL'
+                }];
+            // Position in viewport
+            frame.x = figma.viewport.center.x - 400;
+            frame.y = figma.viewport.center.y - 300;
+            // Add title
+            const title = figma.createText();
+            title.characters = "📝 Meeting Summary";
+            title.fontSize = 24;
+            title.fontName = { family: "Inter", style: "Bold" };
+            title.x = 40;
+            title.y = 40;
+            frame.appendChild(title);
+            // Add metadata
+            const metadata = figma.createText();
+            metadata.characters = `Module: ${data.module} | Type: ${data.meetingType} | Date: ${new Date().toLocaleDateString()}`;
+            metadata.fontSize = 14;
+            metadata.fontName = { family: "Inter", style: "Regular" };
+            metadata.fills = [{
+                    type: 'SOLID',
+                    color: { r: 0.4, g: 0.4, b: 0.4 }
+                }];
+            metadata.x = 40;
+            metadata.y = 80;
+            frame.appendChild(metadata);
+            // Add sections
+            let yPosition = 140;
+            // Overview section
+            if (summary.overview) {
+                const overviewTitle = figma.createText();
+                overviewTitle.characters = "Overview";
+                overviewTitle.fontSize = 18;
+                overviewTitle.fontName = { family: "Inter", style: "Bold" };
+                overviewTitle.x = 40;
+                overviewTitle.y = yPosition;
+                frame.appendChild(overviewTitle);
+                const overviewText = figma.createText();
+                overviewText.characters = summary.overview;
+                overviewText.fontSize = 14;
+                overviewText.fontName = { family: "Inter", style: "Regular" };
+                overviewText.x = 40;
+                overviewText.y = yPosition + 30;
+                overviewText.resize(720, 100);
+                frame.appendChild(overviewText);
+                yPosition += 150;
+            }
+            // Decisions section
+            if (summary.decisions && summary.decisions.length > 0) {
+                const decisionsTitle = figma.createText();
+                decisionsTitle.characters = "🎯 Key Decisions";
+                decisionsTitle.fontSize = 18;
+                decisionsTitle.fontName = { family: "Inter", style: "Bold" };
+                decisionsTitle.x = 40;
+                decisionsTitle.y = yPosition;
+                frame.appendChild(decisionsTitle);
+                summary.decisions.forEach((decision, index) => {
+                    const decisionText = figma.createText();
+                    decisionText.characters = `${index + 1}. ${decision}`;
+                    decisionText.fontSize = 14;
+                    decisionText.fontName = { family: "Inter", style: "Regular" };
+                    decisionText.x = 40;
+                    decisionText.y = yPosition + 30 + (index * 25);
+                    frame.appendChild(decisionText);
+                });
+                yPosition += 30 + (summary.decisions.length * 25) + 20;
+            }
+            // Action items section
+            if (summary.actions && summary.actions.length > 0) {
+                const actionsTitle = figma.createText();
+                actionsTitle.characters = "✅ Action Items";
+                actionsTitle.fontSize = 18;
+                actionsTitle.fontName = { family: "Inter", style: "Bold" };
+                actionsTitle.x = 40;
+                actionsTitle.y = yPosition;
+                frame.appendChild(actionsTitle);
+                summary.actions.forEach((action, index) => {
+                    const actionText = figma.createText();
+                    actionText.characters = `• ${action}`;
+                    actionText.fontSize = 14;
+                    actionText.fontName = { family: "Inter", style: "Regular" };
+                    actionText.x = 40;
+                    actionText.y = yPosition + 30 + (index * 25);
+                    frame.appendChild(actionText);
+                });
+                yPosition += 30 + (summary.actions.length * 25) + 20;
+            }
+            // Adjust frame height based on content
+            frame.resize(800, yPosition + 40);
+            // Select the created frame
+            figma.currentPage.selection = [frame];
+            figma.viewport.scrollAndZoomIntoView([frame]);
+            // Notify user
+            figma.notify("✅ Meeting summary inserted successfully!");
+        }
+        catch (error) {
+            console.error('Error inserting summary:', error);
+            figma.notify("❌ Failed to insert summary");
+        }
+    });
+}
+// Clean up on close
+figma.on("close", () => {
+    // Any cleanup code here
+});
+// // Show the UI panel with defined width and height
+// figma.showUI(__html__, { width: 480, height: 700 });
+// let rootY: number | null = null; // Y position of the first card batch
+// let rootX: number | null = null; // X position of the first card
+// const CARD_WIDTH = 480;
+// const CARD_GAP_X = 24; // Horizontal gap between cards
+// const CARD_GAP_Y = 40; // Vertical gap between sets of 3 cards
+// let cardSetCount = 0; // Track how many sets of cards have been placed
+// // Handle messages from the UI
+// figma.ui.onmessage = async (msg) => {
+//   console.log("📨 Figma received pluginMessage:", msg);
+//   if (msg.type === 'test') {
+//     figma.notify("✅ Test message received from UI!");
+//   }
+//   if (msg.type === 'analyze-transcript') {
+//     try {
+//       await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+//       // Generate initial anchor position randomly based on current viewport
+//       const { x: viewX, width: viewWidth, y: viewY } = figma.viewport.bounds;
+//       if (rootX === null || rootY === null) {
+//         rootX = viewX + Math.random() * (viewWidth - 3 * (CARD_WIDTH + CARD_GAP_X));
+//         rootY = viewY + 40;
+//       } else {
+//         // Offset new row by vertical spacing for each new set of 3 cards
+//         rootY += CARD_GAP_Y + 240; // Estimated height of tallest card + spacing
+//       }
+//       // Card creation function
+//       const createCard = async (title: string, content: string | string[], color: RGB, colIndex: number) => {
+//         const frame = figma.createFrame();
+//         frame.resizeWithoutConstraints(CARD_WIDTH, 0);
+//         frame.primaryAxisSizingMode = 'AUTO';
+//         frame.counterAxisSizingMode = 'FIXED';
+//         frame.fills = [{ type: 'SOLID', color: color }];
+//         frame.paddingTop = 16;
+//         frame.paddingBottom = 16;
+//         frame.paddingLeft = 16;
+//         frame.paddingRight = 16;
+//         frame.itemSpacing = 8;
+//         frame.layoutMode = 'VERTICAL';
+//         frame.counterAxisAlignItems = 'MIN';
+//         // Positioning: X based on column, Y based on current card set row
+//         frame.x = rootX! + colIndex * (CARD_WIDTH + CARD_GAP_X);
+//         frame.y = rootY!;
+//         frame.name = `${title} Card`;
+//         const textNode = figma.createText();
+//         textNode.characters = `${title}\n` + (Array.isArray(content) ? content.join("\n• ") : content);
+//         textNode.fontSize = 14;
+//         textNode.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
+//         textNode.textAutoResize = "HEIGHT";
+//         textNode.resize(CARD_WIDTH - 32, textNode.height); // Account for padding
+//         await figma.loadFontAsync(textNode.fontName as FontName);
+//         frame.appendChild(textNode);
+//         figma.currentPage.appendChild(frame);
+//         figma.viewport.scrollAndZoomIntoView([frame]);
+//       };
+//       // 🟦 1. Summary card - white
+//       await createCard(" Summary:", msg.summary, { r: 0.97, g: 0.97, b: 0.97 }, 0);
+//       // 🟨 2. Decision + Knowledge card - light blue
+//       let combinedKnowledge = [];
+//       if (msg.decision) combinedKnowledge.push("📌 Decision:", ...msg.decision);
+//       if (msg.explicit) combinedKnowledge.push("💡Explicit:", ...msg.explicit);
+//       if (msg.tacit) combinedKnowledge.push("💡 Tacit:", ...msg.tacit);
+//       await createCard("📋 Decisions & Knowledge", combinedKnowledge, { r: 0.9, g: 0.95, b: 1 }, 1);
+//       // 🟪 3. Reasoning + Suggestions card - light yellow
+//       let insights = [];
+//       if (msg.reasoning) insights.push("🧠 Reasoning:\n" + msg.reasoning);
+//       if (msg.suggestions) insights.push("🔗 Suggestions:", ...msg.suggestions);
+//       await createCard("🪄 Insights & Resources", insights, { r: 1, g: 0.98, b: 0.85 }, 2);
+//       cardSetCount++;
+//     } catch (err) {
+//       console.error('❌ Font load error:', err);
+//       figma.notify('Font loading failed!');
+//     }
+//   }
+// };
 // figma.showUI(__html__, { width: 480, height: 700 });
 // let yOffset: number | null = null ; // ⬅️ 用 null 表示“未初始化”
 // figma.ui.onmessage = async (msg) => {
