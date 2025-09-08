@@ -316,7 +316,7 @@ const pdfInput = document.getElementById('pdfInput');
   </script>
 </body>
 </html> -->
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -642,9 +642,465 @@ if (pdfTextCache) {
     }
   </script>
 </body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- PDF.js for client-side PDF processing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 16px;
+    }
+    .card {
+      background: #f3f3f3;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .card h3 {
+      margin-top: 0;
+    }
+    .card button.toggle-btn {
+      float: right;
+      font-size: 18px;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+    .details {
+      display: none;
+      margin-top: 10px;
+    }
+    button {
+      padding: 10px 18px;
+      margin: 8px 8px 16px 0;
+      font-weight: bold;
+      margin-right: 6px;
+    }
+    #spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #ccc;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-left: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .pdf-upload-area {
+      border: 2px dashed #18a0fb;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      margin: 10px 0;
+      background: #f8fbff;
+      transition: all 0.3s;
+    }
+    .pdf-upload-area:hover {
+      background: #e8f4ff;
+      border-color: #0090e7;
+    }
+    .pdf-upload-area.dragover {
+      background: #e8f4ff;
+      border-color: #28a745;
+    }
+    #pdfStatus {
+      margin: 10px 0;
+      padding: 8px;
+      border-radius: 4px;
+      display: none;
+    }
+    #pdfStatus.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    #pdfStatus.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+    #pdfStatus.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎤 Analyze Meeting</h2>
+  
+  <!-- PDF Upload Section with Client-side Processing -->
+  <label style="display:block; margin:8px 0 4px;">📄 Add Context (optional):</label>
+  <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+    <button id="pdfBtn" style="padding: 6px 12px; margin: 0;">Upload PDF (Client-side)</button>
+    <button id="textBtn" style="padding: 6px 12px; margin: 0;">Paste Text</button>
+  </div>
+  
+  <!-- Hidden file input -->
+  <input id="pdfInput" type="file" accept="application/pdf" style="display: none;" />
+  
+  <!-- PDF Upload Area (drag & drop) -->
+  <div id="pdfUploadArea" class="pdf-upload-area" style="display: none;">
+    <p>📁 Click to select PDF or drag & drop</p>
+    <small>PDF will be processed in your browser (no server upload)</small>
+  </div>
+  
+  <!-- Text input area -->
+  <textarea id="contextText" placeholder="Paste your project documentation or context here..." 
+           style="width: 100%; height: 100px; display: none; margin-bottom: 8px;"></textarea>
+  
+  <!-- Status display -->
+  <div id="pdfStatus"></div>
+  
+  <!-- PDF info display -->
+  <div id="pdfInfo" style="display: none; margin: 10px 0; padding: 8px; background: #f0f0f0; border-radius: 4px;">
+    <strong>📎 Loaded:</strong> <span id="pdfFileName"></span><br>
+    <strong>📊 Extracted:</strong> <span id="pdfTextLength"></span> characters from <span id="pdfPages"></span> pages
+  </div>
+
+  <label for="cycleInput">⏱️ Summary interval (minutes):</label>
+  <input id="cycleInput" type="number" value="5" min="1" style="width: 60px; margin-left: 8px; margin-bottom: 12px;" />
+  <br><br>
+
+  <button id="openBtn">Open Recorder</button>
+  <button id="stopBtn">Stop Recording</button>
+
+  <div id="cardsContainer"></div>
+  
+  <script>
+    // API Configuration - Centralized management
+    const API_CONFIG = {
+      BASE_URL: 'https://fyp-2025-kath.vercel.app',
+      // These endpoints should now use server-side environment variables
+      // The actual keys are stored in Vercel environment settings
+      endpoints: {
+        controlSignals: '/api/control_signals',
+        sessions: '/api/sessions',
+        savePdf: '/api/save_pdf',
+        stopRecording: '/api/stop'
+      }
+    };
+
+    // Helper function for API calls
+    async function apiCall(endpoint, options = {}) {
+      const url = endpoint.startsWith('http') ? endpoint : `${API_CONFIG.BASE_URL}${endpoint}`;
+      
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+        }
+        
+        return response;
+      } catch (error) {
+        console.error(`API call error for ${endpoint}:`, error);
+        throw error;
+      }
+    }
+
+    const openBtn = document.getElementById('openBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    let sessionId = null;
+    let lastShownSummary = '';
+    let recorderWindow = null;
+    let pdfTextCache = "";
+    let pdfFileName = '';
+    let pdfPageCount = 0;
+
+    // PDF handling elements
+    const pdfBtn = document.getElementById('pdfBtn');
+    const textBtn = document.getElementById('textBtn');
+    const pdfInput = document.getElementById('pdfInput');
+    const pdfUploadArea = document.getElementById('pdfUploadArea');
+    const contextText = document.getElementById('contextText');
+    const pdfStatus = document.getElementById('pdfStatus');
+    const pdfInfo = document.getElementById('pdfInfo');
+
+    // Toggle between PDF upload and text paste
+    pdfBtn.onclick = () => {
+      pdfUploadArea.style.display = 'block';
+      contextText.style.display = 'none';
+      pdfStatus.style.display = 'none';
+    };
+
+    textBtn.onclick = () => {
+      contextText.style.display = 'block';
+      pdfUploadArea.style.display = 'none';
+      pdfStatus.textContent = 'Type or paste your context below';
+      pdfStatus.className = 'info';
+    };
+
+    // Handle text input
+    contextText.addEventListener('input', (e) => {
+      pdfTextCache = e.target.value;
+      showStatus(`✅ Text added (${(pdfTextCache.length/1000).toFixed(1)}k chars)`, 'success');
+      
+      // Send to recorder window if open
+      if (recorderWindow && !recorderWindow.closed) {
+        recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, API_CONFIG.BASE_URL);
+      }
+    });
+
+    // Click to upload
+    pdfUploadArea.addEventListener('click', () => pdfInput.click());
+    
+    // Drag and drop handlers
+    pdfUploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      pdfUploadArea.classList.add('dragover');
+    });
+    
+    pdfUploadArea.addEventListener('dragleave', () => {
+      pdfUploadArea.classList.remove('dragover');
+    });
+    
+    pdfUploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      pdfUploadArea.classList.remove('dragover');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type === 'application/pdf') {
+        handlePdfFile(files[0]);
+      } else {
+        showStatus('❌ Please select a PDF file', 'error');
+      }
+    });
+
+    // File input change
+    pdfInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handlePdfFile(e.target.files[0]);
+      }
+    });
+
+    // CLIENT-SIDE PDF PROCESSING WITH PDF.js
+    async function handlePdfFile(file) {
+      pdfFileName = file.name;
+      showStatus('⏳ Extracting text from PDF (client-side)...', 'info');
+      
+      try {
+        // Read file as ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+        
+        // Use PDF.js to extract text
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        let fullText = '';
+        pdfPageCount = pdf.numPages;
+        
+        // Extract text from all pages
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += `\n--- Page ${i} ---\n${pageText}\n`;
+          
+          // Update progress
+          showStatus(`⏳ Processing page ${i} of ${pdf.numPages}...`, 'info');
+        }
+        
+        pdfTextCache = fullText.trim();
+        
+        if (pdfTextCache.length > 0) {
+          showStatus(`✅ Extracted ${pdfTextCache.length} characters from ${pdf.numPages} pages`, 'success');
+          
+          // Show file info
+          document.getElementById('pdfFileName').textContent = pdfFileName;
+          document.getElementById('pdfTextLength').textContent = pdfTextCache.length;
+          document.getElementById('pdfPages').textContent = pdf.numPages;
+          pdfInfo.style.display = 'block';
+          
+          // Send to recorder window if open
+          if (recorderWindow && !recorderWindow.closed) {
+            recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, API_CONFIG.BASE_URL);
+          }
+        } else {
+          showStatus('⚠️ No text found in PDF (might be image-based)', 'error');
+        }
+        
+      } catch (err) {
+        console.error('❌ PDF extraction error:', err);
+        showStatus(`❌ Error: ${err.message}. Please try pasting text manually.`, 'error');
+        // Show text input as fallback
+        contextText.style.display = 'block';
+      }
+    }
+
+    // Show status helper
+    function showStatus(message, type) {
+      pdfStatus.textContent = message;
+      pdfStatus.className = type;
+    }
+
+    // Open recorder with session
+    openBtn.onclick = async () => {
+      sessionId = Date.now().toString();
+      const intervalMin = parseInt(document.getElementById('cycleInput').value || '5', 10);
+
+      // Set cycle interval using server API
+      try {
+        await apiCall(API_CONFIG.endpoints.controlSignals, {
+          method: 'POST',
+          body: JSON.stringify({
+            session_id: sessionId,
+            command: 'set_cycle',
+            value: intervalMin
+          })
+        });
+        console.log("✅ Sent set_cycle via API:", intervalMin);
+      } catch (err) {
+        console.error("❌ Failed to send set_cycle:", err);
+      }
+
+      // Save PDF content if available
+      if (pdfTextCache) {
+        try {
+          console.log('📚 Saving PDF content...');
+          const pdfRes = await apiCall(API_CONFIG.endpoints.savePdf, {
+            method: 'POST',
+            body: JSON.stringify({
+              session_id: sessionId,
+              pdf_text: pdfTextCache,
+              filename: pdfFileName || 'context.pdf'
+            })
+          });
+
+          console.log('✅ PDF content saved');
+          showStatus('✅ PDF saved to session', 'success');
+        } catch (err) {
+          console.error('❌ PDF save error:', err);
+        }
+      }
+
+      // Open recorder window
+      recorderWindow = window.open(
+        `${API_CONFIG.BASE_URL}/record.html?session=${sessionId}&start=true`,
+        'recorder',
+        'width=500,height=400'
+      );
+
+      // Send PDF text if loaded
+      if (pdfTextCache && recorderWindow) {
+        setTimeout(() => {
+          recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, API_CONFIG.BASE_URL);
+        }, 1000);
+      }
+
+      poll(sessionId);
+    };
+
+    // Stop recording
+    stopBtn.onclick = async () => {
+      try {
+        await apiCall(API_CONFIG.endpoints.controlSignals, {
+          method: 'POST',
+          body: JSON.stringify({ 
+            session_id: sessionId, 
+            command: 'stop' 
+          })
+        });
+        console.log("✅ Stop command sent");
+      } catch (err) {
+        console.error("❌ Failed to stop recording:", err);
+      }
+    };
+
+    // Poll for summaries
+    function poll(sessionId) {
+      const container = document.getElementById('cardsContainer');
+
+      setInterval(async () => {
+        try {
+          const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session_id=${sessionId}`);
+          const data = await res.json();
+          const item = data;
+          
+          if (item && item.summary && item.summary !== lastShownSummary) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'toggle-btn';
+            toggleBtn.textContent = '+';
+            const summaryHeader = document.createElement('h3');
+            summaryHeader.textContent = '📝 Summary';
+            summaryHeader.appendChild(toggleBtn);
+
+            const summaryPara = document.createElement('p');
+            summaryPara.textContent = item.summary;
+
+            const details = document.createElement('div');
+            details.className = 'details';
+            details.innerHTML = `
+              <h4>📌 Decision</h4><ul>${(item.decision || []).map(d => `<li>${d}</li>`).join('')}</ul>
+              <h4>💡 Explicit</h4><ul>${(item.explicit || []).map(e => `<li>${e}</li>`).join('')}</ul>
+              <h4>💡 Tacit</h4><ul>${(item.tacit || []).map(t => `<li>${t}</li>`).join('')}</ul>
+              <h4>🧠 Reasoning</h4><p>${item.reasoning || ''}</p>
+              <h4>🔗 Suggestions</h4><ul>${(item.suggestions || []).map(s => `<li>${s}</li>`).join('')}</ul>
+            `;
+
+            toggleBtn.onclick = () => {
+              const isShown = details.style.display === 'block';
+              details.style.display = isShown ? 'none' : 'block';
+              toggleBtn.textContent = isShown ? '+' : '−';
+            };
+
+            card.appendChild(summaryHeader);
+            card.appendChild(summaryPara);
+            card.appendChild(details);
+            container.prepend(card);
+
+            // Send to Figma
+            parent.postMessage({
+              pluginMessage: {
+                type: 'analyze-transcript',
+                transcript: item.transcript,
+                summary: item.summary,
+                decision: item.decision,
+                explicit: item.explicit,
+                tacit: item.tacit,
+                reasoning: item.reasoning,
+                suggestions: item.suggestions
+              }
+            }, '*');
+
+            lastShownSummary = item.summary;
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+        }
+      }, 2000);
+    }
+
+    // Send PDF context when recorder is ready
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'ready-to-record' && pdfTextCache) {
+        recorderWindow?.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, API_CONFIG.BASE_URL);
+      }
+    });
+  </script>
+</body>
 </html>
-
-
 
 <!-- <!DOCTYPE html>
 <html lang="en">
