@@ -651,7 +651,10 @@ if (pdfTextCache) {
   <!-- PDF.js for client-side PDF processing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
+     // Wait for PDF.js to load
+  if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
   </script>
   <style>
     body {
@@ -897,6 +900,11 @@ if (pdfTextCache) {
 
     // CLIENT-SIDE PDF PROCESSING WITH PDF.js
     async function handlePdfFile(file) {
+      // Check if PDF.js is loaded
+  if (typeof pdfjsLib === 'undefined') {
+    showStatus('❌ PDF.js library not loaded. Please refresh the page.', 'error');
+    return;
+  }
       pdfFileName = file.name;
       showStatus('⏳ Extracting text from PDF (client-side)...', 'info');
       
