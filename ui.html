@@ -565,8 +565,8 @@ pdfText: '',
 
   <!-- Navigation -->
   <div class="navigation">
-    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
-    <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button>
+    <button class="btn btn-secondary" id="prevBtn" >Previous</button>
+    <button class="btn btn-primary" id="nextBtn" >Next</button>
   </div>
 
   <script>
@@ -756,6 +756,19 @@ pdfText: '',
           handleFiles(e.target.files);
         });
       }
+
+      // Navigation buttons
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => changePage(-1));
+  }
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => changePage(1));
+  }
+  
 
       // Radio buttons visual feedback
       document.querySelectorAll('.radio-item').forEach(item => {
@@ -1085,37 +1098,7 @@ async function extractPdfText(file) {
     }
 
     // Make changePage globally accessible
-   // window.changePage = changePage;
-   // 方法1：直接定义为全局函数
-window.changePage = function(direction) {
-  // 如果在录音页面且正在录音，先停止
-  if (currentPage === 3 && direction > 0 && isExternalRecording) {
-    stopExternalRecording();
-    return;
-  }
-  
-  // 保存当前页面数据
-  savePageData();
-  
-  // 验证
-  if (direction > 0 && !validateCurrentPage()) {
-    showMessage('Please fill in all required fields', 'warning');
-    return;
-  }
-  
-  // 切换页面
-  currentPage += direction;
-  if (currentPage < 1) currentPage = 1;
-  if (currentPage > totalPages) currentPage = totalPages;
-  
-  // 准备录音页面
-  if (currentPage === 3) {
-    prepareRecordingPage();
-  }
-  
-  updatePageDisplay();
-  animatePageTransition();
-}
+    window.changePage = changePage;
 
     // ===== 配置管理 =====
 // 移除硬编码的BASE_URL，改为环境变量或动态配置
