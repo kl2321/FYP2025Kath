@@ -7,7 +7,7 @@
 //     return res.status(400).json({ error: 'Invalid JSON format' });
 //   }
 // }
-const config = require('../lib/config');
+import config from '../lib/config.js';
 export default async function handler(req, res) {
 
   // 添加 CORS 头部

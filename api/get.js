@@ -1,4 +1,4 @@
-const config = require('../lib/config');
+import config from '../lib/config.js';
 // ✅ /api/get.js - Supabase 数据查询转发
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
