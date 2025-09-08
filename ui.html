@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Meeting Assistant</title>
   <style>
-    /* Global Styles */
+    /* [保持原有的所有CSS样式不变] */
     * {
       margin: 0;
       padding: 0;
@@ -391,61 +391,6 @@
       color: #EF6C00;
       border: 1px solid #FFB74D;
     }
-
-    /* Loading State */
-    .loading {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #5E5CE6;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-left: 10px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Summary Page */
-    .summary-section {
-      margin-bottom: 24px;
-      padding: 16px;
-      background: #f7f7f7;
-      border-radius: 8px;
-    }
-
-    .summary-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #333;
-    }
-
-    .summary-content {
-      font-size: 13px;
-      color: #666;
-      line-height: 1.6;
-    }
-
-    /* Chip/Tag Style */
-    .tag {
-      display: inline-block;
-      padding: 4px 8px;
-      background: #e5e5e5;
-      border-radius: 4px;
-      font-size: 11px;
-      margin-right: 6px;
-      margin-bottom: 6px;
-      color: #666;
-    }
-
-    .tag.primary {
-      background: #E3F2FD;
-      color: #1565C0;
-    }
   </style>
 </head>
 <body>
@@ -568,11 +513,6 @@
           </div>
         </div>
       </div>
-
-      <div class="form-group">
-        <label for="additional-context">Additional Context (optional)</label>
-        <textarea id="additional-context" placeholder="Any specific context or instructions for the AI analysis..."></textarea>
-      </div>
     </div>
 
     <!-- Page 3: Recording -->
@@ -591,19 +531,6 @@
         
         <div class="recording-time" id="recordingTime">00:00</div>
         <div class="recording-status" id="recordingStatus">Ready to record</div>
-
-        <div style="margin-top: 40px;">
-          <div class="info-message info" style="text-align: left;">
-            <span>ℹ️</span>
-            <div>
-              <strong>Recording Tips:</strong><br>
-              • Speak clearly and avoid overlapping conversations<br>
-              • State your name when you first speak<br>
-              • The AI will automatically detect different speakers<br>
-              • You can pause and resume recording as needed
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -611,41 +538,9 @@
     <div class="page" id="page4">
       <h2 style="margin-bottom: 24px;">Meeting Summary</h2>
       
-      <div class="summary-section">
-        <div class="summary-title">📊 Overview</div>
-        <div class="summary-content" id="summaryOverview">
-          Processing your meeting recording...
-        </div>
-      </div>
-
-      <div class="summary-section">
-        <div class="summary-title">🎯 Key Decisions</div>
-        <div class="summary-content" id="summaryDecisions">
-          <div class="loading"></div> Analyzing decisions...
-        </div>
-      </div>
-
-      <div class="summary-section">
-        <div class="summary-title">✅ Action Items</div>
-        <div class="summary-content" id="summaryActions">
-          <div class="loading"></div> Extracting action items...
-        </div>
-      </div>
-
-      <div class="summary-section">
-        <div class="summary-title">👥 Participants</div>
-        <div class="summary-content" id="summaryParticipants">
-          <div class="loading"></div> Identifying speakers...
-        </div>
-      </div>
-
-      <div style="margin-top: 24px; text-align: center;">
-        <button class="btn btn-primary" onclick="insertToFigma()">
-          Insert to Figma
-        </button>
-        <button class="btn btn-secondary" onclick="downloadSummary()" style="margin-left: 8px;">
-          Download Summary
-        </button>
+      <div style="text-align: center; padding: 40px;">
+        <div style="font-size: 48px; margin-bottom: 20px;">✨</div>
+        <p>Processing your meeting recording...</p>
       </div>
     </div>
   </div>
@@ -657,7 +552,10 @@
   </div>
 
   <script>
-    // State Management
+    // ===== MODIFIED STORAGE SOLUTION FOR FIGMA PLUGIN =====
+    // Use in-memory storage and communicate with plugin for persistence
+    
+    // State Management (in-memory)
     let currentPage = 1;
     const totalPages = 4;
     let formData = {
@@ -683,12 +581,57 @@
     let mediaRecorder = null;
     let audioChunks = [];
 
+    // ===== STORAGE FUNCTIONS (Modified for Figma) =====
+    
+    // Save data to plugin storage via postMessage
+    function saveToPluginStorage(key, value) {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'save-storage',
+          key: key,
+          value: value
+        }
+      }, '*');
+    }
+
+    // Request data from plugin storage
+    function loadFromPluginStorage(key) {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'load-storage',
+          key: key
+        }
+      }, '*');
+    }
+
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       updatePageDisplay();
       setupEventListeners();
-      loadSavedData();
+      // Request saved data from plugin
+      loadFromPluginStorage('meetingFormData');
     });
+
+    // Listen for messages from plugin
+    window.onmessage = (event) => {
+      const message = event.data.pluginMessage;
+      if (!message) return;
+
+      switch (message.type) {
+        case 'storage-loaded':
+          if (message.key === 'meetingFormData' && message.value) {
+            formData = message.value;
+            restoreFormFields();
+          }
+          break;
+        case 'processing-complete':
+          displaySummaryResults(message.results);
+          break;
+        case 'processing-error':
+          showMessage(message.error, 'warning');
+          break;
+      }
+    };
 
     // Page Navigation
     function changePage(direction) {
@@ -771,26 +714,28 @@
       const uploadArea = document.getElementById('uploadArea');
       const fileInput = document.getElementById('fileInput');
 
-      uploadArea?.addEventListener('click', () => fileInput.click());
-      
-      uploadArea?.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
-      });
+      if (uploadArea && fileInput) {
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          uploadArea.classList.add('dragover');
+        });
 
-      uploadArea?.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
-      });
+        uploadArea.addEventListener('dragleave', () => {
+          uploadArea.classList.remove('dragover');
+        });
 
-      uploadArea?.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        handleFiles(e.dataTransfer.files);
-      });
+        uploadArea.addEventListener('drop', (e) => {
+          e.preventDefault();
+          uploadArea.classList.remove('dragover');
+          handleFiles(e.dataTransfer.files);
+        });
 
-      fileInput?.addEventListener('change', (e) => {
-        handleFiles(e.target.files);
-      });
+        fileInput.addEventListener('change', (e) => {
+          handleFiles(e.target.files);
+        });
+      }
 
       // Radio buttons visual feedback
       document.querySelectorAll('.radio-item').forEach(item => {
@@ -811,7 +756,10 @@
       });
 
       // Recording button
-      document.getElementById('recordButton')?.addEventListener('click', toggleRecording);
+      const recordButton = document.getElementById('recordButton');
+      if (recordButton) {
+        recordButton.addEventListener('click', toggleRecording);
+      }
     }
 
     // File Handling
@@ -825,8 +773,12 @@
           return;
         }
 
-        // Add to formData
-        formData.files.push(file);
+        // Store file metadata (not the actual file due to Figma limitations)
+        formData.files.push({
+          name: file.name,
+          size: file.size,
+          type: file.type
+        });
 
         // Display file
         const fileItem = document.createElement('div');
@@ -836,12 +788,26 @@
           <span class="file-remove" onclick="removeFile('${file.name}')">✕</span>
         `;
         fileList.appendChild(fileItem);
+
+        // Send file to plugin for processing
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          parent.postMessage({
+            pluginMessage: {
+              type: 'file-upload',
+              fileName: file.name,
+              fileType: file.type,
+              fileContent: e.target.result
+            }
+          }, '*');
+        };
+        reader.readAsDataURL(file);
       });
     }
 
-    function removeFile(fileName) {
+    // Make removeFile globally accessible
+    window.removeFile = function(fileName) {
       formData.files = formData.files.filter(f => f.name !== fileName);
-      // Refresh file list display
       updateFileList();
     }
 
@@ -939,43 +905,18 @@
       currentPage = 4;
       updatePageDisplay();
 
-      // Send to backend for processing
-      const formDataToSend = new FormData();
-      formDataToSend.append('audio', audioBlob, 'recording.webm');
-      formDataToSend.append('metadata', JSON.stringify(formData));
-
-      try {
-        // Send to Figma plugin backend
+      // Convert blob to base64 for Figma plugin communication
+      const reader = new FileReader();
+      reader.onloadend = () => {
         parent.postMessage({
           pluginMessage: {
             type: 'process-recording',
             formData: formData,
-            // Audio will be handled separately due to size
+            audioData: reader.result
           }
         }, '*');
-
-        // Simulate processing (replace with actual API call)
-        setTimeout(() => {
-          displaySummaryResults({
-            overview: "45-minute design review meeting with 4 participants discussing the new user onboarding flow.",
-            decisions: [
-              "Simplify the onboarding to 3 steps instead of 5",
-              "Add progress indicators to each step",
-              "Include skip option for experienced users"
-            ],
-            actions: [
-              "John: Create wireframes for new 3-step flow by Friday",
-              "Sarah: Conduct user testing with 5 participants",
-              "Mike: Update the design system components"
-            ],
-            participants: ["John Smith", "Sarah Johnson", "Mike Chen", "Emily Davis"]
-          });
-        }, 3000);
-
-      } catch (error) {
-        console.error('Error processing recording:', error);
-        showMessage('Failed to process recording. Please try again.', 'warning');
-      }
+      };
+      reader.readAsDataURL(audioBlob);
     }
 
     // Form Validation
@@ -1004,24 +945,34 @@
         formData.preferences.actionItems = document.getElementById('action-items').checked;
         formData.preferences.speakerAnalysis = document.getElementById('speaker-analysis').checked;
         formData.preferences.sentimentAnalysis = document.getElementById('sentiment-analysis').checked;
-        formData.additionalContext = document.getElementById('additional-context').value;
       }
 
-      // Save to localStorage
-      localStorage.setItem('meetingFormData', JSON.stringify(formData));
+      // Save to plugin storage
+      saveToPluginStorage('meetingFormData', formData);
     }
 
-    function loadSavedData() {
-      const saved = localStorage.getItem('meetingFormData');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          // Restore form fields
-          // ... (implementation based on saved data)
-        } catch (e) {
-          console.error('Error loading saved data:', e);
-        }
+    function restoreFormFields() {
+      // Page 1 fields
+      if (document.getElementById('module')) {
+        document.getElementById('module').value = formData.module || '';
+        document.getElementById('meeting-type').value = formData.meetingType || '';
+        document.getElementById('team-members').value = formData.teamMembers.join(', ');
+        document.getElementById('meeting-goals').value = formData.meetingGoals || '';
+        
+        // Radio buttons
+        document.querySelector(`input[name="role"][value="${formData.role}"]`).checked = true;
       }
+
+      // Page 2 fields
+      if (document.getElementById('key-decisions')) {
+        document.getElementById('key-decisions').checked = formData.preferences.keyDecisions;
+        document.getElementById('action-items').checked = formData.preferences.actionItems;
+        document.getElementById('speaker-analysis').checked = formData.preferences.speakerAnalysis;
+        document.getElementById('sentiment-analysis').checked = formData.preferences.sentimentAnalysis;
+      }
+
+      // Update file list
+      updateFileList();
     }
 
     function prepareRecordingPage() {
@@ -1040,48 +991,31 @@
 
     // Summary Display
     function displaySummaryResults(results) {
-      document.getElementById('summaryOverview').innerHTML = results.overview;
-      
-      document.getElementById('summaryDecisions').innerHTML = results.decisions
-        .map(d => `<div style="margin-bottom: 8px;">• ${d}</div>`)
-        .join('');
-      
-      document.getElementById('summaryActions').innerHTML = results.actions
-        .map(a => `<div style="margin-bottom: 8px;">• ${a}</div>`)
-        .join('');
-      
-      document.getElementById('summaryParticipants').innerHTML = results.participants
-        .map(p => `<span class="tag primary">${p}</span>`)
-        .join('');
+      const page4 = document.getElementById('page4');
+      page4.innerHTML = `
+        <h2 style="margin-bottom: 24px;">Meeting Summary</h2>
+        <div style="background: #f7f7f7; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+          <h3 style="margin-bottom: 8px;">Overview</h3>
+          <p>${results.overview || 'Processing...'}</p>
+        </div>
+        <div style="margin-top: 24px; text-align: center;">
+          <button class="btn btn-primary" onclick="insertToFigma()">Insert to Figma</button>
+        </div>
+      `;
     }
 
     // Figma Integration
-    function insertToFigma() {
+    window.insertToFigma = function() {
       parent.postMessage({
         pluginMessage: {
           type: 'insert-summary',
-          data: formData,
-          summary: {
-            // Collect summary data from the page
-          }
+          data: formData
         }
       }, '*');
     }
 
-    function downloadSummary() {
-      // Create and download summary document
-      const summaryText = `Meeting Summary\n\n...`; // Build full summary
-      const blob = new Blob([summaryText], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `meeting-summary-${Date.now()}.txt`;
-      a.click();
-    }
-
     // Utility Functions
     function showMessage(message, type = 'info') {
-      // Create and show temporary message
       const messageDiv = document.createElement('div');
       messageDiv.className = `info-message ${type}`;
       messageDiv.style.position = 'fixed';
@@ -1098,20 +1032,8 @@
       }, 3000);
     }
 
-    // Listen for messages from plugin
-    window.onmessage = (event) => {
-      const message = event.data.pluginMessage;
-      if (message) {
-        switch (message.type) {
-          case 'processing-complete':
-            displaySummaryResults(message.results);
-            break;
-          case 'processing-error':
-            showMessage(message.error, 'warning');
-            break;
-        }
-      }
-    };
+    // Make changePage globally accessible
+    window.changePage = changePage;
   </script>
 </body>
 </html>

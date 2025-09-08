@@ -1,21 +1,44 @@
-// code.ts - Main plugin file
+// code.ts - Main plugin file with storage support
 figma.showUI(__html__, { 
   width: 400, 
   height: 600,
   title: "AI Meeting Assistant"
 });
 
+// Storage management for plugin
+const STORAGE_KEY_PREFIX = 'ai_meeting_';
+
 // Message handling from UI
 figma.ui.onmessage = async (msg) => {
   console.log('Received message:', msg);
 
   switch (msg.type) {
+    case 'save-storage':
+      // Save data to Figma's client storage
+      await figma.clientStorage.setAsync(STORAGE_KEY_PREFIX + msg.key, msg.value);
+      break;
+    
+    case 'load-storage':
+      // Load data from Figma's client storage
+      const value = await figma.clientStorage.getAsync(STORAGE_KEY_PREFIX + msg.key);
+      figma.ui.postMessage({
+        type: 'storage-loaded',
+        key: msg.key,
+        value: value
+      });
+      break;
+    
+    case 'file-upload':
+      // Handle file upload
+      await handleFileUpload(msg);
+      break;
+    
     case 'process-recording':
-      await handleRecordingProcess(msg.formData);
+      await handleRecordingProcess(msg.formData, msg.audioData);
       break;
     
     case 'insert-summary':
-      await insertSummaryToCanvas(msg.data, msg.summary);
+      await insertSummaryToCanvas(msg.data);
       break;
     
     case 'resize':
@@ -27,32 +50,51 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
+// Handle file uploads
+async function handleFileUpload(msg: any) {
+  // Store file data temporarily in client storage
+  const fileKey = `${STORAGE_KEY_PREFIX}file_${msg.fileName}`;
+  await figma.clientStorage.setAsync(fileKey, {
+    fileName: msg.fileName,
+    fileType: msg.fileType,
+    fileContent: msg.fileContent,
+    uploadedAt: Date.now()
+  });
+  
+  console.log(`File ${msg.fileName} stored successfully`);
+}
+
 // Process recording with AI
-async function handleRecordingProcess(formData: any) {
+async function handleRecordingProcess(formData: any, audioData: string) {
   try {
     // Show processing state
     figma.ui.postMessage({
       type: 'processing-start'
     });
 
-    // Here you would integrate with your AI service
-    // For now, simulating the process
+    // In a real implementation, you would:
+    // 1. Send audio to your backend API
+    // 2. Process with AI (speech-to-text, speaker diarization, analysis)
+    // 3. Return structured results
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Simulate processing delay
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Mock results (replace with actual AI processing)
+    // Mock results for demonstration
     const results = {
-      overview: `${formData.meetingType} meeting for ${formData.module} module`,
+      overview: `A ${formData.meetingType.replace('-', ' ')} session for the ${formData.module.replace('-', ' ')} module. 
+                 The team discussed key aspects of the project and made important decisions regarding the next steps.`,
       decisions: [
-        "Key decision 1 based on meeting discussion",
-        "Key decision 2 from the analysis"
+        "Adopt a mobile-first design approach for better user experience",
+        "Schedule weekly sync meetings every Monday at 2 PM",
+        "Prioritize user authentication feature for the next sprint"
       ],
       actions: [
-        "Action item 1 assigned to team member",
-        "Action item 2 with deadline"
+        `${formData.teamMembers[0] || 'Team Member 1'}: Create initial wireframes by end of week`,
+        `${formData.teamMembers[1] || 'Team Member 2'}: Research competitor solutions`,
+        `${formData.teamMembers[2] || 'Team Member 3'}: Set up development environment`
       ],
-      participants: formData.teamMembers || ["Unknown Speaker 1", "Unknown Speaker 2"]
+      participants: formData.teamMembers.length > 0 ? formData.teamMembers : ["Speaker 1", "Speaker 2", "Speaker 3"]
     };
 
     // Send results back to UI
@@ -61,39 +103,59 @@ async function handleRecordingProcess(formData: any) {
       results: results
     });
 
+    // Store results in client storage for later retrieval
+    await figma.clientStorage.setAsync(
+      `${STORAGE_KEY_PREFIX}last_summary`,
+      {
+        ...results,
+        timestamp: Date.now(),
+        formData: formData
+      }
+    );
+
   } catch (error) {
     console.error('Processing error:', error);
     figma.ui.postMessage({
       type: 'processing-error',
-      error: 'Failed to process recording'
+      error: 'Failed to process recording. Please try again.'
     });
   }
 }
 
 // Insert summary into Figma canvas
-async function insertSummaryToCanvas(data: any, summary: any) {
+async function insertSummaryToCanvas(data: any) {
   try {
-    // Load font
+    // Load necessary fonts
     await figma.loadFontAsync({ family: "Inter", style: "Regular" });
     await figma.loadFontAsync({ family: "Inter", style: "Bold" });
 
-    // Create frame for summary
+    // Get the last saved summary
+    const summary = await figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}last_summary`);
+    
+    if (!summary) {
+      figma.notify("❌ No summary available to insert");
+      return;
+    }
+
+    // Create main frame
     const frame = figma.createFrame();
-    frame.name = "Meeting Summary - " + new Date().toLocaleDateString();
+    frame.name = `Meeting Summary - ${new Date().toLocaleDateString()}`;
     frame.resize(800, 600);
     frame.fills = [{
       type: 'SOLID',
       color: { r: 0.98, g: 0.98, b: 0.98 }
     }];
     frame.cornerRadius = 8;
-    frame.effects = [{
-      type: 'DROP_SHADOW',
-      color: { r: 0, g: 0, b: 0, a: 0.1 },
-      offset: { x: 0, y: 2 },
-      radius: 10,
-      visible: true,
-      blendMode: 'NORMAL'
-    }];
+
+    // Add auto-layout
+    frame.layoutMode = 'VERTICAL';
+    frame.primaryAxisSizingMode = 'AUTO';
+    frame.counterAxisSizingMode = 'FIXED';
+    frame.paddingTop = 40;
+    frame.paddingRight = 40;
+    frame.paddingBottom = 40;
+    frame.paddingLeft = 40;
+    frame.itemSpacing = 24;
 
     // Position in viewport
     frame.x = figma.viewport.center.x - 400;
@@ -102,104 +164,50 @@ async function insertSummaryToCanvas(data: any, summary: any) {
     // Add title
     const title = figma.createText();
     title.characters = "📝 Meeting Summary";
-    title.fontSize = 24;
+    title.fontSize = 28;
     title.fontName = { family: "Inter", style: "Bold" };
-    title.x = 40;
-    title.y = 40;
     frame.appendChild(title);
 
     // Add metadata
     const metadata = figma.createText();
-    metadata.characters = `Module: ${data.module} | Type: ${data.meetingType} | Date: ${new Date().toLocaleDateString()}`;
+    metadata.characters = `${data.module.replace('-', ' ')} | ${data.meetingType.replace('-', ' ')} | ${new Date().toLocaleDateString()}`;
     metadata.fontSize = 14;
     metadata.fontName = { family: "Inter", style: "Regular" };
     metadata.fills = [{
       type: 'SOLID',
       color: { r: 0.4, g: 0.4, b: 0.4 }
     }];
-    metadata.x = 40;
-    metadata.y = 80;
     frame.appendChild(metadata);
 
-    // Add sections
-    let yPosition = 140;
-
-    // Overview section
+    // Add overview section
     if (summary.overview) {
-      const overviewTitle = figma.createText();
-      overviewTitle.characters = "Overview";
-      overviewTitle.fontSize = 18;
-      overviewTitle.fontName = { family: "Inter", style: "Bold" };
-      overviewTitle.x = 40;
-      overviewTitle.y = yPosition;
-      frame.appendChild(overviewTitle);
-
-      const overviewText = figma.createText();
-      overviewText.characters = summary.overview;
-      overviewText.fontSize = 14;
-      overviewText.fontName = { family: "Inter", style: "Regular" };
-      overviewText.x = 40;
-      overviewText.y = yPosition + 30;
-      overviewText.resize(720, 100);
-      frame.appendChild(overviewText);
-
-      yPosition += 150;
+      const overviewFrame = createSection("Overview", summary.overview);
+      frame.appendChild(overviewFrame);
     }
 
-    // Decisions section
+    // Add decisions section
     if (summary.decisions && summary.decisions.length > 0) {
-      const decisionsTitle = figma.createText();
-      decisionsTitle.characters = "🎯 Key Decisions";
-      decisionsTitle.fontSize = 18;
-      decisionsTitle.fontName = { family: "Inter", style: "Bold" };
-      decisionsTitle.x = 40;
-      decisionsTitle.y = yPosition;
-      frame.appendChild(decisionsTitle);
-
-      summary.decisions.forEach((decision: string, index: number) => {
-        const decisionText = figma.createText();
-        decisionText.characters = `${index + 1}. ${decision}`;
-        decisionText.fontSize = 14;
-        decisionText.fontName = { family: "Inter", style: "Regular" };
-        decisionText.x = 40;
-        decisionText.y = yPosition + 30 + (index * 25);
-        frame.appendChild(decisionText);
-      });
-
-      yPosition += 30 + (summary.decisions.length * 25) + 20;
+      const decisionsFrame = createSection(
+        "🎯 Key Decisions",
+        summary.decisions.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n')
+      );
+      frame.appendChild(decisionsFrame);
     }
 
-    // Action items section
+    // Add action items section
     if (summary.actions && summary.actions.length > 0) {
-      const actionsTitle = figma.createText();
-      actionsTitle.characters = "✅ Action Items";
-      actionsTitle.fontSize = 18;
-      actionsTitle.fontName = { family: "Inter", style: "Bold" };
-      actionsTitle.x = 40;
-      actionsTitle.y = yPosition;
-      frame.appendChild(actionsTitle);
-
-      summary.actions.forEach((action: string, index: number) => {
-        const actionText = figma.createText();
-        actionText.characters = `• ${action}`;
-        actionText.fontSize = 14;
-        actionText.fontName = { family: "Inter", style: "Regular" };
-        actionText.x = 40;
-        actionText.y = yPosition + 30 + (index * 25);
-        frame.appendChild(actionText);
-      });
-
-      yPosition += 30 + (summary.actions.length * 25) + 20;
+      const actionsFrame = createSection(
+        "✅ Action Items",
+        summary.actions.map((a: string) => `• ${a}`).join('\n')
+      );
+      frame.appendChild(actionsFrame);
     }
 
-    // Adjust frame height based on content
-    frame.resize(800, yPosition + 40);
-
-    // Select the created frame
+    // Select and focus on the created frame
     figma.currentPage.selection = [frame];
     figma.viewport.scrollAndZoomIntoView([frame]);
 
-    // Notify user
+    // Notify success
     figma.notify("✅ Meeting summary inserted successfully!");
 
   } catch (error) {
@@ -208,11 +216,56 @@ async function insertSummaryToCanvas(data: any, summary: any) {
   }
 }
 
-// Clean up on close
-figma.on("close", () => {
-  // Any cleanup code here
-});
+// Helper function to create a section
+function createSection(title: string, content: string): FrameNode {
+  const section = figma.createFrame();
+  section.layoutMode = 'VERTICAL';
+  section.primaryAxisSizingMode = 'AUTO';
+  section.counterAxisSizingMode = 'FIXED';
+  section.layoutAlign = 'STRETCH';  // 添加这行来达到填充效果
+  section.fills = [{
+    type: 'SOLID',
+    color: { r: 0.95, g: 0.95, b: 0.95 }
+  }];
+  section.cornerRadius = 6;
+  section.paddingTop = 16;
+  section.paddingRight = 16;
+  section.paddingBottom = 16;
+  section.paddingLeft = 16;
+  section.itemSpacing = 8;
 
+  const sectionTitle = figma.createText();
+  sectionTitle.characters = title;
+  sectionTitle.fontSize = 16;
+  sectionTitle.fontName = { family: "Inter", style: "Bold" };
+  section.appendChild(sectionTitle);
+
+  const sectionContent = figma.createText();
+  sectionContent.characters = content;
+  sectionContent.fontSize = 14;
+  sectionContent.fontName = { family: "Inter", style: "Regular" };
+  sectionContent.layoutAlign = 'STRETCH';
+  section.appendChild(sectionContent);
+
+  return section;
+}
+
+// Initialize plugin
+(async () => {
+  // Load any saved state
+  const savedState = await figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}plugin_state`);
+  if (savedState) {
+    console.log('Loaded saved state:', savedState);
+  }
+})();
+
+// Clean up on close
+figma.on("close", async () => {
+  // Save current state if needed
+  await figma.clientStorage.setAsync(`${STORAGE_KEY_PREFIX}plugin_state`, {
+    lastUsed: Date.now()
+  });
+});
 // // Show the UI panel with defined width and height
 // figma.showUI(__html__, { width: 480, height: 700 });
 
