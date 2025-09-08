@@ -648,14 +648,7 @@ if (pdfTextCache) {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- PDF.js for client-side PDF processing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-     // Wait for PDF.js to load
-  if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  }
-  </script>
+  
   <style>
     body {
       font-family: sans-serif;
@@ -750,7 +743,7 @@ if (pdfTextCache) {
   <!-- PDF Upload Section with Client-side Processing -->
   <label style="display:block; margin:8px 0 4px;">📄 Add Context (optional):</label>
   <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-    <button id="pdfBtn" style="padding: 6px 12px; margin: 0;">Upload PDF (Client-side)</button>
+    <button id="pdfBtn" style="padding: 6px 12px; margin: 0;">Upload PDF </button>
     <button id="textBtn" style="padding: 6px 12px; margin: 0;">Paste Text</button>
   </div>
   
@@ -900,61 +893,42 @@ if (pdfTextCache) {
 
     // CLIENT-SIDE PDF PROCESSING WITH PDF.js
     async function handlePdfFile(file) {
-      // Check if PDF.js is loaded
-  if (typeof pdfjsLib === 'undefined') {
-    showStatus('❌ PDF.js library not loaded. Please refresh the page.', 'error');
-    return;
-  }
-      pdfFileName = file.name;
-      showStatus('⏳ Extracting text from PDF (client-side)...', 'info');
+  pdfFileName = file.name;
+  showStatus('⏳ Processing PDF on server...', 'info');
+  
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const res = await fetch(`${API_CONFIG.BASE_URL}/api/ingest_pdf`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await res.json();
+    
+    if (data?.text && data.text.length > 50) {
+      pdfTextCache = data.text;
+      showStatus(`✅ PDF loaded (${(pdfTextCache.length/1000).toFixed(1)}k chars)`, 'success');
       
-      try {
-        // Read file as ArrayBuffer
-        const arrayBuffer = await file.arrayBuffer();
-        
-        // Use PDF.js to extract text
-        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-        let fullText = '';
-        pdfPageCount = pdf.numPages;
-        
-        // Extract text from all pages
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map(item => item.str).join(' ');
-          fullText += `\n--- Page ${i} ---\n${pageText}\n`;
-          
-          // Update progress
-          showStatus(`⏳ Processing page ${i} of ${pdf.numPages}...`, 'info');
-        }
-        
-        pdfTextCache = fullText.trim();
-        
-        if (pdfTextCache.length > 0) {
-          showStatus(`✅ Extracted ${pdfTextCache.length} characters from ${pdf.numPages} pages`, 'success');
-          
-          // Show file info
-          document.getElementById('pdfFileName').textContent = pdfFileName;
-          document.getElementById('pdfTextLength').textContent = pdfTextCache.length;
-          document.getElementById('pdfPages').textContent = pdf.numPages;
-          pdfInfo.style.display = 'block';
-          
-          // Send to recorder window if open
-          if (recorderWindow && !recorderWindow.closed) {
-            recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, API_CONFIG.BASE_URL);
-          }
-        } else {
-          showStatus('⚠️ No text found in PDF (might be image-based)', 'error');
-        }
-        
-      } catch (err) {
-        console.error('❌ PDF extraction error:', err);
-        showStatus(`❌ Error: ${err.message}. Please try pasting text manually.`, 'error');
-        // Show text input as fallback
-        contextText.style.display = 'block';
+      document.getElementById('pdfFileName').textContent = pdfFileName;
+      document.getElementById('pdfTextLength').textContent = pdfTextCache.length;
+      document.getElementById('pdfPages').textContent = 'processed';
+      pdfInfo.style.display = 'block';
+      
+      if (recorderWindow && !recorderWindow.closed) {
+        recorderWindow.postMessage({ type: 'set-context-pdf', text: pdfTextCache }, API_CONFIG.BASE_URL);
       }
+    } else {
+      contextText.style.display = 'block';
+      showStatus('⚠️ Could not extract text. Please paste manually.', 'error');
     }
-
+  } catch (err) {
+    console.error('PDF error:', err);
+    contextText.style.display = 'block';
+    showStatus('❌ PDF processing failed. Please paste text instead.', 'error');
+  }
+}
     // Show status helper
     function showStatus(message, type) {
       pdfStatus.textContent = message;
