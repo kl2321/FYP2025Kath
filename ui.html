@@ -586,7 +586,9 @@
         speakerAnalysis: false,
         sentimentAnalysis: false
       },
-      additionalContext: ''
+      additionalContext: '',
+      pdfText: '',
+      pdfFileName: ''
     };
 
     // // Recording state
@@ -778,67 +780,79 @@
     }
 
     // File Handling
-    function handleFiles(files) {
-      const fileList = document.getElementById('fileList');
+    // File Handling
+async function handleFiles(files) {
+  const fileList = document.getElementById('fileList');
+  
+  for (const file of Array.from(files)) {
+    // Validate file
+    if (file.size > 10 * 1024 * 1024) {
+      showMessage(`File ${file.name} is too large (max 10MB)`, 'warning');
+      continue;
+    }
+
+    // 如果是PDF文件，进行特殊处理
+    if (file.type === 'application/pdf') {
+      console.log('📄 Processing PDF file:', file.name);
       
-      Array.from(files).forEach(file => {
-        // Validate file
-        if (file.size > 10 * 1024 * 1024) {
-          showMessage(`File ${file.name} is too large (max 10MB)`, 'warning');
-          return;
-        }
-
-        // Store file metadata (not the actual file due to Figma limitations)
-        formData.files.push({
-          name: file.name,
-          size: file.size,
-          type: file.type
+      // 保存文件名
+      formData.pdfFileName = file.name;
+      
+      // 使用服务器端PDF处理
+      try {
+        showMessage('Processing PDF...', 'info');
+        
+        const pdfFormData = new FormData();
+        pdfFormData.append('file', file);
+        
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/ingest_pdf`, {
+          method: 'POST',
+          body: pdfFormData
         });
-
-        // Display file
-        const fileItem = document.createElement('div');
-        fileItem.className = 'file-item';
-        fileItem.innerHTML = `
-          <span class="file-name">${file.name}</span>
-          <span class="file-remove" onclick="removeFile('${file.name}')">✕</span>
-        `;
-        fileList.appendChild(fileItem);
-
-        // Send file to plugin for processing
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          parent.postMessage({
-            pluginMessage: {
-              type: 'file-upload',
-              fileName: file.name,
-              fileType: file.type,
-              fileContent: e.target.result
-            }
-          }, '*');
-        };
-        reader.readAsDataURL(file);
-      });
+        
+        const result = await response.json();
+        
+        if (result?.text && result.text.length > 0) {
+          formData.pdfText = result.text;
+          console.log('✅ PDF text extracted:', result.text.length, 'characters');
+          showMessage(`PDF processed: ${(result.text.length/1000).toFixed(1)}k characters`, 'success');
+        } else {
+          showMessage('Could not extract text from PDF', 'warning');
+        }
+      } catch (err) {
+        console.error('PDF processing error:', err);
+        showMessage('Failed to process PDF', 'warning');
+      }
     }
 
-    // Make removeFile globally accessible
-    window.removeFile = function(fileName) {
-      formData.files = formData.files.filter(f => f.name !== fileName);
-      updateFileList();
-    }
+    // Store file metadata
+    formData.files.push({
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
 
-    function updateFileList() {
-      const fileList = document.getElementById('fileList');
-      fileList.innerHTML = '';
-      formData.files.forEach(file => {
-        const fileItem = document.createElement('div');
-        fileItem.className = 'file-item';
-        fileItem.innerHTML = `
-          <span class="file-name">${file.name}</span>
-          <span class="file-remove" onclick="removeFile('${file.name}')">✕</span>
-        `;
-        fileList.appendChild(fileItem);
-      });
-    }
+    // Display file
+    const fileItem = document.createElement('div');
+    fileItem.className = 'file-item';
+    fileItem.innerHTML = `
+      <span class="file-name">${file.name}</span>
+      <span class="file-remove" onclick="removeFile('${file.name}')">✕</span>
+    `;
+    fileList.appendChild(fileItem);
+
+    // Send file info to plugin
+    parent.postMessage({
+      pluginMessage: {
+        type: 'file-upload',
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size
+      }
+    }, '*');
+  }
+}
+ 
 
     // Recording Functions
     async function toggleRecording() {
@@ -991,18 +1005,31 @@
     }
 
     function prepareRecordingPage() {
-      // Display configuration summary
-      const readyMessage = document.getElementById('readyMessage');
-      readyMessage.innerHTML = `
-        <span>✅</span>
-        <div>
-          <strong>Ready to record!</strong><br>
-          Module: ${formData.module.replace('-', ' ')}<br>
-          Meeting Type: ${formData.meetingType.replace('-', ' ')}<br>
-          ${formData.files.length > 0 ? `${formData.files.length} supporting file(s) uploaded` : ''}
-        </div>
-      `;
-    }
+  // Display configuration summary
+  const readyMessage = document.getElementById('readyMessage');
+  
+  // 构建消息内容
+  let messageContent = `
+    <span>✅</span>
+    <div>
+      <strong>Ready to record!</strong><br>
+      Module: ${formData.module.replace('-', ' ')}<br>
+      Meeting Type: ${formData.meetingType.replace('-', ' ')}<br>`;
+  
+  // 添加文件信息
+  if (formData.files.length > 0) {
+    messageContent += `${formData.files.length} supporting file(s) uploaded<br>`;
+  }
+  
+  // 添加PDF信息
+  if (formData.pdfText && formData.pdfText.length > 0) {
+    messageContent += `📄 PDF loaded: ${(formData.pdfText.length/1000).toFixed(1)}k characters<br>`;
+  }
+  
+  messageContent += `</div>`;
+  
+  readyMessage.innerHTML = messageContent;
+}
 
     // Summary Display
     function displaySummaryResults(results) {
@@ -1233,35 +1260,44 @@ async function openExternalRecorder() {
   
   // 现在进行异步操作
   try {
-    // 发送设置到API
-    await apiCall(API_CONFIG.endpoints.controlSignals, {
-      method: 'POST',
-      body: JSON.stringify({
-        session_id: recordingSessionId,
-        command: 'set_cycle',
-        value: intervalMin
-      })
-    });
-    console.log("✅ Set cycle interval:", intervalMin);
+  // 发送设置到API
+  await apiCall(API_CONFIG.endpoints.controlSignals, {
+    method: 'POST',
+    body: JSON.stringify({
+      session_id: recordingSessionId,
+      command: 'set_cycle',
+      value: intervalMin
+    })
+  });
+  console.log("✅ Set cycle interval:", intervalMin);
+  
+  // 如果有PDF内容，保存到服务器
+  if (formData.pdfText && formData.pdfText.trim().length > 0) {
+    console.log('📄 Found PDF content to save, length:', formData.pdfText.length);
+    const pdfSaved = await savePdfToServer(recordingSessionId, formData.pdfText);
     
-    // 如果有PDF内容，保存到服务器
-    if (formData.pdfText && formData.pdfText.trim().length > 0) {
-      await savePdfToServer(recordingSessionId, formData.pdfText);
+    if (pdfSaved) {
+      console.log('✅ PDF successfully saved for session:', recordingSessionId);
+    } else {
+      console.log('⚠️ PDF save failed, but continuing with recording');
     }
-    
-    // 所有准备完成后，导航到实际的录音页面
-    if (recordingWindow && !recordingWindow.closed) {
-      recordingWindow.location.href = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=true`;
-    }
-    
-  } catch (err) {
-    console.error("Error setting up recording:", err);
-    if (recordingWindow && !recordingWindow.closed) {
-      recordingWindow.close();
-    }
-    showError('Failed to initialize recording. Please try again.');
-    return;
+  } else {
+    console.log('ℹ️ No PDF content to save');
   }
+  
+  // 所有准备完成后，导航到实际的录音页面
+  if (recordingWindow && !recordingWindow.closed) {
+    recordingWindow.location.href = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=true`;
+  }
+  
+} catch (err) {
+  console.error("Error setting up recording:", err);
+  if (recordingWindow && !recordingWindow.closed) {
+    recordingWindow.close();
+  }
+  showError('Failed to initialize recording. Please try again.');
+  return;
+}
   
   // 更新UI状态
   updateRecordingUI(true);
@@ -1557,10 +1593,15 @@ function startPolling(sessionId) {
 async function savePdfToServer(sessionId, pdfText) {
   if (!pdfText || pdfText.trim().length === 0) {
     console.log('No PDF content to save');
-    return;
+    return false;
   }
   
   try {
+    console.log('📚 Saving PDF to Supabase...');
+    console.log('  Session ID:', sessionId);
+    console.log('  PDF length:', pdfText.length);
+    console.log('  Filename:', formData.pdfFileName || 'context.pdf');
+    
     const res = await apiCall(API_CONFIG.endpoints.savePdf, {
       method: 'POST',
       body: JSON.stringify({
@@ -1569,14 +1610,26 @@ async function savePdfToServer(sessionId, pdfText) {
         filename: formData.pdfFileName || 'context.pdf',
         metadata: {
           uploadTime: new Date().toISOString(),
-          textLength: pdfText.length
+          textLength: pdfText.length,
+          module: formData.module,
+          meetingType: formData.meetingType
         }
       })
     });
+    const result = await res.json();
+    if (result.ok) {
+      console.log('✅ PDF content saved to Supabase');
+      console.log('  Result:', result);
+      return true;
+    } else {
+      console.error('❌ PDF save failed:', result);
+      return false;
+    }
     
-    console.log('✅ PDF content saved to server');
   } catch (err) {
     console.error('Error saving PDF:', err);
+    showMessage('PDF save failed, but recording will continue', 'warning');
+    return false;
     // 不阻止录音继续，PDF是可选的
   }
 }
