@@ -852,6 +852,48 @@ async function handleFiles(files) {
     }, '*');
   }
 }
+
+// Make removeFile globally accessible
+window.removeFile = function(fileName) {
+  console.log('Removing file:', fileName);
+  formData.files = formData.files.filter(f => f.name !== fileName);
+  updateFileList();
+  
+  // 如果是PDF文件，清除PDF文本
+  if (fileName === formData.pdfFileName) {
+    formData.pdfText = '';
+    formData.pdfFileName = '';
+    console.log('Cleared PDF text cache');
+  }
+}
+
+// Update file list display
+function updateFileList() {
+  const fileList = document.getElementById('fileList');
+  if (!fileList) {
+    console.warn('fileList element not found');
+    return;
+  }
+  
+  fileList.innerHTML = '';
+  
+  if (!formData.files || formData.files.length === 0) {
+    console.log('No files to display');
+    return;
+  }
+  
+  formData.files.forEach(file => {
+    const fileItem = document.createElement('div');
+    fileItem.className = 'file-item';
+    fileItem.innerHTML = `
+      <span class="file-name">${file.name}</span>
+      <span class="file-remove" onclick="removeFile('${file.name}')">✕</span>
+    `;
+    fileList.appendChild(fileItem);
+  });
+  
+  console.log(`Updated file list with ${formData.files.length} files`);
+}
  
 
     // Recording Functions
@@ -1001,8 +1043,10 @@ async function handleFiles(files) {
       }
 
       // Update file list
+      if (document.getElementById('fileList')) {
       updateFileList();
     }
+  }
 
     function prepareRecordingPage() {
   // Display configuration summary
