@@ -825,7 +825,13 @@ async function handleFiles(files) {
         
         if (result?.text && result.text.length > 0) {
           formData.pdfText = result.text;
-          console.log('✅ PDF text extracted:', result.text.length, 'characters');
+  formData.pdfFileName = file.name;  // 确保文件名也被保存
+  
+  // 添加这些调试日志
+  console.log('✅ PDF处理完成:');
+  console.log('  - 文件名:', formData.pdfFileName);
+  console.log('  - 文本长度:', formData.pdfText.length);
+  console.log('  - 前100字符:', formData.pdfText.substring(0, 100));
           showMessage(`PDF processed: ${(result.text.length/1000).toFixed(1)}k characters`, 'success');
         } else {
           showMessage('Could not extract text from PDF', 'warning');
@@ -1232,10 +1238,12 @@ async function toggleRecording() {
 }
 
 // ===== 优化的打开外部录音窗口函数 =====
-// ===== 优化的打开外部录音窗口函数（修复弹窗拦截）=====
 async function openExternalRecorder() {
+  console.log('🚀 开始 openExternalRecorder 函数');
+  
   // 生成session ID
   recordingSessionId = Date.now().toString();
+  console.log('📋 Session ID:', recordingSessionId);
   
   // 获取录音间隔设置
   const cycleInput = document.getElementById('cycleInput');
@@ -1246,9 +1254,20 @@ async function openExternalRecorder() {
     console.warn('Invalid interval, using default 5 minutes');
     intervalMin = 5;
   }
+  console.log('⏰ 录音间隔:', intervalMin, '分钟');
   
-  // 🎯 关键修复：先打开窗口，再做异步操作
+  // 🔍 关键调试：检查PDF内容
+  console.log('📄 检查PDF内容:');
+  console.log('  - pdfText存在?', !!formData.pdfText);
+  console.log('  - pdfText长度:', formData.pdfText ? formData.pdfText.length : 0);
+  console.log('  - pdfFileName:', formData.pdfFileName);
+  if (formData.pdfText) {
+    console.log('  - 前100字符:', formData.pdfText.substring(0, 100));
+  }
+  
+  // 构建URL
   const recordUrl = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=false`;
+  console.log('🔗 录音页面URL:', recordUrl);
   
   // 立即打开窗口（在用户点击的同步上下文中）
   recordingWindow = window.open(
@@ -1259,119 +1278,159 @@ async function openExternalRecorder() {
   
   // 检查窗口是否成功打开
   if (!recordingWindow) {
-    // 如果弹窗被拦截，提供替代方案
+    console.log('❌ 窗口被浏览器拦截');
     showPopupBlockedMessage();
     return;
   }
   
+  console.log('✅ 窗口成功打开');
+  
   // 显示加载中状态
-  recordingWindow.document.write(`
-    <html>
-      <head>
-        <title>Loading Recorder...</title>
-        <style>
-          body { 
-            font-family: sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0;
-          }
-          .loader {
-            text-align: center;
-          }
-          .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-          }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="loader">
-          <div class="spinner"></div>
-          <p>Initializing recorder...</p>
-        </div>
-      </body>
-    </html>
-  `);
+  try {
+    recordingWindow.document.write(`
+      <html>
+        <head>
+          <title>Loading Recorder...</title>
+          <style>
+            body { 
+              font-family: sans-serif; 
+              display: flex; 
+              justify-content: center; 
+              align-items: center; 
+              height: 100vh; 
+              margin: 0;
+              background: #f0f0f0;
+            }
+            .loader {
+              text-align: center;
+              background: white;
+              padding: 40px;
+              border-radius: 10px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .spinner {
+              border: 3px solid #f3f3f3;
+              border-top: 3px solid #3498db;
+              border-radius: 50%;
+              width: 40px;
+              height: 40px;
+              animation: spin 1s linear infinite;
+              margin: 20px auto;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            .status {
+              color: #666;
+              font-size: 14px;
+              margin-top: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="loader">
+            <div class="spinner"></div>
+            <p>Initializing recorder...</p>
+            <p class="status">Session: ${recordingSessionId}</p>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error('⚠️ 无法写入加载页面:', err);
+  }
   
   // 保存表单数据
+  console.log('💾 保存表单数据...');
   try {
     savePageData();
     await saveToPluginStorage('meetingFormData', formData);
+    console.log('✅ 表单数据已保存');
   } catch (err) {
-    console.error('Error saving form data:', err);
+    console.error('❌ 保存表单数据失败:', err);
   }
   
   // 现在进行异步操作
   try {
-  // 发送设置到API
-  await apiCall(API_CONFIG.endpoints.controlSignals, {
-    method: 'POST',
-    body: JSON.stringify({
-      session_id: recordingSessionId,
-      command: 'set_cycle',
-      value: intervalMin
-    })
-  });
-  console.log("✅ Set cycle interval:", intervalMin);
-  
-  // 如果有PDF内容，保存到服务器
-  if (formData.pdfText && formData.pdfText.trim().length > 0) {
-    console.log('📄 Saving PDF to server...');
-    showMessage('Uploading PDF document...', 'info');
-    const pdfSaved = await savePdfToServer(recordingSessionId, formData.pdfText);
+    // 1. 发送录音间隔设置
+    console.log('📡 发送录音间隔设置...');
+    await apiCall(API_CONFIG.endpoints.controlSignals, {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: recordingSessionId,
+        command: 'set_cycle',
+        value: intervalMin
+      })
+    });
+    console.log("✅ 录音间隔设置成功:", intervalMin, "分钟");
     
-    if (pdfSaved) {
-      console.log('✅ PDF successfully saved for session:', recordingSessionId);
-      showMessage('PDF uploaded successfully', 'success');
+    // 2. ✨ 使用 savePdfToServer 函数保存PDF
+    if (formData.pdfText && formData.pdfText.trim().length > 0) {
+      console.log('📚 调用 savePdfToServer 函数...');
+      
+      showMessage('正在上传PDF文档...', 'info');
+      
+      // 调用 savePdfToServer 函数
+      const pdfSaved = await savePdfToServer(recordingSessionId, formData.pdfText);
+      
+      if (pdfSaved) {
+        console.log('✅ savePdfToServer 返回成功');
+        showMessage('PDF上传成功', 'success');
+      } else {
+        console.log('⚠️ savePdfToServer 返回失败');
+        showMessage('PDF上传失败，但录音将继续', 'warning');
+      }
+      
+      // 等待确保保存完成
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
     } else {
-      console.log('⚠️ PDF save failed, but continuing with recording');
+      console.log('ℹ️ 没有PDF内容需要保存');
     }
+    
+    // 3. 等待一下，确保所有设置完成
     await new Promise(resolve => setTimeout(resolve, 500));
-  
-  } else {
-    console.log('ℹ️ No PDF content to save');
+    
+    // 4. 导航到实际的录音页面
+    if (recordingWindow && !recordingWindow.closed) {
+      const finalUrl = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=true`;
+      console.log('🎯 导航到录音页面:', finalUrl);
+      recordingWindow.location.href = finalUrl;
+      console.log('✅ 已导航到录音页面');
+    } else {
+      console.error('❌ 录音窗口已关闭');
+      return;
+    }
+    
+  } catch (err) {
+    console.error("❌ 设置过程出错:", err);
+    console.error("  错误详情:", err.message);
+    console.error("  错误堆栈:", err.stack);
+    
+    if (recordingWindow && !recordingWindow.closed) {
+      recordingWindow.close();
+    }
+    showMessage('初始化录音失败，请重试', 'warning');
+    return;
   }
-  
-
-  
-  // 所有准备完成后，导航到实际的录音页面
-  if (recordingWindow && !recordingWindow.closed) {
-    console.log('🎯 Navigating to recording page...');
-    recordingWindow.location.href = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=true`;
-  }
-  
-} catch (err) {
-  console.error("Error setting up recording:", err);
-  if (recordingWindow && !recordingWindow.closed) {
-    recordingWindow.close();
-  }
-  showError('Failed to initialize recording. Please try again.');
-  return;
-}
   
   // 更新UI状态
+  console.log('🎨 更新UI状态...');
   updateRecordingUI(true);
   
   isExternalRecording = true;
   isRecording = true;
   
   // 开始轮询结果
+  console.log('📊 开始轮询结果...');
   startPolling(recordingSessionId);
   
   // 监听窗口关闭
+  console.log('👁️ 开始监控窗口状态...');
   checkRecordingWindowStatus();
+  
+  console.log('🎉 openExternalRecorder 完成!');
 }
 
 async function stopExternalRecording() {
@@ -1723,53 +1782,144 @@ function startPolling(sessionId) {
 }
 
 // ===== 优化的PDF保存函数 =====
+
 async function savePdfToServer(sessionId, pdfText) {
-  if (!pdfText || pdfText.trim().length === 0) {
-    console.log('No PDF content to save');
+  console.log('📚 === 开始 savePdfToServer 函数 ===');
+  
+  // 输入验证
+  if (!sessionId) {
+    console.error('❌ 没有session ID');
     return false;
   }
-
-  const maxLength = 500000;
-  if (pdfText.length > maxLength) {
-    console.warn(`PDF too large (${pdfText.length} chars), truncating to ${maxLength}`);
-    pdfText = pdfText.substring(0, maxLength);
+  
+  if (!pdfText || pdfText.trim().length === 0) {
+    console.error('❌ PDF文本为空');
+    return false;
   }
   
+  // 限制大小
+  const maxLength = 500000;
+  let textToSave = pdfText;
+  if (pdfText.length > maxLength) {
+    console.warn(`⚠️ PDF太大 (${pdfText.length}字符), 截断到${maxLength}字符`);
+    textToSave = pdfText.substring(0, maxLength);
+  }
+  
+  // 显示详细信息
+  console.log('📋 PDF保存参数:');
+  console.log('  - API端点:', `${API_CONFIG.BASE_URL}${API_CONFIG.endpoints.savePdf}`);
+  console.log('  - Session ID:', sessionId);
+  console.log('  - 原始文本长度:', pdfText.length);
+  console.log('  - 保存文本长度:', textToSave.length);
+  console.log('  - 文件名:', formData.pdfFileName || 'context.pdf');
+  console.log('  - 模块:', formData.module || 'unknown');
+  console.log('  - 会议类型:', formData.meetingType || 'unknown');
+  
   try {
-    console.log('📚 Saving PDF to Supabase...');
-    console.log('  Session ID:', sessionId);
-    console.log('  PDF length:', pdfText.length);
-    console.log('  Filename:', formData.pdfFileName || 'context.pdf');
+    // 构建请求体
+    const requestBody = {
+      session_id: sessionId,
+      pdf_text: textToSave,
+      filename: formData.pdfFileName || 'context.pdf',
+      metadata: {
+        uploadTime: new Date().toISOString(),
+        textLength: textToSave.length,
+        module: formData.module || 'unknown',
+        meetingType: formData.meetingType || 'unknown'
+      }
+    };
     
-    const res = await apiCall(API_CONFIG.endpoints.savePdf, {
+    console.log('📤 发送POST请求到:', `${API_CONFIG.BASE_URL}${API_CONFIG.endpoints.savePdf}`);
+    console.log('📤 请求体大小:', JSON.stringify(requestBody).length, '字符');
+    
+    // 发送请求
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.endpoints.savePdf}`, {
       method: 'POST',
-      body: JSON.stringify({
-        session_id: sessionId,
-        pdf_text: pdfText.substring(0, 500000), // 限制大小
-        filename: formData.pdfFileName || 'context.pdf',
-        metadata: {
-          uploadTime: new Date().toISOString(),
-          textLength: pdfText.length,
-          module: formData.module,
-          meetingType: formData.meetingType
-        }
-      })
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
     });
-    const result = await res.json();
-    if (result.ok) {
-      console.log('✅ PDF content saved to Supabase');
-      console.log('  Result:', result);
-      return true;
-    } else {
-      console.error('❌ PDF save failed:', result);
+    
+    console.log('📥 响应状态码:', response.status);
+    console.log('📥 响应状态文本:', response.statusText);
+    console.log('📥 响应头:', {
+      'content-type': response.headers.get('content-type'),
+      'content-length': response.headers.get('content-length')
+    });
+    
+    // 获取响应文本
+    const responseText = await response.text();
+    console.log('📥 原始响应内容:', responseText);
+    console.log('📥 响应长度:', responseText.length, '字符');
+    
+    // 检查HTTP状态
+    if (!response.ok) {
+      console.error('❌ 服务器返回错误状态:', response.status);
+      console.error('❌ 错误详情:', responseText);
+      
+      // 尝试解析错误信息
+      try {
+        const errorData = JSON.parse(responseText);
+        console.error('❌ 错误对象:', errorData);
+      } catch (e) {
+        console.error('❌ 错误响应不是JSON格式');
+      }
+      
       return false;
     }
     
-  } catch (err) {
-    console.error('Error saving PDF:', err);
-    showMessage('PDF save failed, but recording will continue', 'warning');
+    // 尝试解析JSON响应
+    let result = null;
+    try {
+      result = JSON.parse(responseText);
+      console.log('✅ 成功解析JSON响应:', result);
+      
+      // 检查响应中的成功标志
+      if (result.ok || result.success || result.status === 'success') {
+        console.log('✅ PDF成功保存到Supabase!');
+        console.log('  - 保存时间:', new Date().toISOString());
+        console.log('  - Session:', sessionId);
+        return true;
+      } else {
+        console.warn('⚠️ 响应中没有明确的成功标志');
+        console.log('  - 响应对象:', result);
+      }
+      
+    } catch (parseError) {
+      console.warn('⚠️ 响应不是有效的JSON:', parseError.message);
+      
+      // 如果状态码是200-299，即使不是JSON也认为成功
+      if (response.status >= 200 && response.status < 300) {
+        console.log('✅ 基于HTTP状态码判断PDF已保存');
+        console.log('  - 状态码:', response.status);
+        console.log('  - 响应内容:', responseText.substring(0, 100));
+        return true;
+      }
+    }
+    
+    // 默认返回false
+    console.warn('⚠️ 无法确认PDF是否保存成功');
     return false;
-    // 不阻止录音继续，PDF是可选的
+    
+  } catch (error) {
+    console.error('❌ PDF保存过程发生异常:', error);
+    console.error('  - 错误类型:', error.name);
+    console.error('  - 错误消息:', error.message);
+    console.error('  - 错误堆栈:', error.stack);
+    
+    // 网络错误特殊处理
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      console.error('❌ 网络连接错误，请检查:');
+      console.error('  1. API服务器是否运行');
+      console.error('  2. 网络连接是否正常');
+      console.error('  3. CORS设置是否正确');
+    }
+    
+    return false;
+    
+  } finally {
+    console.log('📚 === 结束 savePdfToServer 函数 ===');
   }
 }
 
