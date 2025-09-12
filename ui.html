@@ -1374,6 +1374,77 @@ async function openExternalRecorder() {
   checkRecordingWindowStatus();
 }
 
+async function stopExternalRecording() {
+  console.log('🛑 Stopping external recording...');
+  
+  // 1. 发送停止信号到服务器
+  if (recordingSessionId) {
+    try {
+      await apiCall(API_CONFIG.endpoints.stopRecording, {
+        method: 'POST',
+        body: JSON.stringify({
+          session_id: recordingSessionId,
+          command: 'stop'
+        })
+      });
+      console.log('✅ Stop signal sent');
+    } catch (err) {
+      console.error('Error sending stop signal:', err);
+    }
+  }
+  
+  // 2. 关闭录音窗口
+  if (recordingWindow && !recordingWindow.closed) {
+    recordingWindow.close();
+  }
+  
+  // 3. 停止轮询
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+  
+  // 4. 更新状态
+  isExternalRecording = false;
+  isRecording = false;
+  
+  // 5. 更新UI - 显示处理中
+  updateRecordingUI(false, true);
+  showMessage('Recording stopped. Processing results...', 'info');
+  
+  // 6. 获取最终结果
+  setTimeout(async () => {
+    try {
+      const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${recordingSessionId}`);
+      const data = await res.json();
+      
+      if (data && data.summary) {
+        // 保存结果
+        formData.results = {
+          transcript: data.transcript || '',
+          summary: data.summary || '',
+          decisions: data.decision || [],
+          explicit: data.explicit || [],
+          tacit: data.tacit || [],
+          reasoning: data.reasoning || '',
+          suggestions: data.suggestions || []
+        };
+        
+        // 显示结果页
+        currentPage = 4;
+        updatePageDisplay();
+        displaySummaryResults(formData.results);
+      }
+    } catch (err) {
+      console.error('Error fetching final results:', err);
+    }
+    
+    // 重置UI
+    resetRecordingUI();
+  }, 2000);
+}
+
+
 // ===== 新增：显示弹窗被拦截的消息和替代方案 =====
 function showPopupBlockedMessage() {
   const messageHTML = `
@@ -1796,75 +1867,6 @@ function stopRecording() {
 })();
 
 // 停止外部录音
-async function stopExternalRecording() {
-  console.log('🛑 Stopping external recording...');
-  
-  // 1. 发送停止信号到服务器
-  if (recordingSessionId) {
-    try {
-      await apiCall(API_CONFIG.endpoints.stopRecording, {
-        method: 'POST',
-        body: JSON.stringify({
-          session_id: recordingSessionId,
-          command: 'stop'
-        })
-      });
-      console.log('✅ Stop signal sent');
-    } catch (err) {
-      console.error('Error sending stop signal:', err);
-    }
-  }
-  
-  // 2. 关闭录音窗口
-  if (recordingWindow && !recordingWindow.closed) {
-    recordingWindow.close();
-  }
-  
-  // 3. 停止轮询
-  if (pollInterval) {
-    clearInterval(pollInterval);
-    pollInterval = null;
-  }
-  
-  // 4. 更新状态
-  isExternalRecording = false;
-  isRecording = false;
-  
-  // 5. 更新UI - 显示处理中
-  updateRecordingUI(false, true);
-  showMessage('Recording stopped. Processing results...', 'info');
-  
-  // 6. 获取最终结果
-  setTimeout(async () => {
-    try {
-      const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${recordingSessionId}`);
-      const data = await res.json();
-      
-      if (data && data.summary) {
-        // 保存结果
-        formData.results = {
-          transcript: data.transcript || '',
-          summary: data.summary || '',
-          decisions: data.decision || [],
-          explicit: data.explicit || [],
-          tacit: data.tacit || [],
-          reasoning: data.reasoning || '',
-          suggestions: data.suggestions || []
-        };
-        
-        // 显示结果页
-        currentPage = 4;
-        updatePageDisplay();
-        displaySummaryResults(formData.results);
-      }
-    } catch (err) {
-      console.error('Error fetching final results:', err);
-    }
-    
-    // 重置UI
-    resetRecordingUI();
-  }, 2000);
-}
 
   </script>
 </body>
