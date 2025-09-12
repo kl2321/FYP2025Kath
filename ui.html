@@ -777,6 +777,17 @@
       if (recordButton) {
         recordButton.addEventListener('click', toggleRecording);
       }
+
+      const stopBtn = document.getElementById('stopRecordingBtn');
+
+       const stopRecordingBtn = document.getElementById('stopRecordingBtn');
+  if (stopRecordingBtn) {
+    stopRecordingBtn.addEventListener('click', () => {
+      console.log('Stop button clicked');
+      stopExternalRecording();  // 调用停止函数
+    });
+  }
+
     }
 
     // File Handling
@@ -1317,20 +1328,27 @@ async function openExternalRecorder() {
   
   // 如果有PDF内容，保存到服务器
   if (formData.pdfText && formData.pdfText.trim().length > 0) {
-    console.log('📄 Found PDF content to save, length:', formData.pdfText.length);
+    console.log('📄 Saving PDF to server...');
+    showMessage('Uploading PDF document...', 'info');
     const pdfSaved = await savePdfToServer(recordingSessionId, formData.pdfText);
     
     if (pdfSaved) {
       console.log('✅ PDF successfully saved for session:', recordingSessionId);
+      showMessage('PDF uploaded successfully', 'success');
     } else {
       console.log('⚠️ PDF save failed, but continuing with recording');
     }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  
   } else {
     console.log('ℹ️ No PDF content to save');
   }
   
+
+  
   // 所有准备完成后，导航到实际的录音页面
   if (recordingWindow && !recordingWindow.closed) {
+    console.log('🎯 Navigating to recording page...');
     recordingWindow.location.href = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=true`;
   }
   
@@ -1639,6 +1657,12 @@ async function savePdfToServer(sessionId, pdfText) {
     console.log('No PDF content to save');
     return false;
   }
+
+  const maxLength = 500000;
+  if (pdfText.length > maxLength) {
+    console.warn(`PDF too large (${pdfText.length} chars), truncating to ${maxLength}`);
+    pdfText = pdfText.substring(0, maxLength);
+  }
   
   try {
     console.log('📚 Saving PDF to Supabase...');
@@ -1770,6 +1794,78 @@ function stopRecording() {
     Object.assign(API_CONFIG, window.customAPIConfig);
   }
 })();
+
+// 停止外部录音
+async function stopExternalRecording() {
+  console.log('🛑 Stopping external recording...');
+  
+  // 1. 发送停止信号到服务器
+  if (recordingSessionId) {
+    try {
+      await apiCall(API_CONFIG.endpoints.stopRecording, {
+        method: 'POST',
+        body: JSON.stringify({
+          session_id: recordingSessionId,
+          command: 'stop'
+        })
+      });
+      console.log('✅ Stop signal sent');
+    } catch (err) {
+      console.error('Error sending stop signal:', err);
+    }
+  }
+  
+  // 2. 关闭录音窗口
+  if (recordingWindow && !recordingWindow.closed) {
+    recordingWindow.close();
+  }
+  
+  // 3. 停止轮询
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+  
+  // 4. 更新状态
+  isExternalRecording = false;
+  isRecording = false;
+  
+  // 5. 更新UI - 显示处理中
+  updateRecordingUI(false, true);
+  showMessage('Recording stopped. Processing results...', 'info');
+  
+  // 6. 获取最终结果
+  setTimeout(async () => {
+    try {
+      const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${recordingSessionId}`);
+      const data = await res.json();
+      
+      if (data && data.summary) {
+        // 保存结果
+        formData.results = {
+          transcript: data.transcript || '',
+          summary: data.summary || '',
+          decisions: data.decision || [],
+          explicit: data.explicit || [],
+          tacit: data.tacit || [],
+          reasoning: data.reasoning || '',
+          suggestions: data.suggestions || []
+        };
+        
+        // 显示结果页
+        currentPage = 4;
+        updatePageDisplay();
+        displaySummaryResults(formData.results);
+      }
+    } catch (err) {
+      console.error('Error fetching final results:', err);
+    }
+    
+    // 重置UI
+    resetRecordingUI();
+  }, 2000);
+}
+
   </script>
 </body>
 </html>
@@ -2626,3 +2722,4 @@ if (pdfTextCache) {
   </script>
 </body>
 </html> -->
+   
