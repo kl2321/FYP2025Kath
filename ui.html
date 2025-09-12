@@ -1067,31 +1067,81 @@ function updateFileList() {
     }
   }
 
-    function prepareRecordingPage() {
-  // Display configuration summary
-  const readyMessage = document.getElementById('readyMessage');
+   function prepareRecordingPage() {
+  // 获取recording-interface元素（新的容器）
+  const recordingInterface = document.getElementById('recording-interface');
   
-  // 构建消息内容
-  let messageContent = `
-    <span>✅</span>
-    <div>
-      <strong>Ready to record!</strong><br>
-      Module: ${formData.module.replace('-', ' ')}<br>
-      Meeting Type: ${formData.meetingType.replace('-', ' ')}<br>`;
-  
-  // 添加文件信息
-  if (formData.files.length > 0) {
-    messageContent += `${formData.files.length} supporting file(s) uploaded<br>`;
+  if (!recordingInterface) {
+    console.warn('recording-interface element not found');
+    // 如果新元素不存在，尝试使用旧的结构
+    const readyMessage = document.getElementById('readyMessage');
+    if (readyMessage) {
+      // 使用旧的方式
+      let messageContent = `
+        <span>✅</span>
+        <div>
+          <strong>Ready to record!</strong><br>
+          Module: ${formData.module.replace('-', ' ')}<br>
+          Meeting Type: ${formData.meetingType.replace('-', ' ')}<br>`;
+      
+      if (formData.files.length > 0) {
+        messageContent += `${formData.files.length} supporting file(s) uploaded<br>`;
+      }
+      
+      if (formData.pdfText && formData.pdfText.length > 0) {
+        messageContent += `📄 PDF loaded: ${(formData.pdfText.length/1000).toFixed(1)}k characters<br>`;
+      }
+      
+      messageContent += `</div>`;
+      readyMessage.innerHTML = messageContent;
+    }
+    return;
   }
   
-  // 添加PDF信息
-  if (formData.pdfText && formData.pdfText.length > 0) {
-    messageContent += `📄 PDF loaded: ${(formData.pdfText.length/1000).toFixed(1)}k characters<br>`;
+  // 使用新的界面（暂时显示简单信息）
+  recordingInterface.innerHTML = `
+    <div class="info-message success">
+      <span>✅</span>
+      <div>
+        <strong>Ready to record!</strong><br>
+        Module: ${formData.module || 'Not set'}<br>
+        Meeting Type: ${formData.meetingType || 'Not set'}<br>
+        ${formData.files.length > 0 ? formData.files.length + ' file(s) uploaded<br>' : ''}
+        ${formData.pdfText ? '📄 PDF loaded: ' + (formData.pdfText.length/1000).toFixed(1) + 'k characters' : ''}
+      </div>
+    </div>
+    
+    <div class="recording-interface">
+      <button class="record-button" id="recordButton">
+        <span id="recordButtonText">Open Recorder</span>
+      </button>
+      
+      <div class="recording-status" id="recordingStatus">Ready to record</div>
+      
+      <div style="margin-top: 30px;">
+        <label for="cycleInput">Summary interval (minutes):</label>
+        <input id="cycleInput" type="number" value="5" min="1" max="30" 
+               style="width: 80px; padding: 8px; margin-left: 10px;">
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px;">
+      <button class="btn btn-secondary" id="stopRecordingBtn" style="display: none;">
+        Stop Recording
+      </button>
+    </div>
+  `;
+  
+  // 重新绑定事件
+  const recordButton = document.getElementById('recordButton');
+  if (recordButton) {
+    recordButton.addEventListener('click', toggleRecording);
   }
   
-  messageContent += `</div>`;
-  
-  readyMessage.innerHTML = messageContent;
+  const stopBtn = document.getElementById('stopRecordingBtn');
+  if (stopBtn) {
+    stopBtn.addEventListener('click', stopExternalRecording);
+  }
 }
 
     // Summary Display
