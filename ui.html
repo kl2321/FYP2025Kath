@@ -1280,20 +1280,15 @@ async function apiCall(endpoint, options = {}) {
 }
 
 // ===== 修改 toggleRecording 函数（保持不变）=====
-async function toggleRecording() {
-  await openExternalRecorder();
-}
-
-// ===== 优化的打开外部录音窗口函数 =====
 async function openExternalRecorder() {
   console.log('🚀 准备录音会话');
   
   // 生成session ID
   recordingSessionId = Date.now().toString();
   
-  // 获取设置
+  // 获取设置（保留intervalMin名称）
   const cycleInput = document.getElementById('cycleInput');
-  const intervalMin = cycleInput ? parseInt(cycleInput.value || '5', 10) : 5;
+  const intervalMin = cycleInput ? parseInt(cycleInput.value || '10', 10) : 10;
   
   // 先保存所有配置到服务器
   const setupSuccess = await setupRecordingSession(intervalMin);
@@ -1341,7 +1336,12 @@ async function setupRecordingSession(intervalMin) {
 }
 
 function showRecordingInstructions(intervalMin) {
-  const recordingURL = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&start=true`;
+  // 计算需要几个5分钟的segments
+  const segmentsNeeded = Math.ceil(intervalMin / 5);
+  const actualInterval = segmentsNeeded * 5;
+  
+  // 传递intervalMin参数到record.html
+  const recordingURL = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&intervalMin=${intervalMin}&start=true`;
   
   // 更新录音页面UI
   const recordingInterface = document.getElementById('recording-interface');
@@ -1355,7 +1355,9 @@ function showRecordingInstructions(intervalMin) {
         
         <div style="background: #f7f7f7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <p><strong>Session ID:</strong> ${recordingSessionId}</p>
-          <p><strong>Auto-save:</strong> Every ${intervalMin} minutes</p>
+          <p><strong>Processing:</strong> Every 5 minutes</p>
+          <p><strong>Auto-summarize:</strong> Every ${actualInterval} minutes (${segmentsNeeded} segments)</p>
+          ${intervalMin !== actualInterval ? `<p><small>Adjusted from ${intervalMin} to ${actualInterval} minutes</small></p>` : ''}
           ${formData.pdfText ? '<p>✅ PDF document uploaded</p>' : ''}
         </div>
         

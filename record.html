@@ -6,38 +6,70 @@
     body { font-family: sans-serif; padding: 16px; }
     button { padding: 8px 16px; margin-right: 8px; }
     textarea { width: 100%; height: 200px; margin-top: 12px; white-space: pre-wrap; }
+    /* 新增样式 */
+    .status-panel {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    .status-line {
+      margin: 5px 0;
+    }
   </style>
 </head>
 <body>
+  // 在状态面板前添加配置信息显示
+<div class="config-info" style="background: #d4edda; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+  <strong>Recording Configuration:</strong><br>
+  Processing: Every 5 minutes<br>
+  Auto-summarize: Every <span id="summaryMinutes"></span> minutes (after <span id="segmentsNeeded"></span> segments)
+</div>
+
+// 在script开始处添加：
+document.getElementById('intervalMin').textContent = intervalMin;
+document.getElementById('segmentsNeeded').textContent = SUMMARIZE_FREQUENCY;
   <h2>🎙️ Record Meeting</h2>
+  
+  <!-- 新增状态面板 -->
+  <div class="status-panel">
+    <div class="status-line" id="recordingStatus"></div>
+    <div class="status-line" id="segmentStatus"></div>
+  </div>
+  
   <button id="startBtn">Start</button>
   <button id="stopBtn" disabled>Stop</button>
   
-
   <textarea id="textArea" placeholder="Transcript and summary will appear here..."></textarea>
 
   <script>
-    let contextPdfText = ""; //  store PDF text sent from UI
-
-    let totalSeconds = 0;
-    let sessionStartTime = null;
-
-    const fullTranscriptHistory =[];
-
-
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const textArea = document.getElementById('textArea');
+    // ========== 配置常量 - 修改为3分钟 ==========
+    const SEGMENT_DURATION = 5 * 60 * 1000;  // 改为3分钟 (原本是30秒)
+    const intervalMin = parseInt(urlParams.get("intervalMin") || "10");  // 默认10分钟
+    const SUMMARIZE_FREQUENCY = Math.ceil(intervalMin / 5);  // 计算需要几个segments
+   
     
-
-    let recorder;
-    let chunks = [];
-
-    const transcriptChunks = [];
-    let recordingCycleCount = 0;
-    let MAX_CYCLE = 10; // 30s * 10 = 5min
-    let isManuallyStopped = false;
-    //let previousSummary = ''; // record last summary looop
+    // ========== 保留原有的变量 ==========
+    let contextPdfText = "";
+    let sessionStartTime = null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get("session");
+    
+    // ========== 新增双轨录音变量 ==========
+    let segmentRecorder = null;       // 分段录音器
+    let fullRecorder = null;           // 完整录音器
+    let segmentChunks = [];            // 当前分段的音频块
+    let fullRecordingChunks = [];     // 完整录音的音频块
+    let segmentStream = null;          // 分段录音流
+    let fullStream = null;             // 完整录音流
+    
+    // ========== 修改原有变量 ==========
+    let transcriptChunks = [];        // 保留，存储所有转录文本
+    let segmentCount = 0;             // 替代原来的recordingCycleCount
+    let isRecording = false;          // 替代原来的isManuallyStopped逻辑
+    let segmentTimer = null;          // 新增定时器
+    
     let previousSummary = {
       summary: '',
       decision: [],
@@ -45,460 +77,355 @@
       tacit: []
     };
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get("session");
-    const autoStart = urlParams.get("start") === "true";
+    // UI元素
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const textArea = document.getElementById('textArea');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const segmentStatus = document.getElementById('segmentStatus');
 
-    console.log("📎 Extracted sessionId:", sessionId);
-
-    
-
-    startBtn.onclick = () => {
-      transcriptChunks.length = 0;
-      sessionStartTime = Date.now();
-      totalSeconds = 0;
-      startSegmentRecording();
+    // ========== 主要修改：启动双轨录音 ==========
+    startBtn.onclick = async () => {
+      await startDualRecording();
     };
     
-    stopBtn.onclick = () => {
-      isManuallyStopped = true;
-      stopRecording();
+    stopBtn.onclick = async () => {
+      await stopAllRecording();
     };
 
-  
-
-   async function startSegmentRecording() {
-    if (isManuallyStopped) {
-      console.log("🛑 Manually stopped, summarizing...");
-      //console.log("🎯 isManuallyStopped:", isManuallyStopped);
-      await summarizeChunks();
-      return;
-    }
-
-    if (recordingCycleCount >= MAX_CYCLE) {
-      console.log("⏰ Reached minute limit. Summarizing and continuing...")
-      await summarizeChunks();
-      recordingCycleCount =0;
-      transcriptChunks.length =0;
-      if (!isManuallyStopped) {
-        startSegmentRecording();
-      }
-      return;
-    }
-    await startRecording();
-    setTimeout(() => {
-      if (!isManuallyStopped) {
-        stopRecording();
-      }
-    }, 30000); // every 30s
-  }  
-    
-    
-    async function startRecording() {
+    // ========== 新增：双轨录音系统 ==========
+    async function startDualRecording() {
       try {
-        console.log("🎙️ waiting for microphone access");
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log("✅ 麦克风权限获取成功");
-        recorder = new MediaRecorder(stream);
-        //recorder.start();
-        chunks = [];
-
-        recorder.ondataavailable = (e) => chunks.push(e.data);
-
-        recorder.onstop = async () => {
-          console.log(" Recording stopped");
-          console.log("🎯 isManuallyStopped:", isManuallyStopped);
-          await handleSegmentAnalysis();
-           if (isManuallyStopped) {
-            await finalSummarize(); //  手动停止时做最终总结
-          } else if (recordingCycleCount >= MAX_CYCLE) {
-            await summarizeChunks(); //  自动每 1-5 分钟总结
-          } else {
-            startSegmentRecording(); //  否则继续
-          }
-          // if (isManuallyStopped || recordingCycleCount >= MAX_CYCLE) {
-          //   await summarizeChunks();
-          // } else {
-          //   startSegmentRecording();
-          // }
+        console.log("🎙️ Starting dual-track recording...");
+        
+        // 重置状态
+        isRecording = true;
+        sessionStartTime = Date.now();
+        segmentCount = 0;
+        transcriptChunks = [];
+        segmentChunks = [];
+        fullRecordingChunks = [];
+        
+        // 获取两个独立的音频流
+        segmentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        fullStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        // 设置分段录音器
+        segmentRecorder = new MediaRecorder(segmentStream);
+        segmentRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) segmentChunks.push(e.data);
         };
-        recorder.start();
-        textArea.value = '🎙️ Recording...';
+        
+        // 设置完整录音器
+        fullRecorder = new MediaRecorder(fullStream);
+        fullRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) fullRecordingChunks.push(e.data);
+        };
+        
+        // 启动两个录音器
+        segmentRecorder.start();
+        fullRecorder.start();
+        
+        // UI更新
         startBtn.disabled = true;
         stopBtn.disabled = false;
+        textArea.value = '🎙️ Recording started (dual-track)...';
+        recordingStatus.textContent = '🔴 Recording in progress...';
+        
+        // 启动分段处理定时器
+        startSegmentTimer();
+        
+        console.log("✅ Both recording tracks started");
+        
       } catch (err) {
-    console.error('❌ Microphone error:', err);
-    textArea.value = '❌ Microphone access denied.';
+        console.error('❌ Microphone error:', err);
+        textArea.value = '❌ Microphone access denied.';
+        resetUI();
+      }
+    }
+
+    // ========== 新增：分段定时器 ==========
+    function startSegmentTimer() {
+      segmentTimer = setTimeout(async () => {
+        if (isRecording) {
+          await processSegment();
+          startSegmentTimer(); // 递归调用
+        }
+      }, SEGMENT_DURATION);
+    }
+
+    // ========== 修改：处理分段 ==========
+    async function processSegment() {
+      segmentCount++;
+      console.log(`📦 Processing segment ${segmentCount}...`);
+      segmentStatus.textContent = `Processing segment ${segmentCount}...`;
+      
+      // 停止当前分段录音
+      segmentRecorder.stop();
+      
+      // 等待数据可用
+      await new Promise(resolve => {
+        segmentRecorder.onstop = resolve;
+      });
+      
+      // 创建分段blob
+      const segmentBlob = new Blob(segmentChunks, { type: 'audio/webm' });
+      segmentChunks = []; // 重置
+      
+      // 发送分段进行转录
+      await transcribeSegment(segmentBlob);
+      
+      // 重启分段录音器
+      if (isRecording) {
+        segmentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        segmentRecorder = new MediaRecorder(segmentStream);
+        segmentRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) segmentChunks.push(e.data);
+        };
+        segmentRecorder.start();
+      }
+      
+      // 检查是否需要总结
+      if (segmentCount % SUMMARIZE_FREQUENCY === 0) {
+        await performIntermediateSummary();
+      }
+    }
+
+    // ========== 修改：转录分段（使用AssemblyAI） ==========
+    async function transcribeSegment(blob) {
+  const form = new FormData();
+  form.append('file', blob, `segment_${segmentCount}.webm`);
+  
+  try {
+    textArea.value = `🔄 Transcribing segment ${segmentCount} with speaker detection...`;
+    
+    const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', {
+      method: 'POST',
+      body: form
+    });
+    
+    const result = await res.json();
+    
+    if (result.success) {
+      // 存储带说话人标签的转录
+      transcriptChunks.push(result.transcript);
+      
+      const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
+      
+      // 计算总结进度
+      const currentProgress = segmentCount % SUMMARIZE_FREQUENCY;
+      const segmentsUntilSummary = currentProgress === 0 ? 
+        SUMMARIZE_FREQUENCY : 
+        SUMMARIZE_FREQUENCY - currentProgress;
+      const minutesUntilSummary = segmentsUntilSummary * 5;
+      
+      textArea.value = `⏱️ Recording time: ${duration} min\n` +
+                      `📝 Segment ${segmentCount} transcribed\n` +
+                      `👥 Speakers detected: ${result.metadata?.speakers || 0}\n` +
+                      `📊 Progress: ${currentProgress || SUMMARIZE_FREQUENCY}/${SUMMARIZE_FREQUENCY} segments\n` +
+                      `⏭️ Next summary: ${segmentsUntilSummary} segment${segmentsUntilSummary > 1 ? 's' : ''} (${minutesUntilSummary} min)\n\n` +
+                      `Latest transcript:\n${result.transcript}`;
+      
+      segmentStatus.textContent = `✅ Segment ${segmentCount} processed`;
+    }
+    
+  } catch (err) {
+    console.error('❌ Segment transcription failed:', err);
+    segmentStatus.textContent = `❌ Segment ${segmentCount} failed`;
   }
 }
-
-
-      function stopRecording() {
-       // isManuallyStopped = true;
-       console.log("📍 stopRecording() called");
-       console.log("⛔ isManuallyStopped:", isManuallyStopped);
-
-        if (recorder && recorder.state === 'recording') {
-          recorder.stop();
-        } else if (recordingCycleCount > 0) {
-          summarizeChunks();
-        }
-      }
-
-      async function handleSegmentAnalysis() {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        if (blob.size === 0) {
-          textArea.value = '❌ No audio recorded.';
-          return;
-        }
-
-        textArea.value = '🔄 Uploading and analyzing...';
-
-        const form = new FormData();
-        form.append('file', blob, 'audio.webm');
-
-        try {
-          const res = await fetch('https://fyp-2025-kath.vercel.app/api/analyze', {
-            method: 'POST',
-            body: form
-          });
-
-           const result = await res.json();
-          console.log("✅ Analysis result:", result);
-
-          transcriptChunks.push(result.transcript || '');
-          recordingCycleCount++;
-
-          const durationMin = Math.floor((Date.now() - sessionStartTime) / 60000);
-          textArea.value = `⏱️ Total time: ${durationMin} min\n✅ Segment ${recordingCycleCount} done`;
-        } catch (err) {
-          console.error('❌ Analysis failed:', err);
-          textArea.value = '❌ Failed to analyze this chunk.';
-        }
-      }
-
+    // ========== 修改：中间总结（保持原有逻辑） ==========
+    async function performIntermediateSummary() {
+      const combined = transcriptChunks.join('\n\n');
+      const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
       
+      console.log('📊 Generating intermediate summary...');
+      textArea.value += '\n\n📊 Generating summary...';
       
-      async function summarizeChunks() {
-        const currentCombined = transcriptChunks.join('\n');
-        fullTranscriptHistory.push(currentCombined);
-        const combined = fullTranscriptHistory.join('\n');
-        const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
-        textArea.value = `🧠 Summarizing full content... (${duration} min)`;
-
-        console.log("📤 发送到 summarizer 的数据:", {
-          text: combined.substring(0, 100) + '...',
-          avoid: previousSummary.summary ? previousSummary.summary.substring(0, 50) + '...' : 'empty',
-          context_pdf: contextPdfText ? `${contextPdfText.length} chars` : 'empty'
-        });
-
-        try {
-        //   console.log("📤 Sending to summarizer:", {
-        //   text: combined,
-        //   avoid: previousSummary
-        // });
-         const avoidCombined = [
+      try {
+        const avoidCombined = [
           previousSummary.summary,
           ...previousSummary.decision,
           ...previousSummary.explicit,
           ...previousSummary.tacit
         ].join('\n');
 
-        const requestBody = {
-          text: combined,
-          avoid: avoidCombined || '', // 确保是字符串
-          session_id: sessionId  // 确保是字符串
-        };
-
-        console.log("📋 最终请求体:", JSON.stringify(requestBody).substring(0, 200) + '...');
-
-
-            const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-          });
-          const data = await res.json();
-          //const summary = data.summary || '';
-
-           if (!res.ok) {
-          const errorText = await res.text();
-          console.error("❌ summarize 失败:", errorText);
-          textArea.value = '❌ Summarize failed: ' + errorText;
-          return;
-        }
-
-          if (!data.summary) {
-            console.warn("⛔ No summary returned from OpenAI. Skipping save.");
-            textArea.value = '⚠️ Summary failed. Skipped this round.';
-            return;
-          }
-          // const summary = data.summary || '';
-          //const transcript = data.transcript || combined;
-          
-          const transcript = combined;
-          previousSummary.summary += '\n' + (data.summary || '');
+        const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: combined,
+            avoid: avoidCombined,
+            session_id: sessionId
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.summary) {
+          // 更新previousSummary
+          previousSummary.summary += '\n' + data.summary;
           previousSummary.decision = [...previousSummary.decision, ...(data.decision || [])];
           previousSummary.explicit = [...previousSummary.explicit, ...(data.explicit || [])];
           previousSummary.tacit = [...previousSummary.tacit, ...(data.tacit || [])];
-
-          textArea.value = `⏱️ ${duration} min transcript:\n${transcript}\n\n🧠 Summary:\n${data.summary}`;
-
-          // previousSummary = summary;
-          // console.log("🧠  transcript sent to summarizer:\n", combined);
-
-
-          // textArea.value = `⏱️ ${duration} min transcript:\n${transcript}\n\n🧠 Summary:\n${summary}`;
-
           
-          // save to Supabase
-           console.log("📦 保存到 Supabase...");
-          const saveRes = await fetch('https://fyp-2025-kath.vercel.app/api/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              session: sessionId,
-              transcript,
-              summary: data.summary,
-              decision: data.decision,
-              explicit: data.explicit,
-              tacit: data.tacit,
-              reasoning: data.reasoning,
-              suggestions: data.suggestions
-            })
-          });
-
-          if (!saveRes.ok) {
-            const errText = await saveRes.text();
-            console.error("❌ Save to Supabase failed:", errText);
-          } else {
-            console.log("📦 Full result saved.");
-          }   
-
-          //console.log("📦 Full result saved.");
-
-          // begin the next 5mins loop
-          if (!isManuallyStopped) {
-            console.log("🔁 Restarting next 5-minute cycle...");
-            recordingCycleCount = 0;
-            transcriptChunks.length = 0;
-            startSegmentRecording(); // ✅ 继续循环
-          }
-        } catch (err) {
-          console.error("❌ Error in summarizeChunks:", err);
-          textArea.value = '❌ Error during summarizing or saving.';
+          textArea.value = `📊 Summary (${duration} min):\n${data.summary}\n\n` +
+                          `Continue recording...`;
+          
+          // 保存中间总结
+          await saveIntermediateSummary(data);
         }
-
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
+        
+      } catch (err) {
+        console.error('❌ Summary failed:', err);
       }
-
-      async function finalSummarize() {
-  // 检查是否有内容需要总结
-  if (!allChunks || allChunks.length === 0) {
-    console.log('No content to summarize');
-    return;
-  }
-  
-  const fullTranscript = allChunks.join(' ');
-  
-  // 检查转录文本是否为空
-  if (!fullTranscript || fullTranscript.trim().length === 0) {
-    console.log('Transcript is empty, skipping final summary');
-    return;
-  }
-  
-  console.log('🏁 Generating final summary...');
-  statusDiv.textContent = '🏁 Generating final summary...';
-  
-  try {
-    const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: fullTranscript,
-        avoid: previousSummaries.join('\n'),
-        session_id: sessionId
-      })
-    });
-    
-    if (!res.ok) {
-      const error = await res.json();
-      console.error('Summary failed:', error);
-      statusDiv.textContent = '⚠️ Final summary failed';
-      return;
     }
-    
-    const data = await res.json();
-    
-    // 保存最终总结
-    await fetch('https://fyp-2025-kath.vercel.app/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session: sessionId,
-        transcript: fullTranscript,
-        summary: data.summary,
-        decision: data.decision,
-        explicit: data.explicit,
-        tacit: data.tacit,
-        reasoning: data.reasoning,
-        suggestions: data.suggestions,
-        is_final: true  // 标记为最终总结
-      })
-    });
-    
-    console.log('✅ Final summary saved');
-    statusDiv.textContent = '✅ Recording stopped and saved';
-    
-  } catch (err) {
-    console.error('Final summarize error:', err);
-    statusDiv.textContent = '⚠️ Final summary error';
-  }
-}
 
-      // async function finalSummarize() {
-      //   const fullTranscript = fullTranscriptHistory.join('\n');
-      //   const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
-      //   textArea.value = `📦 Finalizing full content... (${duration} min)`;
-
-      //   try {
-      //     const requestBody = {
-      //       text: fullTranscript,
-      //       session_id: sessionId 
-      //     };
-
-      //     const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
-      //       method: 'POST',
-      //       headers: { 'Content-Type': 'application/json' },
-      //       body: JSON.stringify(requestBody)
-      //     });
-
-      //     if (!res.ok) {
-      //       const errorText = await res.text();
-      //       console.error("❌ 最终总结失败:", errorText);
-      //       textArea.value = '❌ Final summarize failed: ' + errorText;
-      //       return;
-      //     }
-      //     const data = await res.json();
-
-      //     textArea.value = `⏱️ Final transcript:\n${fullTranscript}\n\n🧠 Final Summary:\n${data.summary}`;
-
-      //     await fetch('https://fyp-2025-kath.vercel.app/api/save', {
-      //       method: 'POST',
-      //       headers: { 'Content-Type': 'application/json' },
-      //       body: JSON.stringify({
-      //         session: sessionId,
-      //         transcript: fullTranscript,
-      //         summary: data.summary,
-      //         decision: data.decision,
-      //         explicit: data.explicit,
-      //         tacit: data.tacit,
-      //         reasoning: data.reasoning,
-      //         suggestions: data.suggestions,
-      //         is_final: true
-      //       })
-      //     });
-      //     console.log("✅ Final summary saved.");
-      //   } catch (err) {
-      //     console.error('❌ Final summary failed:', err);
-      //     textArea.value = '❌ Final summary failed.';
-      //   }
-      // }
-            
-
-    function pollStop(sessionId) {
-      console.log("🔁 Starting pollStop for sessionId:", sessionId);
-      const interval = setInterval(async () => {
-        const url = `https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.stop`;
-
-        try {
-          const res = await fetch(url, {
-            headers: {
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
-              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (!res.ok) {
-            const error = await res.text();
-            console.error("❌ Supabase fetch failed:", error);
-            return;
-          }
-
-          const data = await res.json();
-          console.log("📡 poll result:", data);
-
-          if (Array.isArray(data) && data.length > 0) {
-            clearInterval(interval);
-            console.log("🛑 Stop command received. Stopping recorder...");
-            isManuallyStopped = true; 
-            stopRecording();
-          }
-        } catch (err) {
-          console.error("❌ Polling error:", err);
-        }
-      }, 1000);
-    }
-    if (sessionId) {
-      pollStop(sessionId);
-      pollCycleSetting(sessionId);
-  }
-
-  function pollCycleSetting(sessionId) {
-  console.log("🛎️ Starting pollCycleSetting for sessionId:", sessionId);
-  const interval = setInterval(async () => {
-    const url = `https://cwhekhkphzcovivgqezd.supabase.co/rest/v1/control_signals?session_id=eq.${sessionId}&command=eq.set_cycle`;
-
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
-          'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3aGVraGtwaHpjb3ZpdmdxZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NjgyNjgsImV4cCI6MjA2MzU0NDI2OH0.hmZt6bFgKSWel6HiXfEjmm85P_j8fcsUo71hVWmkF2A',
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const item = data[0];
-        if (item?.value && typeof item.value === 'number') {
-          const cycle = Math.round((item.value * 60) / 30);
-          MAX_CYCLE = cycle;
-          console.log(`⚙️ MAX_CYCLE updated from Supabase: ${item.value} minutes → ${MAX_CYCLE}`);
-          clearInterval(interval); // ✅ 只设置一次即可
-        }
+    // ========== 新增：停止所有录音并处理完整录音 ==========
+    async function stopAllRecording() {
+      console.log('🛑 Stopping all recording...');
+      isRecording = false;
+      
+      // 清除定时器
+      if (segmentTimer) {
+        clearTimeout(segmentTimer);
+        segmentTimer = null;
       }
-    } catch (err) {
-      console.error("❌ pollCycleSetting error:", err);
+      
+      // 停止分段录音器
+      if (segmentRecorder && segmentRecorder.state === 'recording') {
+        segmentRecorder.stop();
+      }
+      
+      // 停止完整录音器
+      if (fullRecorder && fullRecorder.state === 'recording') {
+        fullRecorder.stop();
+        
+        // 等待数据
+        await new Promise(resolve => {
+          fullRecorder.onstop = resolve;
+        });
+      }
+      
+      // 处理完整录音
+      await processFinalRecording();
+      
+      // 重置UI
+      resetUI();
     }
-  }, 1000);
-}
-window.addEventListener('message', (event) => {
-  const msg = event.data;
-  if (msg?.type === 'set-context-pdf') {
-    contextPdfText = msg.text || "";
-    console.log("📚 Received PDF context from UI. Length:", contextPdfText.length);
-  }
-});
 
-  window.onload = () => {
-    window.opener?.postMessage({ type: 'ready-to-record' }, '*');
-    console.log("📤 record.html sent ready-to-record");
-
-    if (autoStart) {
-        console.log("⚙️ Auto-start triggered");
-        //isManuallyStopped = false;
-        startBtn.click();
+    // ========== 新增：处理完整录音 ==========
+    async function processFinalRecording() {
+      if (fullRecordingChunks.length === 0) {
+        console.warn('No full recording data');
+        return;
+      }
+      
+      console.log('🎯 Processing complete recording...');
+      textArea.value = '🎯 Processing complete recording for final summary...\n' +
+                      'This may take a few minutes...';
+      
+      const fullBlob = new Blob(fullRecordingChunks, { type: 'audio/webm' });
+      const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
+      
+      console.log(`📼 Full recording: ${(fullBlob.size / 1024 / 1024).toFixed(2)} MB, ${duration} min`);
+      
+      const form = new FormData();
+      form.append('file', fullBlob, 'full_recording.webm');
+      form.append('session_id', sessionId);
+      form.append('duration_minutes', duration.toString());
+      
+      try {
+        // 发送到新的final-analyze端点
+        const res = await fetch('https://fyp-2025-kath.vercel.app/api/final-analyze', {
+          method: 'POST',
+          body: form
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          textArea.value = `✨ FINAL MEETING SUMMARY ✨\n` +
+                          `Duration: ${duration} minutes\n` +
+                          `Speakers: ${result.metadata?.speakers || 'Unknown'}\n\n` +
+                          `📝 Complete Summary:\n${result.finalSummary}\n\n` +
+                          `🎯 Decisions:\n${result.decisions?.join('\n') || 'None'}\n\n` +
+                          `💡 Explicit Knowledge:\n${result.explicit?.join('\n') || 'None'}\n\n` +
+                          `💭 Tacit Knowledge:\n${result.tacit?.join('\n') || 'None'}`;
+          
+          // 保存最终总结
+          await saveFinalSummary(result);
+        }
+        
+      } catch (err) {
+        console.error('❌ Final processing failed:', err);
+        textArea.value += '\n\n❌ Final processing failed.';
+      }
     }
 
-  };
+    // ========== 保存函数（保持原有逻辑） ==========
+    async function saveIntermediateSummary(summary) {
+      try {
+        await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session: sessionId,
+            transcript: transcriptChunks.join('\n'),
+            summary: summary.summary,
+            decision: summary.decision,
+            explicit: summary.explicit,
+            tacit: summary.tacit,
+            reasoning: summary.reasoning,
+            suggestions: summary.suggestions,
+            is_intermediate: true,
+            segment_count: segmentCount
+          })
+        });
+      } catch (err) {
+        console.error('Failed to save intermediate:', err);
+      }
+    }
 
-  window.opener?.postMessage({ type: 'ready-to-record' }, '*');
-   
+    async function saveFinalSummary(result) {
+      try {
+        await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session: sessionId,
+            transcript: result.fullTranscript,
+            summary: result.finalSummary,
+            decision: result.decisions,
+            explicit: result.explicit,
+            tacit: result.tacit,
+            reasoning: result.reasoning,
+            suggestions: result.suggestions,
+            is_final: true,
+            duration_minutes: Math.floor((Date.now() - sessionStartTime) / 60000)
+          })
+        });
+        console.log('✅ Final summary saved');
+      } catch (err) {
+        console.error('Failed to save final:', err);
+      }
+    }
+
+    // ========== UI辅助函数 ==========
+    function resetUI() {
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      recordingStatus.textContent = '';
+      segmentStatus.textContent = '';
+      
+      // 停止所有流
+      if (segmentStream) {
+        segmentStream.getTracks().forEach(track => track.stop());
+      }
+      if (fullStream) {
+        fullStream.getTracks().forEach(track => track.stop());
+      }
+    }
   </script>
 </body>
 </html>
-
-
