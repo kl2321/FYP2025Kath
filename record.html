@@ -44,6 +44,7 @@ document.getElementById('segmentsNeeded').textContent = SUMMARIZE_FREQUENCY;
   <textarea id="textArea" placeholder="Transcript and summary will appear here..."></textarea>
 
   <script>
+    const urlParams = new URLSearchParams(window.location.search);
     // ========== 配置常量 - 修改为3分钟 ==========
     const SEGMENT_DURATION = 5 * 60 * 1000;  // 改为3分钟 (原本是30秒)
     const intervalMin = parseInt(urlParams.get("intervalMin") || "10");  // 默认10分钟
@@ -53,7 +54,7 @@ document.getElementById('segmentsNeeded').textContent = SUMMARIZE_FREQUENCY;
     // ========== 保留原有的变量 ==========
     let contextPdfText = "";
     let sessionStartTime = null;
-    const urlParams = new URLSearchParams(window.location.search);
+    
     const sessionId = urlParams.get("session");
     
     // ========== 新增双轨录音变量 ==========
