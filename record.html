@@ -29,12 +29,16 @@
 
 
   <h2>🎙️ Record Meeting</h2>
-  
+  <div class="status-panel" style="position: fixed; top: 10px; right: 10px; background: white; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+  <div id="recordingTime">⏱️ Not recording</div>
+  <div id="audioLevel">🎤 No audio</div>
+  <div id="segmentProgress">📊 Waiting...</div>
+</div>
   <!-- 新增状态面板 -->
-  <div class="status-panel">
+  <!-- <div class="status-panel">
     <div class="status-line" id="recordingStatus"></div>
     <div class="status-line" id="segmentStatus"></div>
-  </div>
+  </div> -->
   
   <button id="startBtn">Start</button>
   <button id="stopBtn" disabled>Stop</button>
@@ -126,13 +130,19 @@
         fullStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         
         // 设置分段录音器
-        segmentRecorder = new MediaRecorder(segmentStream);
+        segmentRecorder = new MediaRecorder(segmentStream, {
+          mimeType: 'audio/webm;codecs=opus',
+          audioBitsPerSecond: 8000  // 极低比特率 8kbps
+        });
         segmentRecorder.ondataavailable = (e) => {
           if (e.data.size > 0) segmentChunks.push(e.data);
         };
         
         // 设置完整录音器
-        fullRecorder = new MediaRecorder(fullStream);
+        fullRecorder = new MediaRecorder(fullStream, {
+          mimeType: 'audio/webm;codecs=opus',
+          audioBitsPerSecond: 8000  // 8kbps
+        });
         fullRecorder.ondataavailable = (e) => {
           if (e.data.size > 0) fullRecordingChunks.push(e.data);
         };
@@ -158,6 +168,68 @@
         resetUI();
       }
     }
+    let recordingTimer = null;
+    function updateRecordingTime() {
+  if (!isRecording || !sessionStartTime) return;
+  
+  const elapsed = Date.now() - sessionStartTime;
+  const minutes = Math.floor(elapsed / 60000);
+  const seconds = Math.floor((elapsed % 60000) / 1000);
+  
+  // 计算下一个segment的剩余时间
+  const nextSegmentIn = SEGMENT_DURATION - (elapsed % SEGMENT_DURATION);
+  const nextMinutes = Math.floor(nextSegmentIn / 60000);
+  const nextSeconds = Math.floor((nextSegmentIn % 60000) / 1000);
+  
+  recordingStatus.innerHTML = `
+    🔴 Recording: ${minutes}:${seconds.toString().padStart(2, '0')}<br>
+    ⏭️ Next segment in: ${nextMinutes}:${nextSeconds.toString().padStart(2, '0')}
+  `;
+}
+
+// 在 startDualRecording 成功后启动计时器
+recordingTimer = setInterval(updateRecordingTime, 1000);
+// 每30秒输出一次状态（用于测试）
+setInterval(() => {
+  if (isRecording) {
+    console.log(`📊 Status at ${new Date().toLocaleTimeString()}:`, {
+      recording: true,
+      segments: segmentCount,
+      duration: Math.floor((Date.now() - sessionStartTime) / 60000) + ' min',
+      nextSegmentIn: Math.ceil((SEGMENT_DURATION - ((Date.now() - sessionStartTime) % SEGMENT_DURATION)) / 1000) + ' sec'
+    });
+  }
+}, 30000);
+// 添加音频活动检测
+async function checkAudioActivity() {
+  if (!segmentStream) return;
+  
+  const audioContext = new AudioContext();
+  const analyser = audioContext.createAnalyser();
+  const microphone = audioContext.createMediaStreamSource(segmentStream);
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  
+  microphone.connect(analyser);
+  
+  function checkLevel() {
+    analyser.getByteFrequencyData(dataArray);
+    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+    
+    // 显示音频级别
+    const level = Math.min(100, Math.floor(average));
+    const bars = '█'.repeat(Math.floor(level / 10));
+    
+    if (document.getElementById('audioLevel')) {
+      document.getElementById('audioLevel').textContent = `Audio: ${bars} ${level}%`;
+    }
+    
+    if (isRecording) {
+      requestAnimationFrame(checkLevel);
+    }
+  }
+  
+  checkLevel();
+}
 
     // ========== 新增：分段定时器 ==========
     function startSegmentTimer() {
@@ -185,6 +257,19 @@
       
       // 创建分段blob
       const segmentBlob = new Blob(segmentChunks, { type: 'audio/webm' });
+
+      // 检查文件大小
+  const sizeMB = segmentBlob.size / 1024 / 1024;
+  console.log(`📊 Segment ${segmentCount} size: ${sizeMB.toFixed(2)} MB`);
+  
+  if (sizeMB > 40) {
+    console.error(`❌ Segment too large: ${sizeMB.toFixed(2)} MB`);
+    segmentStatus.textContent = `❌ Segment ${segmentCount} too large`;
+    segmentChunks = []; // 清空
+    // 继续录音但跳过这个segment
+  } else {
+    await transcribeSegment(segmentBlob);
+  }
       segmentChunks = []; // 重置
       
       // 发送分段进行转录
@@ -193,7 +278,10 @@
       // 重启分段录音器
       if (isRecording) {
         segmentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        segmentRecorder = new MediaRecorder(segmentStream);
+        segmentRecorder = new MediaRecorder(segmentStream , {
+          mimeType: 'audio/webm;codecs=opus',
+          audioBitsPerSecond: 8000  // 确保低比特率
+        });
         segmentRecorder.ondataavailable = (e) => {
           if (e.data.size > 0) segmentChunks.push(e.data);
         };
@@ -208,6 +296,13 @@
 
     // ========== 修改：转录分段（使用AssemblyAI） ==========
     async function transcribeSegment(blob) {
+      // 显示文件大小
+  const sizeMB = blob.size / 1024 / 1024;
+  console.log(`📁 Uploading segment ${segmentCount}: ${sizeMB.toFixed(2)} MB`);
+  
+  if (sizeMB > 45) {
+    throw new Error(`File too large: ${sizeMB.toFixed(2)} MB (max 45 MB)`);
+  }
   const form = new FormData();
   form.append('file', blob, `segment_${segmentCount}.webm`);
   
