@@ -2,13 +2,22 @@
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import axios from 'axios';
-import config from '../lib/config.js';
+import appConfig from '../lib/config.js';
 
 export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // 检查配置
+  if (!appConfig?.assemblyai?.apiKey) {
+    console.error('Missing ASSEMBLYAI_API_KEY');
+    return res.status(500).json({ 
+      error: 'Configuration error',
+      detail: 'AssemblyAI API key not configured'
+    });
   }
 
   const form = new IncomingForm({
@@ -37,11 +46,11 @@ export default async function handler(req, res) {
       // Step 1: Upload to AssemblyAI
       console.log('📤 Uploading to AssemblyAI...');
       const uploadRes = await axios.post(
-        config.assemblyai.uploadUrl,
+        appConfig.assemblyai.uploadUrl,
         fs.createReadStream(rawFile.filepath),
         {
           headers: {
-            authorization: config.assemblyai.apiKey,
+            authorization: appConfig.assemblyai.apiKey,
             'content-type': 'application/octet-stream'
           },
           maxContentLength: Infinity,
@@ -56,7 +65,7 @@ export default async function handler(req, res) {
       // Step 2: Request transcription with speaker labels
       console.log('🎯 Requesting transcription...');
       const transcriptRes = await axios.post(
-        config.assemblyai.transcriptUrl,
+        appConfig.assemblyai.transcriptUrl,
         {
           audio_url: audioUrl,
           speaker_labels: true,
@@ -64,7 +73,7 @@ export default async function handler(req, res) {
           format_text: true,
         },
         {
-          headers: { authorization: config.assemblyai.apiKey },
+          headers: { authorization: appConfig.assemblyai.apiKey },
           timeout: 30000
         }
       );
@@ -111,7 +120,7 @@ export default async function handler(req, res) {
   });
 }
 
-async function pollForTranscript(transcriptId) {
+async function pollForTranscript(transcriptId, appConfig) {
   const maxAttempts = 60;
   const pollInterval = 1500;
   
@@ -120,9 +129,9 @@ async function pollForTranscript(transcriptId) {
     
     try {
       const res = await axios.get(
-        `${config.assemblyai.transcriptUrl}/${transcriptId}`,
+        `${appConfig.assemblyai.transcriptUrl}/${transcriptId}`,
         {
-          headers: { authorization: config.assemblyai.apiKey },
+          headers: { authorization: appConfig.assemblyai.apiKey },
           timeout: 10000
         }
       );
