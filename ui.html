@@ -1315,7 +1315,7 @@ async function setupRecordingSession(intervalMin) {
         value: intervalMin
       })
     });
-    console.log('✅ 间隔设置已保存');
+    console.log(`✅ 间隔设置已保存: 每${intervalMin}分钟自动总结`);
     
     // 2. 如果有PDF，保存它
     if (formData.pdfText && formData.pdfText.trim().length > 0) {
@@ -1327,6 +1327,10 @@ async function setupRecordingSession(intervalMin) {
         console.warn('⚠️ PDF保存失败，但继续');
       }
     }
+    // 额外显示计算信息
+    const segmentsNeeded = Math.ceil(intervalMin / 5);
+    console.log(`📊 配置详情: ${segmentsNeeded}个5分钟录音段后触发总结`);
+    
     
     return true;
   } catch (err) {
