@@ -34,11 +34,10 @@
   <div id="audioLevel">🎤 No audio</div>
   <div id="segmentProgress">📊 Waiting...</div>
 </div>
-  <!-- 新增状态面板 -->
-  <!-- <div class="status-panel">
+   <div class="status-panel">
     <div class="status-line" id="recordingStatus"></div>
     <div class="status-line" id="segmentStatus"></div>
-  </div> -->
+  </div>
   
   <button id="startBtn">Start</button>
   <button id="stopBtn" disabled>Stop</button>
@@ -116,6 +115,20 @@
     async function startDualRecording() {
       try {
         console.log("🎙️ Starting dual-track recording...");
+        // 安全检查元素是否存在
+    const recordingStatus = document.getElementById('recordingStatus');
+    const segmentStatus = document.getElementById('segmentStatus');
+    
+    if (!recordingStatus || !segmentStatus) {
+      console.error('❌ Status elements not found in DOM');
+      // 创建缺失的元素
+      if (!recordingStatus) {
+        console.warn('Creating missing recordingStatus element');
+      }
+      if (!segmentStatus) {
+        console.warn('Creating missing segmentStatus element');
+      }
+    }
         
         // 重置状态
         isRecording = true;
@@ -155,7 +168,9 @@
         startBtn.disabled = true;
         stopBtn.disabled = false;
         textArea.value = '🎙️ Recording started (dual-track)...';
-        recordingStatus.textContent = '🔴 Recording in progress...';
+         if (recordingStatus) {
+      recordingStatus.textContent = '🔴 Recording in progress...';
+    }
         
         // 启动分段处理定时器
         startSegmentTimer();
