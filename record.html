@@ -24,12 +24,10 @@
 <div class="config-info" style="background: #d4edda; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
   <strong>Recording Configuration:</strong><br>
   Processing: Every 5 minutes<br>
-  Auto-summarize: Every <span id="summaryMinutes"></span> minutes (after <span id="segmentsNeeded"></span> segments)
+  Auto-summarize: Every <span id="intervalMin"></span> minutes (after <span id="segmentsNeeded"></span> segments)
 </div>
 
-// 在script开始处添加：
-document.getElementById('intervalMin').textContent = intervalMin;
-document.getElementById('segmentsNeeded').textContent = SUMMARIZE_FREQUENCY;
+
   <h2>🎙️ Record Meeting</h2>
   
   <!-- 新增状态面板 -->
@@ -44,18 +42,34 @@ document.getElementById('segmentsNeeded').textContent = SUMMARIZE_FREQUENCY;
   <textarea id="textArea" placeholder="Transcript and summary will appear here..."></textarea>
 
   <script>
+    
     const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get("session");
     // ========== 配置常量 - 修改为3分钟 ==========
     const SEGMENT_DURATION = 5 * 60 * 1000;  // 改为3分钟 (原本是30秒)
     const intervalMin = parseInt(urlParams.get("intervalMin") || "10");  // 默认10分钟
     const SUMMARIZE_FREQUENCY = Math.ceil(intervalMin / 5);  // 计算需要几个segments
+
+    window.onload = function() {
+    const intervalElement = document.getElementById('intervalMin');
+    const segmentsElement = document.getElementById('segmentsNeeded');
+    
+    if (intervalElement) intervalElement.textContent = intervalMin;
+    if (segmentsElement) segmentsElement.textContent = SUMMARIZE_FREQUENCY;
+  };
+
+  console.log("📊 Configuration:", {
+    sessionId,
+    intervalMin,
+    segmentsNeeded: SUMMARIZE_FREQUENCY
+  });
    
     
     // ========== 保留原有的变量 ==========
     let contextPdfText = "";
     let sessionStartTime = null;
     
-    const sessionId = urlParams.get("session");
+   
     
     // ========== 新增双轨录音变量 ==========
     let segmentRecorder = null;       // 分段录音器
@@ -204,8 +218,28 @@ document.getElementById('segmentsNeeded').textContent = SUMMARIZE_FREQUENCY;
       method: 'POST',
       body: form
     });
+
+    // 先检查响应状态
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('❌ API error:', res.status, errorText);
+      throw new Error(`API returned ${res.status}: ${errorText}`);
+    }
+
+    // 获取响应文本
+    const responseText = await res.text();
+    console.log('📥 Raw response:', responseText.substring(0, 100)); // 只显示前100字符
     
-    const result = await res.json();
+    
+  // 尝试解析JSON
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ JSON parse error:', parseError);
+      console.error('Response was:', responseText);
+      throw new Error('Invalid JSON response from API');
+    }
     
     if (result.success) {
       // 存储带说话人标签的转录
@@ -228,11 +262,18 @@ document.getElementById('segmentsNeeded').textContent = SUMMARIZE_FREQUENCY;
                       `Latest transcript:\n${result.transcript}`;
       
       segmentStatus.textContent = `✅ Segment ${segmentCount} processed`;
+    } else {
+      throw new Error(result.error || 'Transcription failed');
     }
     
   } catch (err) {
     console.error('❌ Segment transcription failed:', err);
-    segmentStatus.textContent = `❌ Segment ${segmentCount} failed`;
+    segmentStatus.textContent = `❌ Segment ${segmentCount} failed: ${err.message}`;
+    // 显示错误但继续录音
+    textArea.value = `❌ Segment ${segmentCount} failed to transcribe\n` +
+                    `Error: ${err.message}\n` +
+                    `Continuing recording...\n\n` +
+                    textArea.value;
   }
 }
     // ========== 修改：中间总结（保持原有逻辑） ==========
