@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Summary - Figma Canvas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 40px;
+            color: #1a1a1a;
+        }
+
+        .canvas {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 48px;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .progress-card {
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .progress-card.on-track {
+            background: #f0fdf4;
+            border-color: #86efac;
+        }
+
+        .progress-card.ahead {
+            background: #fefce8;
+            border-color: #fde047;
+        }
+
+        .progress-card.behind {
+            background: #fff7ed;
+            border-color: #fdba74;
+        }
+
+        .progress-card.missing {
+            background: #fef2f2;
+            border-color: #fca5a5;
+        }
+
+        .progress-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .progress-items {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #4a4a4a;
+        }
+
+        .progress-items li {
+            margin-left: 20px;
+            margin-bottom: 4px;
+        }
+
+        .decisions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .decision-card {
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .decision-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .decision-field {
+            margin-bottom: 12px;
+        }
+
+        .field-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .field-value {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .evidence-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: white;
+            border-radius: 4px;
+            font-size: 11px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .action-card {
+            padding: 16px;
+            border-left: 3px solid #ef4444;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+
+        .action-card.medium {
+            border-left-color: #f59e0b;
+        }
+
+        .action-title {
+            font-weight: 500;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .action-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .indicator.green { background: #22c55e; }
+        .indicator.yellow { background: #eab308; }
+        .indicator.orange { background: #f97316; }
+        .indicator.red { background: #ef4444; }
+
+        .summary-text {
+            line-height: 1.6;
+            color: #4a4a4a;
+            font-size: 14px;
+            padding: 16px;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas">
+        <!-- Header Section -->
+        <div class="header">
+            <h1>Meeting Summary</h1>
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <span class="meta-label">Team</span>
+                    <span class="meta-value">Navigation Squad</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Module</span>
+                    <span class="meta-value">DE4 ERO</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Week</span>
+                    <span class="meta-value">Week 5</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Date</span>
+                    <span class="meta-value">Nov 15, 2024</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Duration</span>
+                    <span class="meta-value">45 mins</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Type</span>
+                    <span class="meta-value">Brainstorming</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="section">
+            <h2 class="section-title">Executive Summary</h2>
+            <div class="summary-text">
+                The team explored robotic navigation solutions for indoor healthcare environments, focusing on SLAM algorithms and sensor fusion approaches. Key progress was made on defining technical requirements and identifying the target market. The discussion centered on balancing cost-effectiveness with reliability for hospital deployment scenarios.
+            </div>
+        </div>
+
+        <!-- Progress Check -->
+        <div class="section">
+            <h2 class="section-title">
+                <span>📊</span> Project Progress Check
+            </h2>
+            <div class="progress-grid">
+                <div class="progress-card on-track">
+                    <div class="progress-header">
+                        <span class="indicator green"></span>
+                        On Track (3)
+                    </div>
+                    <ul class="progress-items">
+                        <li>Customer discovery completed</li>
+                        <li>Value proposition defined</li>
+                        <li>Team formation stable</li>
+                    </ul>
+                </div>
+                
+                <div class="progress-card ahead">
+                    <div class="progress-header">
+                        <span class="indicator yellow"></span>
+                        Ahead (1)
+                    </div>
+                    <ul class="progress-items">
+                        <li>MVP development started early</li>
+                    </ul>
+                </div>
+                
+                <div class="progress-card behind">
+                    <div class="progress-header">
+                        <span class="indicator orange"></span>
+                        Behind (2)
+                    </div>
+                    <ul class="progress-items">
+                        <li>Competitive analysis incomplete</li>
+                        <li>Business model canvas missing</li>
+                    </ul>
+                </div>
+                
+                <div class="progress-card missing">
+                    <div class="progress-header">
+                        <span class="indicator red"></span>
+                        Missing (2)
+                    </div>
+                    <ul class="progress-items">
+                        <li>Risk assessment not discussed</li>
+                        <li>IP strategy not addressed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Decisions -->
+        <div class="section">
+            <h2 class="section-title">
+                <span>🎯</span> Key Decisions
+            </h2>
+            <div class="decisions-grid">
+                <div class="decision-card">
+                    <div class="decision-title">Decision #1: Use LIDAR + Camera Fusion</div>
+                    <div class="decision-field">
+                        <div class="field-label">Rationale</div>
+                        <div class="field-value">Better accuracy in low light hospital conditions</div>
+                    </div>
+                    <div class="decision-field">
+                        <div class="field-label">Evidence</div>
+                        <div class="evidence-tags">
+                            <span class="tag">📊 95% accuracy data</span>
+                            <span class="tag">💭 Team experience</span>
+                        </div>
+                    </div>
+                    <div class="decision-field">
+                        <div class="field-label">Owner</div>
+                        <div class="field-value">Alice (Tech Lead)</div>
+                    </div>
+                </div>
+                
+                <div class="decision-card">
+                    <div class="decision-title">Decision #2: Focus on Healthcare Market</div>
+                    <div class="decision-field">
+                        <div class="field-label">Rationale</div>
+                        <div class="field-value">Clear market need and SDG alignment</div>
+                    </div>
+                    <div class="decision-field">
+                        <div class="field-label">Evidence</div>
+                        <div class="evidence-tags">
+                            <span class="tag">📊 £2B market size</span>
+                            <span class="tag">💭 Partner insights</span>
+                        </div>
+                    </div>
+                    <div class="decision-field">
+                        <div class="field-label">Owner</div>
+                        <div class="field-value">Bob (Product Lead)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Items -->
+        <div class="section">
+            <h2 class="section-title">
+                <span>📋</span> Actionable Next Steps
+            </h2>
+            <div class="actions-grid">
+                <div class="action-card">
+                    <div class="action-title">Complete competitor analysis mapping</div>
+                    <div class="action-meta">Due: Friday • Owner: Alice • Priority: High</div>
+                </div>
+                <div class="action-card">
+                    <div class="action-title">Create business model canvas v1</div>
+                    <div class="action-meta">Due: Thursday • Owner: Charlie • Priority: High</div>
+                </div>
+                <div class="action-card medium">
+                    <div class="action-title">Schedule 5 user interviews</div>
+                    <div class="action-meta">Due: Week 6 • Owner: Bob • Priority: Medium</div>
+                </div>
+                <div class="action-card medium">
+                    <div class="action-title">Develop financial model basics</div>
+                    <div class="action-meta">Due: Week 6 • Owner: David • Priority: Medium</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
