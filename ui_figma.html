@@ -230,6 +230,70 @@
             background: #fafafa;
             border-radius: 8px;
         }
+
+        /* New styles for carry-forward section */
+        .carry-forward-section {
+            margin-top: 48px;
+            padding-top: 32px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .carry-forward-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .copy-button {
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-button:hover {
+            background: #2563eb;
+        }
+
+        .copy-button:active {
+            transform: scale(0.98);
+        }
+
+        .copy-button.copied {
+            background: #22c55e;
+        }
+
+        .carry-forward-box {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+            color: #475569;
+            max-height: 400px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .carry-forward-box:hover {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+        }
+
+        .copy-hint {
+            font-size: 11px;
+            color: #94a3b8;
+            font-style: italic;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -395,6 +459,78 @@
                 </div>
             </div>
         </div>
+
+        <!-- Carry Forward Section -->
+        <div class="carry-forward-section">
+            <div class="carry-forward-header">
+                <h2 class="section-title">
+                    <span>📝</span> Context for Next Meeting
+                </h2>
+                <button class="copy-button" onclick="copyToClipboard()">
+                    Copy to Clipboard
+                </button>
+            </div>
+            <div class="carry-forward-box" id="carryForwardText">
+## Previous Meeting Context (Week 5 - Nov 15, 2024)
+
+### Decisions Made:
+1. LIDAR + Camera fusion for navigation (95% accuracy achieved)
+2. Focus on healthcare market (£2B market opportunity)
+
+### Progress Status:
+- ✅ Customer discovery completed, value proposition defined
+- ⚡ Ahead on MVP development
+- ⚠️ Behind on competitive analysis and business model canvas
+- ❌ Missing risk assessment and IP strategy
+
+### Outstanding Actions:
+- Alice: Complete competitor analysis (Due: Friday)
+- Charlie: Create business model canvas v1 (Due: Thursday)
+- Bob: Schedule 5 user interviews (Due: Week 6)
+- David: Develop financial model basics (Due: Week 6)
+
+### Key Points to Follow Up:
+- Review completed competitive analysis
+- Validate business model with team
+- Discuss risk mitigation strategies
+- Address IP protection approach
+- Check progress on user interview scheduling
+
+### Questions for This Meeting:
+- Has the competitive analysis revealed any major threats?
+- What feedback came from initial user conversations?
+- Are we still on track for Week 11 Innovation Pitch?
+            </div>
+            <div class="copy-hint">Click the text box or use the button to copy this summary for your next meeting's context</div>
+        </div>
     </div>
+
+    <script>
+        function copyToClipboard() {
+            const text = document.getElementById('carryForwardText').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const button = document.querySelector('.copy-button');
+                const originalText = button.innerText;
+                button.innerText = '✓ Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerText = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        // Allow clicking the text box to select all
+        document.getElementById('carryForwardText').addEventListener('click', function() {
+            const range = document.createRange();
+            range.selectNodeContents(this);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
+    </script>
 </body>
 </html>
