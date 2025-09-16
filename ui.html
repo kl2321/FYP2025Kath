@@ -512,6 +512,42 @@
         <div class="file-list" id="fileList"></div>
       </div>
 
+      <!-- NEW: Previous Meeting Minutes Section -->
+  <div class="form-group">
+    <label for="previous-summary">Previous Meeting Summary *</label>
+    <textarea 
+      id="previous-summary" 
+      placeholder="Paste your previous meeting minutes here for context and continuity (required)..."
+      style="min-height: 120px; font-family: inherit; line-height: 1.5;"
+      required
+    ></textarea>
+    <small style="color: #999; font-size: 11px; margin-top: 4px; display: block;">
+      <strong>Required:</strong> Including previous minutes helps AI provide better follow-up analysis and track progress
+    </small>
+  </div>
+
+   <div class="form-group">
+    <label>Analysis Preferences</label>
+    <div class="checkbox-group">
+      <!-- Existing checkboxes remain unchanged -->
+      <div class="checkbox-item">
+        <input type="checkbox" id="key-decisions" checked>
+        <label for="key-decisions" style="margin: 0;">Extract Key Decisions</label>
+      </div>
+      <div class="checkbox-item">
+        <input type="checkbox" id="action-items" checked>
+        <label for="action-items" style="margin: 0;">Identify Action Items</label>
+      </div>
+      <div class="checkbox-item">
+        <input type="checkbox" id="speaker-analysis">
+        <label for="speaker-analysis" style="margin: 0;">Analyze Speaker Contributions</label>
+      </div>
+      <div class="checkbox-item">
+        <input type="checkbox" id="progress-tracking">
+        <label for="progress-tracking" style="margin: 0;">Track the Project Progress</label>
+      </div>
+
+
       
         </div>
       </div>
@@ -576,7 +612,7 @@
         keyDecisions: true,
         actionItems: true,
         speakerAnalysis: false,
-        sentimentAnalysis: false
+        progressTracking: false
       },
       additionalContext: '',
       pdfText: '',
@@ -1024,7 +1060,7 @@ function updateFileList() {
         formData.preferences.keyDecisions = document.getElementById('key-decisions').checked;
         formData.preferences.actionItems = document.getElementById('action-items').checked;
         formData.preferences.speakerAnalysis = document.getElementById('speaker-analysis').checked;
-        formData.preferences.sentimentAnalysis = document.getElementById('sentiment-analysis').checked;
+        formData.preferences.progressTracking = document.getElementById('progress-tracking').checked;
       }
 
       // Save to plugin storage
@@ -1048,7 +1084,7 @@ function updateFileList() {
         document.getElementById('key-decisions').checked = formData.preferences.keyDecisions;
         document.getElementById('action-items').checked = formData.preferences.actionItems;
         document.getElementById('speaker-analysis').checked = formData.preferences.speakerAnalysis;
-        document.getElementById('sentiment-analysis').checked = formData.preferences.sentimentAnalysis;
+        document.getElementById('progress-tracking').checked = formData.preferences.progressTracking;
       }
 
       // Update file list
