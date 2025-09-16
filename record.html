@@ -20,7 +20,7 @@
   </style>
 </head>
 <body>
-  // 在状态面板前添加配置信息显示
+ 
 <div class="config-info" style="background: #d4edda; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
   <strong>Recording Configuration:</strong><br>
   Processing: Every 5 minutes<br>
@@ -365,7 +365,7 @@ async function checkAudioActivity() {
       const minutesUntilSummary = segmentsUntilSummary * 5;
       
       textArea.value = `⏱️ Recording time: ${duration} min\n` +
-                      `📝 Segment ${segmentCount} transcribed\n` +
+                      `📝 Sgment ${segmentCount} transcribed\n` +
                       `👥 Speakers detected: ${result.metadata?.speakers || 0}\n` +
                       `📊 Progress: ${currentProgress || SUMMARIZE_FREQUENCY}/${SUMMARIZE_FREQUENCY} segments\n` +
                       `⏭️ Next summary: ${segmentsUntilSummary} segment${segmentsUntilSummary > 1 ? 's' : ''} (${minutesUntilSummary} min)\n\n` +
