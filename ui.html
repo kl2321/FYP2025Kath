@@ -96,6 +96,9 @@
       overflow-y: auto;
       padding: 24px;
     }
+    .page-container .page#page4 {
+  padding: 12px;  /* 更紧凑的内边距 */
+}
 
     .page {
       display: none;
@@ -405,6 +408,157 @@
   margin-top: 0;
   color: #333;
 }
+
+/* Summary Page Styles - 优化版 */
+.stats-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;  /* 从16px减少到12px */
+  margin-bottom: 16px;  /* 从24px减少到16px */
+}
+
+.stat-card {
+  background: #f8f9fa;
+  border-radius: 10px;  /* 稍微减小圆角 */
+  padding: 16px;  /* 从20px减少到16px */
+  text-align: center;
+  transition: transform 0.2s;
+  border: 1px solid #e5e5e5;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.stat-number {
+  font-size: 36px;  /* 从48px减少到36px */
+  font-weight: bold;
+  color: #5E5CE6;
+  margin: 8px 0;  /* 从10px减少到8px */
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 12px;  /* 从14px减少到12px */
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;  /* 稍微减小字间距 */
+  line-height: 1.2;
+}
+
+.stat-icon {
+  font-size: 28px;  /* 从32px减少到28px */
+  margin-bottom: 6px;  /* 从8px减少到6px */
+}
+
+/* Page 4特定的容器样式 */
+#page4 {
+  padding: 16px;  /* 添加整体页面内边距 */
+}
+
+#page4 h2 {
+  margin-bottom: 16px;  /* 减小标题下方间距 */
+  font-size: 20px;  /* 稍微减小标题大小 */
+}
+
+.reminder-box {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+  border-left: 4px solid #ffc107;
+  border-radius: 8px;
+  padding: 12px 16px;  /* 减少padding */
+  margin: 16px 0;  /* 减少margin */
+  display: flex;
+  align-items: center;
+  gap: 12px;  /* 减少gap */
+}
+
+.reminder-icon {
+  font-size: 24px;  /* 从32px减少到24px */
+}
+
+.reminder-content h3 {
+  margin: 0 0 2px 0;  /* 减少底部margin */
+  color: #856404;
+  font-size: 14px;  /* 从16px减少到14px */
+}
+
+.reminder-content p {
+  margin: 0;
+  color: #856404;
+  font-size: 12px;  /* 从14px减少到12px */
+}
+
+.progress-timer {
+  margin-top: 20px;  /* 从32px减少到20px */
+  padding: 0 16px;  /* 从20px减少到16px */
+}
+
+.timer-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;  /* 从8px减少到6px */
+  font-size: 13px;  /* 从14px减少到13px */
+  color: #666;
+}
+
+.timer-bar {
+  height: 6px;  /* 从8px减少到6px */
+  background: #e5e5e5;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.summary-sections {
+  margin-top: 20px;  /* 从32px减少到20px */
+}
+
+.summary-section {
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 16px;  /* 从20px减少到16px */
+  margin-bottom: 12px;  /* 从16px减少到12px */
+}
+
+.summary-section h3 {
+  margin: 0 0 8px 0;  /* 减少底部margin */
+  color: #333;
+  font-size: 14px;  /* 从16px减少到14px */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-content {
+  color: #666;
+  font-size: 13px;  /* 从14px减少到13px */
+  line-height: 1.5;  /* 稍微减小行高 */
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;  /* 从12px减少到10px */
+  justify-content: center;
+  margin-top: 20px;  /* 从32px减少到20px */
+  padding-bottom: 16px;  /* 添加底部padding */
+}
+
+/* 针对Figma插件的特殊优化 */
+@media (max-height: 600px) {
+  .stat-number {
+    font-size: 32px;
+  }
+  .stat-icon {
+    font-size: 24px;
+  }
+  .stats-container {
+    gap: 8px;
+  }
+}
+
+
   </style>
 </head>
 <body>
@@ -460,6 +614,14 @@
         </select>
       </div>
 
+
+      <div class="form-group">
+        <label for="team-name">Group Name/Number (optional)</label>
+        <input type="text" id="team-name" placeholder="Enter your group name/number">
+        <small style="color: #999; font-size: 11px; margin-top: 4px; display: block;">
+        </small>
+      </div>
+
       <div class="form-group">
         <label for="project-status">Project Status *</label>
         <input type="text" id="project-status" placeholder="Enter project week number (e.g. Week 1, Week 2)">
@@ -479,6 +641,8 @@
           <option value="retrospective">Retrospective</option>
         </select>
       </div>
+
+      
 
       <div class="form-group">
         <label for="team-members">Team Members (optional)</label>
@@ -590,6 +754,100 @@
   </div>
 </div>
 
+<!-- 添加查看摘要按钮 -->
+<div style="text-align: center; margin-top: 20px;">
+  <button class="btn btn-primary" id="viewSummaryBtn" onclick="goToSummaryPage()" style="display: none;">
+    View Summary Demo
+  </button>
+</div>
+
+<!-- Page 4: Summary -->
+    <div class="page" id="page4">
+      <h2 style="margin-bottom: 24px;">📊 Live Statistics</h2>
+      
+      <!-- Statistics Grid -->
+      <div class="stats-container">
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-number" id="cardsCount">7</div>
+          <div class="stat-label">Cards Created</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-number" id="decisionsCount">3</div>
+          <div class="stat-label">Decisions</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-number" id="speakersCount">4</div>
+          <div class="stat-label">Speakers</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-number" id="actionsCount">5</div>
+          <div class="stat-label">Action Items</div>
+        </div>
+      </div>
+      
+      <!-- Presenter Reminder -->
+      <div class="reminder-box">
+        <div class="reminder-icon">⚠️</div>
+        <div class="reminder-content">
+          <h3>Presenter Reminder</h3>
+          <p id="reminderText">3 unconfirmed decisions need review</p>
+        </div>
+      </div>
+      
+      <!-- Progress Timer -->
+      <div class="progress-timer">
+        <div class="timer-label">
+          <span>Next auto-summary</span>
+          <span id="timerText">in 2:28</span>
+        </div>
+        <div class="timer-bar">
+          <div class="timer-fill" id="timerFill"></div>
+        </div>
+      </div>
+      
+      <!-- Summary Sections -->
+      <div class="summary-sections">
+        <div class="summary-section">
+          <h3>📝 Meeting Overview</h3>
+          <div class="summary-content" id="meetingOverview">
+            The team discussed the implementation of the new user interface components and made key decisions regarding the design system architecture. Progress was reviewed on current sprint items with focus on accessibility improvements.
+          </div>
+        </div>
+        
+        <div class="summary-section">
+          <h3>🎯 Key Decisions</h3>
+          <div class="summary-content" id="keyDecisions">
+            • Adopt Material Design 3 guidelines for component library<br>
+            • Set Q2 deadline for accessibility audit completion<br>
+            • Allocate additional resources to mobile optimization
+          </div>
+        </div>
+        
+        <div class="summary-section">
+          <h3>✅ Action Items</h3>
+          <div class="summary-content" id="actionItems">
+            • Sarah: Complete wireframes for dashboard redesign (Due: Friday)<br>
+            • Tom: Review and update component documentation (Due: Next week)<br>
+            • Team: Conduct usability testing sessions (Due: End of month)
+          </div>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button class="btn btn-primary" onclick="insertToFigma()">Insert to Figma</button>
+        <button class="btn btn-export" onclick="exportSummary()">Export Summary</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Navigation -->
   <div class="navigation">
     <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
@@ -679,6 +937,26 @@
           break;
       }
     };
+
+    // 手动跳转到Summary页面（用于测试）
+window.goToSummaryPage = function() {
+  currentPage = 4;
+  updatePageDisplay();
+  displaySummaryResults(null); // 显示demo数据
+}
+
+// 在页面加载完成后，为测试添加一个按钮
+document.addEventListener('DOMContentLoaded', () => {
+  // ... 原有代码 ...
+  
+  // 添加测试按钮（可选）
+  setTimeout(() => {
+    const viewSummaryBtn = document.getElementById('viewSummaryBtn');
+    if (viewSummaryBtn && currentPage === 3) {
+      viewSummaryBtn.style.display = 'inline-block';
+    }
+  }, 1000);
+});
 
     // Page Navigation
     function changePage(direction) {
@@ -1167,20 +1445,96 @@ function updateFileList() {
   }
 }
 
-    // Summary Display
-    function displaySummaryResults(results) {
-      const page4 = document.getElementById('page4');
-      page4.innerHTML = `
-        <h2 style="margin-bottom: 24px;">Meeting Summary</h2>
-        <div style="background: #f7f7f7; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-          <h3 style="margin-bottom: 8px;">Overview</h3>
-          <p>${results.overview || 'Processing...'}</p>
-        </div>
-        <div style="margin-top: 24px; text-align: center;">
-          <button class="btn btn-primary" onclick="insertToFigma()">Insert to Figma</button>
-        </div>
-      `;
+    // // Summary Display
+    // function displaySummaryResults(results) {
+    //   const page4 = document.getElementById('page4');
+    //   page4.innerHTML = `
+    //     <h2 style="margin-bottom: 24px;">Meeting Summary</h2>
+    //     <div style="background: #f7f7f7; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+    //       <h3 style="margin-bottom: 8px;">Overview</h3>
+    //       <p>${results.overview || 'Processing...'}</p>
+    //     </div>
+    //     <div style="margin-top: 24px; text-align: center;">
+    //       <button class="btn btn-primary" onclick="insertToFigma()">Insert to Figma</button>
+    //     </div>
+    //   `;
+    // }
+
+    // Summary Display with animations
+function displaySummaryResults(results) {
+  // Update statistics (demo values)
+  updateStatistics();
+  
+  // Start timer animation
+  startTimerAnimation();
+  
+  // If we have real results, update the content
+  if (results) {
+    if (results.overview || results.summary) {
+      document.getElementById('meetingOverview').innerHTML = results.overview || results.summary;
     }
+    if (results.decisions && results.decisions.length > 0) {
+      document.getElementById('keyDecisions').innerHTML = results.decisions.map(d => `• ${d}`).join('<br>');
+      document.getElementById('decisionsCount').textContent = results.decisions.length;
+    }
+    if (results.actionItems && results.actionItems.length > 0) {
+      document.getElementById('actionItems').innerHTML = results.actionItems.map(a => `• ${a}`).join('<br>');
+      document.getElementById('actionsCount').textContent = results.actionItems.length;
+    }
+  }
+}
+
+// Add demo functions for statistics animation
+function updateStatistics() {
+  // Animate number counting
+  animateNumber('cardsCount', 0, 7, 1000);
+  animateNumber('decisionsCount', 0, 3, 1200);
+  animateNumber('speakersCount', 0, 4, 1400);
+  animateNumber('actionsCount', 0, 5, 1600);
+}
+
+function animateNumber(elementId, start, end, duration) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  
+  const increment = (end - start) / (duration / 50);
+  let current = start;
+  
+  const timer = setInterval(() => {
+    current += increment;
+    if (current >= end) {
+      current = end;
+      clearInterval(timer);
+    }
+    element.textContent = Math.floor(current);
+  }, 50);
+}
+
+function startTimerAnimation() {
+  let seconds = 148; // 2:28 in seconds
+  
+  const updateTimer = setInterval(() => {
+    seconds--;
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    const timerElement = document.getElementById('timerText');
+    if (timerElement) {
+      timerElement.textContent = `in ${minutes}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    if (seconds <= 0) {
+      clearInterval(updateTimer);
+      if (timerElement) {
+        timerElement.textContent = 'Processing...';
+      }
+    }
+  }, 1000);
+}
+
+// Add export function
+window.exportSummary = function() {
+  showMessage('Export feature coming soon!', 'info');
+}
 
     // Figma Integration
     window.insertToFigma = function() {
@@ -1461,36 +1815,76 @@ async function stopExternalRecording() {
   updateRecordingUI(false, true);
   showMessage('Recording stopped. Processing results...', 'info');
   
-  // 6. 获取最终结果
-  setTimeout(async () => {
-    try {
-      const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${recordingSessionId}`);
-      const data = await res.json();
+
+  // 6. 获取最终结果并跳转到第四页
+setTimeout(async () => {
+  try {
+    const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${recordingSessionId}`);
+    const data = await res.json();
+    
+    if (data && data.summary) {
+      // 保存结果
+      formData.results = {
+        transcript: data.transcript || '',
+        summary: data.summary || '',
+        decisions: data.decision || [],
+        explicit: data.explicit || [],
+        tacit: data.tacit || [],
+        reasoning: data.reasoning || '',
+        suggestions: data.suggestions || []
+      };
       
-      if (data && data.summary) {
-        // 保存结果
-        formData.results = {
-          transcript: data.transcript || '',
-          summary: data.summary || '',
-          decisions: data.decision || [],
-          explicit: data.explicit || [],
-          tacit: data.tacit || [],
-          reasoning: data.reasoning || '',
-          suggestions: data.suggestions || []
-        };
-        
-        // 显示结果页
-        currentPage = 4;
-        updatePageDisplay();
-        displaySummaryResults(formData.results);
-      }
-    } catch (err) {
-      console.error('Error fetching final results:', err);
+      displaySummaryResults(formData.results);
+    } else {
+      // 即使没有数据也显示demo页面
+      displaySummaryResults(null);
     }
     
-    // 重置UI
-    resetRecordingUI();
-  }, 2000);
+    // 无论如何都跳转到第四页
+    currentPage = 4;
+    updatePageDisplay();
+    
+  } catch (err) {
+    console.error('Error fetching final results:', err);
+    // 出错时也显示demo页面
+    currentPage = 4;
+    updatePageDisplay();
+    displaySummaryResults(null);
+  }
+  
+  // 重置UI
+  resetRecordingUI();
+}, 2000);
+  // // 6. 获取最终结果
+  // setTimeout(async () => {
+  //   try {
+  //     const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${recordingSessionId}`);
+  //     const data = await res.json();
+      
+  //     if (data && data.summary) {
+  //       // 保存结果
+  //       formData.results = {
+  //         transcript: data.transcript || '',
+  //         summary: data.summary || '',
+  //         decisions: data.decision || [],
+  //         explicit: data.explicit || [],
+  //         tacit: data.tacit || [],
+  //         reasoning: data.reasoning || '',
+  //         suggestions: data.suggestions || []
+  //       };
+        
+  //       // 显示结果页
+  //       currentPage = 4;
+  //       updatePageDisplay();
+  //       displaySummaryResults(formData.results);
+  //     }
+  //   } catch (err) {
+  //     console.error('Error fetching final results:', err);
+  //   }
+    
+  //   // 重置UI
+  //   resetRecordingUI();
+  // }, 2000);
 }
 
 
