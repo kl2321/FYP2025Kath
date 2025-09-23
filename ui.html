@@ -759,6 +759,14 @@
   <button class="btn btn-primary" id="viewSummaryBtn" onclick="goToSummaryPage()" style="display: none;">
     View Summary Demo
   </button>
+
+<div style="text-align: center; margin-top: 20px;">
+    <button class="btn btn-primary" onclick="testRealtimeAnalysis()" 
+            style="background: #ff9800; border-color: #ff9800;">
+      🧪 Test Realtime Analysis (Dev Only)
+    </button>
+  </div>
+
 </div>
 
 <!-- Page 4: Summary -->
@@ -1334,6 +1342,21 @@ function updateFileList() {
         formData.role = document.querySelector('input[name="role"]:checked').value;
         formData.module = document.getElementById('module').value;
         formData.meetingType = document.getElementById('meeting-type').value;
+         const teamNameInput = document.getElementById('team-name');
+    if (teamNameInput) {
+      const teamInfo = teamNameInput.value.trim();
+      // 尝试分离 groupName 和 groupNumber
+      if (teamInfo.match(/[A-Z]\d+/)) {
+        formData.groupNumber = teamInfo.match(/[A-Z]\d+/)[0];
+        formData.groupName = teamInfo.replace(/[A-Z]\d+/, '').trim();
+      } else {
+        formData.groupName = teamInfo;
+      }
+    }
+    const projectStatus = document.getElementById('project-status');
+    if (projectStatus) {
+      formData.projectWeek = projectStatus.value; // e.g., "Week 5"
+    }
         formData.teamMembers = document.getElementById('team-members').value.split(',').map(s => s.trim()).filter(Boolean);
         formData.meetingGoals = document.getElementById('meeting-goals').value;
       } else if (currentPage === 2) {
@@ -1341,11 +1364,80 @@ function updateFileList() {
         formData.preferences.actionItems = document.getElementById('action-items').checked;
         formData.preferences.speakerAnalysis = document.getElementById('speaker-analysis').checked;
         formData.preferences.progressTracking = document.getElementById('progress-tracking').checked;
+
+        const previousSummary = document.getElementById('previous-summary');
+  if (previousSummary) {
+    formData.previousSummary = previousSummary.value;
+  }
       }
 
       // Save to plugin storage
       saveToPluginStorage('meetingFormData', formData);
     }
+
+    // 新增：调用实时分析的函数
+async function callRealtimeSummarize(transcript, previousSummary = '') {
+  console.log('🎯 Calling realtime summarize API...');
+  
+  // 收集表单数据
+  const formDataForAPI = {
+    role: formData.role || 'student',
+    module: formData.module || 'DE4 ERO',
+    meetingType: formData.meetingType || 'general',
+    projectWeek: formData.projectWeek || '',
+    groupName: formData.groupName || '',
+    groupNumber: formData.groupNumber || '',
+    meetingGoals: formData.meetingGoals || '',
+    teamMembers: formData.teamMembers || []
+  };
+  
+  try {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/summarize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: transcript,
+        avoid: previousSummary,
+        session_id: recordingSessionId,
+        form_data: formDataForAPI
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.decisions && result.decisions.length > 0) {
+      console.log('✅ Found', result.decisions.length, 'decisions');
+      // 显示决策
+      displayRealtimeDecisions(result.decisions);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('❌ Realtime analysis error:', error);
+    return null;
+  }
+}
+
+// 显示实时决策
+function displayRealtimeDecisions(decisions) {
+  // 更新决策计数
+  const decisionsCount = document.getElementById('decisionsCount');
+  if (decisionsCount) {
+    decisionsCount.textContent = decisions.length;
+  }
+  
+  // 更新决策列表
+  const keyDecisions = document.getElementById('keyDecisions');
+  if (keyDecisions) {
+    keyDecisions.innerHTML = decisions.map((d, i) => 
+      `• Decision ${d.decision_number}: ${d.decision}<br>
+       &nbsp;&nbsp;Explicit: ${d.explicit_knowledge.length} points<br>
+       &nbsp;&nbsp;Tacit: ${d.tacit_knowledge.length} points`
+    ).join('<br><br>');
+  }
+}
 
     function restoreFormFields() {
       // Page 1 fields
@@ -2109,62 +2201,242 @@ window.closeRecorderIframe = function() {
     }
   }
 };
-function startPolling(sessionId) {
-  let lastShownSummary = '';
-  let pollTimeoutId = null;
+// function startPolling(sessionId) {
+//   let lastShownSummary = '';
+//   let pollTimeoutId = null;
   
-  // 设置超时
+//   // 设置超时
+//   pollTimeoutId = setTimeout(() => {
+//     if (pollInterval) {
+//       clearInterval(pollInterval);
+//       console.warn('Polling timeout reached');
+//       showError('Recording timeout. Please check your connection and try again.');
+//     }
+//   }, API_CONFIG.polling.timeout);
+  
+//   pollInterval = setInterval(async () => {
+//     try {
+//       const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${sessionId}`);
+//       const data = await res.json();
+      
+//       if (data && data.summary && data.summary !== lastShownSummary) {
+//         lastShownSummary = data.summary;
+        
+//         // 清除超时
+//         if (pollTimeoutId) {
+//           clearTimeout(pollTimeoutId);
+//         }
+        
+//         // 存储结果（增加数据验证）
+//         formData.results = {
+//           transcript: data.transcript || '',
+//           summary: data.summary || '',
+//           decisions: Array.isArray(data.decision) ? data.decision : [],
+//           explicit: Array.isArray(data.explicit) ? data.explicit : [],
+//           tacit: Array.isArray(data.tacit) ? data.tacit : [],
+//           reasoning: data.reasoning || '',
+//           suggestions: Array.isArray(data.suggestions) ? data.suggestions : []
+//         };
+        
+//         // 保存到本地存储
+//         await saveToPluginStorage('lastMeetingResults', formData.results);
+        
+//         // 如果录音已停止，显示结果
+//         if (!isExternalRecording) {
+//           clearInterval(pollInterval);
+//           displaySummaryResults(formData.results);
+          
+//           // 发送给Figma插件
+//           sendResultsToFigma(data);
+//         }
+//       }
+//     } catch (err) {
+//       console.error('Polling error:', err);
+//       // 不立即停止轮询，可能是临时网络问题
+//     }
+//   }, API_CONFIG.polling.interval);
+// }
+function startPolling(sessionId) {
+  // 初始化状态变量
+  let lastTranscript = '';          // 上次处理的transcript
+  let lastDecisions = [];           // 累积的决策列表
+  let pollTimeoutId = null;         // 超时计时器ID
+  let pollCount = 0;                // 轮询次数计数
+  
+  console.log('🔄 开始轮询，Session ID:', sessionId);
+  
+  // 设置超时处理（30秒后停止轮询）
   pollTimeoutId = setTimeout(() => {
     if (pollInterval) {
       clearInterval(pollInterval);
-      console.warn('Polling timeout reached');
-      showError('Recording timeout. Please check your connection and try again.');
+      console.warn('⚠️ 轮询超时');
+      showMessage('Recording timeout. Please check your connection.', 'warning');
     }
-  }, API_CONFIG.polling.timeout);
+  }, API_CONFIG.polling.timeout || 30000);
   
+  // 开始定期轮询
   pollInterval = setInterval(async () => {
+    pollCount++;
+    console.log(`📡 轮询 #${pollCount} - Session: ${sessionId}`);
+    
     try {
-      const res = await apiCall(`${API_CONFIG.endpoints.sessions}?session=${sessionId}`);
+      // 1. 从服务器获取当前transcript
+      const res = await fetch(`${API_CONFIG.BASE_URL}/api/get?session=${sessionId}`);
+      
+      if (!res.ok) {
+        console.error('❌ 轮询请求失败:', res.status);
+        return;
+      }
+      
       const data = await res.json();
       
-      if (data && data.summary && data.summary !== lastShownSummary) {
-        lastShownSummary = data.summary;
+      // 2. 检查是否有新的transcript内容
+      if (data && data.transcript) {
+        // 检查transcript是否有更新
+        const currentTranscript = data.transcript;
+        const hasNewContent = currentTranscript.length > lastTranscript.length;
         
-        // 清除超时
-        if (pollTimeoutId) {
-          clearTimeout(pollTimeoutId);
-        }
-        
-        // 存储结果（增加数据验证）
-        formData.results = {
-          transcript: data.transcript || '',
-          summary: data.summary || '',
-          decisions: Array.isArray(data.decision) ? data.decision : [],
-          explicit: Array.isArray(data.explicit) ? data.explicit : [],
-          tacit: Array.isArray(data.tacit) ? data.tacit : [],
-          reasoning: data.reasoning || '',
-          suggestions: Array.isArray(data.suggestions) ? data.suggestions : []
-        };
-        
-        // 保存到本地存储
-        await saveToPluginStorage('lastMeetingResults', formData.results);
-        
-        // 如果录音已停止，显示结果
-        if (!isExternalRecording) {
-          clearInterval(pollInterval);
-          displaySummaryResults(formData.results);
+        if (hasNewContent) {
+          console.log('📝 发现新内容，长度:', currentTranscript.length);
           
-          // 发送给Figma插件
-          sendResultsToFigma(data);
+          // 清除超时（说明还在活动）
+          if (pollTimeoutId) {
+            clearTimeout(pollTimeoutId);
+            // 重新设置超时
+            pollTimeoutId = setTimeout(() => {
+              clearInterval(pollInterval);
+              console.warn('⚠️ 轮询超时');
+            }, 30000);
+          }
+          
+          // 3. 提取新增的部分
+          const newSegment = currentTranscript.substring(lastTranscript.length);
+          console.log('🆕 新增内容长度:', newSegment.length);
+          
+          // 4. 调用实时分析（如果新内容足够长）
+          if (newSegment.length > 50) {  // 至少50个字符才分析
+            console.log('🎯 调用实时分析...');
+            
+            // 准备避免重复的内容
+            const avoidContent = lastDecisions.length > 0 
+              ? JSON.stringify(lastDecisions) 
+              : '';
+            
+            // 调用实时分析API
+            const analysisResult = await callRealtimeSummarize(
+              newSegment,  // 只分析新增部分
+              avoidContent // 传递之前的决策以避免重复
+            );
+            
+            // 5. 处理分析结果
+            if (analysisResult && analysisResult.decisions) {
+              const newDecisions = analysisResult.decisions;
+              
+              if (newDecisions.length > 0) {
+                console.log(`✅ 发现 ${newDecisions.length} 个新决策`);
+                
+                // 重新编号决策
+                newDecisions.forEach((decision, index) => {
+                  decision.decision_number = lastDecisions.length + index + 1;
+                });
+                
+                // 累积决策
+                lastDecisions = [...lastDecisions, ...newDecisions];
+                
+                // 更新UI
+                displayRealtimeDecisions(lastDecisions);
+                
+                // 保存到formData
+                formData.results = {
+                  ...formData.results,
+                  decisions: lastDecisions,
+                  transcript: currentTranscript,
+                  analysisTime: new Date().toISOString()
+                };
+                
+                // 保存到本地存储
+                saveToPluginStorage('lastMeetingResults', formData.results);
+                
+                // 显示通知
+                showMessage(`Found ${newDecisions.length} new decision(s)`, 'success');
+              }
+            }
+          }
+          
+          // 更新lastTranscript
+          lastTranscript = currentTranscript;
         }
       }
+      
+      // 6. 检查是否应该执行总结（基于间隔设置）
+      const cycleInput = document.getElementById('cycleInput');
+      const intervalMin = parseInt(cycleInput?.value || '5');
+      const shouldSummarize = pollCount % (intervalMin * 12) === 0;  // 每分钟轮询12次（5秒一次）
+      
+      if (shouldSummarize && data.transcript) {
+        console.log('📊 触发周期性总结...');
+        
+        // 这里可以调用更全面的分析
+        // 但通常实时分析就足够了
+      }
+      
+      // 7. 如果录音已停止
+      if (data.recording_stopped || !isExternalRecording) {
+        console.log('🛑 检测到录音停止');
+        clearInterval(pollInterval);
+        clearTimeout(pollTimeoutId);
+        
+        // 最终处理
+        if (lastDecisions.length > 0) {
+          displaySummaryResults(formData.results);
+        }
+        
+        // 发送结果给Figma插件
+        if (data) {
+          sendResultsToFigma({
+            ...data,
+            decisions: lastDecisions
+          });
+        }
+      }
+      
     } catch (err) {
-      console.error('Polling error:', err);
-      // 不立即停止轮询，可能是临时网络问题
+      console.error('❌ 轮询错误:', err);
+      
+      // 错误重试机制
+      pollRetryCount = (pollRetryCount || 0) + 1;
+      
+      if (pollRetryCount >= API_CONFIG.polling.maxRetries) {
+        console.error('❌ 达到最大重试次数，停止轮询');
+        clearInterval(pollInterval);
+        clearTimeout(pollTimeoutId);
+        showMessage('Connection lost. Please check your network.', 'error');
+      }
     }
-  }, API_CONFIG.polling.interval);
+    
+  }, API_CONFIG.polling.interval || 5000);  // 每5秒轮询一次
+  
+  // 返回清理函数
+  return () => {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+    if (pollTimeoutId) {
+      clearTimeout(pollTimeoutId);
+      pollTimeoutId = null;
+    }
+  };
 }
 
+// ===== 辅助函数：停止轮询 =====
+function stopPolling() {
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+    console.log('🛑 轮询已停止');
+  }
+}
 // ===== 优化的PDF保存函数 =====
 
 async function savePdfToServer(sessionId, pdfText) {
