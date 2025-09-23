@@ -4,24 +4,24 @@
     <title>API测试</title>
     <style>
         body { padding: 20px; font-family: Arial; }
-        button { padding: 10px 20px; font-size: 16px; }
-        #result { margin-top: 20px; padding: 10px; background: #f0f0f0; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #result { margin-top: 20px; padding: 10px; background: #f0f0f0; white-space: pre-wrap; }
+        .success { color: green; }
+        .error { color: red; }
     </style>
 </head>
 <body>
     <h1>测试 Summarize API</h1>
-    <button onclick="testAPI()">点击测试API</button>
+    <button onclick="testAPI()">点击测试</button>
     <div id="result"></div>
 
     <script>
     async function testAPI() {
-        // 替换为您的 Vercel 部署地址
-        const API_URL = 'https://your-app.vercel.app/api/summarize';
-        // 或者测试本地（如果有本地服务器）
-        // const API_URL = 'http://localhost:3000/api/summarize';
+        // 使用您的 Vercel 地址
+        const API_URL = 'https://fyp-2025-kath.vercel.app/api/summarize';
         
         const testData = {
-            text: "Speaker A: I think we should use PostgreSQL for our database. Speaker B: That's a good choice, it handles complex queries well.",
+            text: "Speaker A: I think we should use PostgreSQL for our database. Speaker B: That's a good decision, it handles complex queries well and has great documentation.",
             avoid: "",
             session_id: null,
             form_data: {
@@ -30,11 +30,12 @@
                 meetingType: "technical-review",
                 projectWeek: "Week 5",
                 groupName: "Team Alpha",
-                groupNumber: "G01"
+                groupNumber: "G01",
+                meetingGoals: "Decide on database technology"
             }
         };
         
-        document.getElementById('result').innerHTML = '测试中...';
+        document.getElementById('result').innerHTML = '🔄 测试中，请稍等...';
         
         try {
             const response = await fetch(API_URL, {
@@ -43,23 +44,38 @@
                 body: JSON.stringify(testData)
             });
             
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
-            // 显示结果
-            let html = '<h3>测试结果：</h3>';
-            html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            // 显示原始响应
+            let html = '<h3>原始响应：</h3>';
+            html += JSON.stringify(data, null, 2);
             
+            // 检查决策
             if (data.decisions && data.decisions.length > 0) {
-                html += '<h3>✅ 成功提取决策：</h3>';
+                html += '\n\n<span class="success">✅ 成功！找到 ' + data.decisions.length + ' 个决策</span>\n';
                 data.decisions.forEach(d => {
-                    html += `<p><b>决策${d.decision_number}:</b> ${d.decision}</p>`;
+                    html += '\n决策 ' + d.decision_number + ': ' + d.decision;
+                    if (d.explicit_knowledge) {
+                        html += '\n  Explicit: ' + d.explicit_knowledge.join(', ');
+                    }
+                    if (d.tacit_knowledge) {
+                        html += '\n  Tacit: ' + d.tacit_knowledge.join(', ');
+                    }
                 });
+            } else {
+                html += '\n\n<span class="error">⚠️ 没有找到决策</span>';
             }
             
             document.getElementById('result').innerHTML = html;
+            
         } catch (error) {
             document.getElementById('result').innerHTML = 
-                '<p style="color:red">❌ 错误: ' + error.message + '</p>';
+                '<span class="error">❌ 错误: ' + error.message + '</span>';
+            console.error('Error:', error);
         }
     }
     </script>
