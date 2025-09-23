@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API测试</title>
+    <style>
+        body { padding: 20px; font-family: Arial; }
+        button { padding: 10px 20px; font-size: 16px; }
+        #result { margin-top: 20px; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>测试 Summarize API</h1>
+    <button onclick="testAPI()">点击测试API</button>
+    <div id="result"></div>
+
+    <script>
+    async function testAPI() {
+        // 替换为您的 Vercel 部署地址
+        const API_URL = 'https://your-app.vercel.app/api/summarize';
+        // 或者测试本地（如果有本地服务器）
+        // const API_URL = 'http://localhost:3000/api/summarize';
+        
+        const testData = {
+            text: "Speaker A: I think we should use PostgreSQL for our database. Speaker B: That's a good choice, it handles complex queries well.",
+            avoid: "",
+            session_id: null,
+            form_data: {
+                role: "student",
+                module: "DE4 ERO",
+                meetingType: "technical-review",
+                projectWeek: "Week 5",
+                groupName: "Team Alpha",
+                groupNumber: "G01"
+            }
+        };
+        
+        document.getElementById('result').innerHTML = '测试中...';
+        
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(testData)
+            });
+            
+            const data = await response.json();
+            
+            // 显示结果
+            let html = '<h3>测试结果：</h3>';
+            html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            
+            if (data.decisions && data.decisions.length > 0) {
+                html += '<h3>✅ 成功提取决策：</h3>';
+                data.decisions.forEach(d => {
+                    html += `<p><b>决策${d.decision_number}:</b> ${d.decision}</p>`;
+                });
+            }
+            
+            document.getElementById('result').innerHTML = html;
+        } catch (error) {
+            document.getElementById('result').innerHTML = 
+                '<p style="color:red">❌ 错误: ' + error.message + '</p>';
+        }
+    }
+    </script>
+</body>
+</html>
