@@ -767,6 +767,46 @@
     </button>
   </div>
 
+  <!-- 紧接着添加 script -->
+<script>
+function testRealtimeAnalysis() {
+  console.log('🧪 Testing from inline script...');
+  
+  // 如果 callRealtimeSummarize 不可用，尝试直接调用 API
+  if (typeof callRealtimeSummarize === 'undefined') {
+    console.log('⚠️ Using direct API call for testing');
+    
+    fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: "Speaker A: We decided to use PostgreSQL.",
+        avoid: "",
+        session_id: null,
+        form_data: {
+          role: "student",
+          module: "DE4 ERO",
+          meetingType: "technical-review",
+          projectWeek: "Week 5"
+        }
+      })
+    })
+    .then(r => r.json())
+    .then(d => {
+      console.log('✅ API Response:', d);
+      alert('Test successful! Check console for details.');
+    })
+    .catch(e => {
+      console.error('❌ Test failed:', e);
+      alert('Test failed! Check console.');
+    });
+  } else {
+    // 使用已定义的函数
+    callRealtimeSummarize("Test transcript", "");
+  }
+}
+</script>
+
 </div>
 
 <!-- Page 4: Summary -->
