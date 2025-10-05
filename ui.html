@@ -1382,6 +1382,11 @@ function updateFileList() {
         formData.role = document.querySelector('input[name="role"]:checked').value;
         formData.module = document.getElementById('module').value;
         formData.meetingType = document.getElementById('meeting-type').value;
+        console.log('💾 保存Page1数据:', {
+        module: formData.module,
+        meetingType: formData.meetingType,
+        role: formData.role
+      });
          const teamNameInput = document.getElementById('team-name');
     if (teamNameInput) {
       const teamInfo = teamNameInput.value.trim();
@@ -1418,12 +1423,31 @@ function updateFileList() {
     // 新增：调用实时分析的函数
 async function callRealtimeSummarize(transcript, previousSummary = '') {
   console.log('🎯 Calling realtime summarize API...');
+
+  if (!formData.module || !formData.meetingType) {
+    console.warn('⚠️ formData缺失必要字段');
+    
+    // 尝试从localStorage恢复
+    const savedData = localStorage.getItem('meetingFormData');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        formData = { ...formData, ...parsed };
+      } catch (e) {
+        console.error('Failed to parse saved data');
+      }
+    }
+    
+    // 如果还是没有，使用默认值
+    if (!formData.module) formData.module = 'DE4 ERO';
+    if (!formData.meetingType) formData.meetingType = 'brainstorming';
+  }
   
   // 收集表单数据
   const formDataForAPI = {
     role: formData.role || 'student',
-    module: formData.module || 'DE4 ERO',
-    meetingType: formData.meetingType || 'general',
+    module: formData.module,
+    meetingType: formData.meetingType ,
     projectWeek: formData.projectWeek || '',
     groupName: formData.groupName || '',
     groupNumber: formData.groupNumber || '',
@@ -1725,6 +1749,7 @@ function changePage(direction) {
   
   // 准备录音页面
   if (currentPage === 3) {
+    console.log('进入录音页，当前formData:', formData);
     prepareRecordingPage();
   }
   
@@ -1796,6 +1821,22 @@ async function apiCall(endpoint, options = {}) {
 // ===== 修改 toggleRecording 函数（保持不变）=====
 async function openExternalRecorder() {
   console.log('🚀 准备录音会话');
+
+  if (!formData.module || !formData.meetingType) {
+    console.warn('⚠️ 表单数据不完整，尝试重新获取...');
+    savePageData();  // 尝试保存当前数据
+    
+    // 如果还是没有，提供默认值
+    if (!formData.module) formData.module = 'DE4 ERO';
+    if (!formData.meetingType) formData.meetingType = 'brainstorming';
+  }
+  
+  console.log('📋 录音配置:', {
+    module: formData.module,
+    meetingType: formData.meetingType,
+    role: formData.role
+  });
+  
   
   // 生成session ID
   recordingSessionId = Date.now().toString();
