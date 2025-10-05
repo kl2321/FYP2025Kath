@@ -51,6 +51,26 @@
     // ========== 配置常量 - 修改为3分钟 ==========
     const SEGMENT_DURATION = 5 * 60 * 1000;  // 改为3分钟 (原本是30秒)
     const intervalMin = parseInt(urlParams.get("intervalMin") || "10");  // 默认10分钟
+
+     // 【新增】：从 URL 解析表单配置数据
+  const formDataFromUrl = {
+    role: urlParams.get('role') || 'student',
+    module: urlParams.get('module') || 'DE4 ERO',
+    meetingType: urlParams.get('meetingType') || 'brainstorming',
+    projectWeek: urlParams.get('projectWeek') || '',
+    groupName: urlParams.get('groupName') || '',
+    groupNumber: urlParams.get('groupNumber') || '',
+    meetingGoals: decodeURIComponent(urlParams.get('meetingGoals') || ''),
+    teamMembers: (urlParams.get('teamMembers') || '').split('|').filter(Boolean)
+  };
+
+   // 显示接收到的配置，便于调试
+  console.log('📋 录音页面配置:', {
+    sessionId,
+    intervalMin,
+    formData: formDataFromUrl
+  });
+  
     const SUMMARIZE_FREQUENCY = Math.ceil(intervalMin / 5);  // 计算需要几个segments
 
     window.onload = function() {
@@ -59,6 +79,12 @@
     
     if (intervalElement) intervalElement.textContent = intervalMin;
     if (segmentsElement) segmentsElement.textContent = SUMMARIZE_FREQUENCY;
+
+    // 显示模块和会议类型
+    const configInfo = document.querySelector('.config-info');
+    if (configInfo && formDataFromUrl.module) {
+      configInfo.innerHTML += `<br>Module: ${formDataFromUrl.module}<br>Meeting Type: ${formDataFromUrl.meetingType}`;
+    }
   };
 
   console.log("📊 Configuration:", {
@@ -392,6 +418,7 @@ async function checkAudioActivity() {
       const duration = Math.floor((Date.now() - sessionStartTime) / 60000);
       
       console.log('📊 Generating intermediate summary...');
+      console.log('📋 使用配置:', formDataFromUrl); // 调试信息
       textArea.value += '\n\n📊 Generating summary...';
       
       try {
@@ -408,7 +435,8 @@ async function checkAudioActivity() {
           body: JSON.stringify({
             text: combined,
             avoid: avoidCombined,
-            session_id: sessionId
+            session_id: sessionId,
+            form_data: formDataFromUrl
           })
         });
         

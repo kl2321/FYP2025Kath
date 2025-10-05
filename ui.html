@@ -1386,6 +1386,7 @@ function updateFileList() {
         module: formData.module,
         meetingType: formData.meetingType,
         role: formData.role
+        
       });
          const teamNameInput = document.getElementById('team-name');
     if (teamNameInput) {
@@ -1441,13 +1442,15 @@ async function callRealtimeSummarize(transcript, previousSummary = '') {
     // 如果还是没有，使用默认值
     if (!formData.module) formData.module = 'DE4 ERO';
     if (!formData.meetingType) formData.meetingType = 'brainstorming';
+    formData.module = formData.module || 'DE4 ERO';
+    formData.meetingType = formData.meetingType || 'brainstorming';
   }
   
   // 收集表单数据
   const formDataForAPI = {
     role: formData.role || 'student',
-    module: formData.module,
-    meetingType: formData.meetingType ,
+    module: formData.module || 'DE4 ERO',
+    meetingType: formData.meetingType || 'brainstorming',
     projectWeek: formData.projectWeek || '',
     groupName: formData.groupName || '',
     groupNumber: formData.groupNumber || '',
@@ -1844,6 +1847,29 @@ async function openExternalRecorder() {
   // 获取设置（保留intervalMin名称）
   const cycleInput = document.getElementById('cycleInput');
   const intervalMin = cycleInput ? parseInt(cycleInput.value || '10', 10) : 10;
+
+  const params = new URLSearchParams({
+    // 原有参数
+    session: recordingSessionId,
+    intervalMin: intervalMin.toString(),
+    
+    // 新增：表单配置数据
+    module: formData.module || 'DE4 ERO',
+    meetingType: formData.meetingType || 'brainstorming',
+    role: formData.role || 'student',
+    projectWeek: formData.projectWeek || '',
+    groupName: formData.groupName || '',
+    groupNumber: formData.groupNumber || '',
+    meetingGoals: encodeURIComponent(formData.meetingGoals || ''),
+    // 团队成员用竖线分隔，避免逗号造成的解析问题
+    teamMembers: (formData.teamMembers || []).join('|')
+  });
+
+  // 打开录音窗口，URL 现在包含所有需要的数据
+  const recorderUrl = `${API_CONFIG.BASE_URL}/record.html?${params.toString()}`;
+  console.log('📡 打开录音窗口，URL:', recorderUrl);
+  window.open(recorderUrl, 'recorder', 'width=400,height=400');
+  
   
   // 先保存所有配置到服务器
   const setupSuccess = await setupRecordingSession(intervalMin);

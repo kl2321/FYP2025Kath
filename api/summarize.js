@@ -41,28 +41,41 @@ export default async function handler(req, res) {
 
 
 // Extract form data for prompt generation
-  const {
-    role = 'student',
-    module = '',
-    meetingType = '',
-    teamMembers = [],
-    meetingGoals = '',
-    projectWeek = '',
-    groupName = '',
-    groupNumber = ''
-  } = form_data;
- console.log('🎯 Real-time analysis config:', {
-    role,
-    module,
-    meetingType,
-    projectWeek,
-    teamSize: teamMembers.length,
-    hasPreviousSummary: !!avoid
-  });
-  // Warn if critical fields are missing
-  if (!module || !meetingType) {
-    console.warn('⚠️ Missing required form fields, using defaults');
-  }
+const {
+  role = 'student',
+  module = 'DE4 ERO',           // ← 改为有效的默认值
+  meetingType = 'brainstorming', // ← 改为有效的默认值
+  teamMembers = [],
+  meetingGoals = '',
+  projectWeek = '',
+  groupName = '',
+  groupNumber = ''
+} = form_data  || {};
+
+const validatedConfig = {
+  role: role || 'student',
+  module: module || 'DE4 ERO',
+  meetingType: meetingType || 'brainstorming',
+  teamMembers: Array.isArray(teamMembers) ? teamMembers : [],
+  meetingGoals: meetingGoals || '',
+  projectWeek: projectWeek || '',
+  groupName: groupName || '',
+  groupNumber: groupNumber || ''
+};
+
+console.log('🎯 Real-time analysis config:', {
+  role: validatedConfig.role,
+  module: validatedConfig.module,
+  meetingType: validatedConfig.meetingType,
+  projectWeek: validatedConfig.projectWeek,
+  teamSize: validatedConfig.teamMembers.length,
+  hasPreviousSummary: !!avoid
+});
+
+// 警告信息（如果使用了默认值）
+if (!form_data || !form_data.module || !form_data.meetingType) {
+  console.warn('⚠️ Using default values for missing form fields');
+}
 // 新增：从Supabase获取PDF内容
 let context_pdf = '';
 
@@ -97,10 +110,10 @@ if (session_id) {
   try {
     // 🔥 NEW: Generate dynamic prompts using Prompt System
     const promptConfig = {
-      role,
-      module,
-      meetingType,
-      projectWeek,
+      role: validatedConfig.role,
+      module: validatedConfig.module,
+      meetingType: validatedConfig.meetingType,
+      projectWeek: validatedConfig.projectWeek,
       groupName,
       groupNumber,
       goals: meetingGoals,
