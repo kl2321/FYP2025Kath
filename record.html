@@ -2,6 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+<script>
+    // 【关键修改】：立即执行，在任何其他代码之前保存参数
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      // 如果 URL 中有配置参数，立即保存到 sessionStorage
+      if (urlParams.get('module') || urlParams.get('meetingType')) {
+        const config = {
+          role: urlParams.get('role') || 'student',
+          module: urlParams.get('module') || 'DE4 ERO',
+          meetingType: urlParams.get('meetingType') || 'brainstorming',
+          projectWeek: urlParams.get('projectWeek') || '',
+          groupName: urlParams.get('groupName') || '',
+          groupNumber: urlParams.get('groupNumber') || '',
+          meetingGoals: decodeURIComponent(urlParams.get('meetingGoals') || ''),
+          teamMembers: (urlParams.get('teamMembers') || '').split('|').filter(Boolean)
+        };
+        
+        // 保存到 sessionStorage（页面刷新后仍然存在）
+        sessionStorage.setItem('meetingConfig', JSON.stringify(config));
+        console.log('💾 立即保存配置到 sessionStorage:', config);
+      }
+    })();
+  </script>
   <style>
     body { font-family: sans-serif; padding: 16px; }
     button { padding: 8px 16px; margin-right: 8px; }
@@ -52,17 +76,42 @@
     const SEGMENT_DURATION = 5 * 60 * 1000;  // 改为3分钟 (原本是30秒)
     const intervalMin = parseInt(urlParams.get("intervalMin") || "10");  // 默认10分钟
 
-     // 【新增】：从 URL 解析表单配置数据
-  const formDataFromUrl = {
-    role: urlParams.get('role') || 'student',
-    module: urlParams.get('module') || 'DE4 ERO',
-    meetingType: urlParams.get('meetingType') || 'brainstorming',
-    projectWeek: urlParams.get('projectWeek') || '',
-    groupName: urlParams.get('groupName') || '',
-    groupNumber: urlParams.get('groupNumber') || '',
-    meetingGoals: decodeURIComponent(urlParams.get('meetingGoals') || ''),
-    teamMembers: (urlParams.get('teamMembers') || '').split('|').filter(Boolean)
-  };
+      let formDataFromUrl;
+    const savedConfig = sessionStorage.getItem('meetingConfig');
+    
+    if (savedConfig) {
+      // 情况1：从 sessionStorage 恢复（页面刷新后）
+      formDataFromUrl = JSON.parse(savedConfig);
+      console.log('✅ 从 sessionStorage 恢复配置:', formDataFromUrl);
+    } else if (urlParams.get('module') || urlParams.get('meetingType')) {
+      // 情况2：从 URL 参数解析（首次加载）
+      formDataFromUrl = {
+        role: urlParams.get('role') || 'student',
+        module: urlParams.get('module') || 'DE4 ERO',
+        meetingType: urlParams.get('meetingType') || 'brainstorming',
+        projectWeek: urlParams.get('projectWeek') || '',
+        groupName: urlParams.get('groupName') || '',
+        groupNumber: urlParams.get('groupNumber') || '',
+        meetingGoals: decodeURIComponent(urlParams.get('meetingGoals') || ''),
+        teamMembers: (urlParams.get('teamMembers') || '').split('|').filter(Boolean)
+      };
+      // 保存到 sessionStorage 以备后用
+      sessionStorage.setItem('meetingConfig', JSON.stringify(formDataFromUrl));
+      console.log('📥 从 URL 解析并保存配置:', formDataFromUrl);
+    } else {
+      // 情况3：使用默认值（没有配置信息）
+      formDataFromUrl = {
+        role: 'student',
+        module: 'DE4 ERO',
+        meetingType: 'brainstorming',
+        projectWeek: '',
+        groupName: '',
+        groupNumber: '',
+        meetingGoals: '',
+        teamMembers: []
+      };
+      console.log('⚠️ 使用默认配置:', formDataFromUrl);
+    }
 
    // 显示接收到的配置，便于调试
   console.log('📋 录音页面配置:', {
@@ -84,6 +133,12 @@
     const configInfo = document.querySelector('.config-info');
     if (configInfo && formDataFromUrl.module) {
       configInfo.innerHTML += `<br>Module: ${formDataFromUrl.module}<br>Meeting Type: ${formDataFromUrl.meetingType}`;
+      if (formDataFromUrl.projectWeek) {
+          configInfo.innerHTML += `<br>Project: ${formDataFromUrl.projectWeek}`;
+        }
+        if (formDataFromUrl.teamMembers && formDataFromUrl.teamMembers.length > 0) {
+          configInfo.innerHTML += `<br>Team: ${formDataFromUrl.teamMembers.join(', ')}`;
+        }
     }
   };
 
@@ -429,15 +484,19 @@ async function checkAudioActivity() {
           ...previousSummary.tacit
         ].join('\n');
 
+        const requestBody = {
+          text: combined,
+          avoid: avoidCombined,
+          session_id: sessionId,
+          form_data: formDataFromUrl  // 添加表单配置数据
+        };
+
+        console.log('📤 发送到 API 的配置:', requestBody.form_data);
+
         const res = await fetch('https://fyp-2025-kath.vercel.app/api/summarize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: combined,
-            avoid: avoidCombined,
-            session_id: sessionId,
-            form_data: formDataFromUrl
-          })
+          body: JSON.stringify(requestBody)
         });
         
         const data = await res.json();
