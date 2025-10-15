@@ -596,7 +596,7 @@
             <label for="student" style="margin: 0;">Student</label>
           </div>
           <div class="radio-item">
-            <input type="radio" id="tutor" name="role" value="tutor">
+            <input type="radio" id="tutor" name="role" value="tutor/instructor">
             <label for="tutor" style="margin: 0;">Tutor/Instructor</label>
           </div>
         </div>
@@ -635,10 +635,10 @@
         <select id="meeting-type" required>
           <option value="">Select meeting type...</option>
           <option value="brainstorming">Brainstorming Session</option>
-          <option value="decision-making">Decision Making</option>
-          <option value="progress-update">Progress Update</option>
+          <option value="project-planning">Project Planning</option>
+          <!-- <option value="progress-update">Progress Update</option> -->
           <option value="problem-solving">Problem Solving</option>
-          <option value="retrospective">Retrospective</option>
+          <!-- <option value="retrospective">Retrospective</option> -->
         </select>
       </div>
 
@@ -1376,6 +1376,30 @@ function updateFileList() {
       return true;
     }
 
+    // Add validation in the savePageData function or before sending config
+function validateProjectWeek(value) {
+  if (!value) return '';
+  
+  // Ensure proper format: "Week X" or "Week X-Y"
+  const trimmed = value.trim();
+  
+  // If user enters "RCA week 5" or similar, convert to "Week 5"
+  if (trimmed.toLowerCase().includes('week')) {
+    const match = trimmed.match(/week\s*(\d+(?:-\d+)?)/i);
+    if (match) {
+      return `Week ${match[1]}`;
+    }
+  }
+  
+  // If user just enters a number, format it properly
+  if (/^\d+(?:-\d+)?$/.test(trimmed)) {
+    return `Week ${trimmed}`;
+  }
+  
+  return trimmed;
+}
+
+
     // Data Persistence
     function savePageData() {
       if (currentPage === 1) {
@@ -1401,7 +1425,7 @@ function updateFileList() {
     }
     const projectStatus = document.getElementById('project-status');
     if (projectStatus) {
-      formData.projectWeek = projectStatus.value; // e.g., "Week 5"
+       formData.projectWeek = validateProjectWeek(projectStatus.value);
     }
         formData.teamMembers = document.getElementById('team-members').value.split(',').map(s => s.trim()).filter(Boolean);
         formData.meetingGoals = document.getElementById('meeting-goals').value;
