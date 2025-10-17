@@ -295,9 +295,9 @@ async function generateFinalSummaryWithContext(transcript, sessionId, context) {
   const promptConfig = {
     // Form配置
     role: formData.role || 'student',
-    module: formData.module || '',
-    meetingType: formData.meetingType || '',
-    projectWeek: formData.projectWeek || '',
+  module: formData.module || 'DE4 ERO',  // ✅ 改：提供默认值
+  meetingType: formData.meetingType || 'brainstorming',  // ✅ 改：提供默认值
+  projectWeek: formData.projectWeek || 'Week 1',  // ✅ 改：提供默认值
     groupName: formData.groupName || '',
     groupNumber: formData.groupNumber || '',
     
