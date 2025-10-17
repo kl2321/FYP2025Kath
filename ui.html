@@ -1528,6 +1528,31 @@ function displayRealtimeDecisions(decisions) {
        &nbsp;&nbsp;Tacit: ${d.tacit_knowledge.length} points`
     ).join('<br><br>');
   }
+
+   window.__sentDecisionCount = window.__sentDecisionCount || 0;
+
+  // 这次相对上次“新增”的部分
+  const newlyAdded = decisions.slice(window.__sentDecisionCount);
+
+  // 逐条发送到插件（code.ts 里用 update-realtime -> addDecision 渲染）
+  newlyAdded.forEach(d => {
+    const decisionText = d.decision || d.text || '';
+    const owner = d.speaker || d.owner || 'Unknown';
+
+    parent.postMessage({
+      pluginMessage: {
+        type: 'update-realtime',
+        data: {
+          type: 'decision',
+          text: decisionText,
+          owner
+        }
+      }
+    }, '*');
+  });
+
+  // 更新累计已发送计数
+  window.__sentDecisionCount = decisions.length;
 }
 
     function restoreFormFields() {
