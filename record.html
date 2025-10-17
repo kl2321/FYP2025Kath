@@ -616,8 +616,10 @@ async function checkAudioActivity() {
     meetingType: formDataObj.meetingType,
     projectWeek: formDataObj.projectWeek,
     teamSize: formDataObj.teamMembers.length,
-    hasPreviousSummary: formDataObj.previousSummary.length > 0,
-    hasGoals: formDataObj.meetingGoals.length > 0
+    //hasPreviousSummary: (formDataObj.previousSummary?.length || 0) > 0,
+    //hasGoals: (formDataObj.meetingGoals?.length || 0) > 0
+    hasPreviousSummary: Boolean(formDataObj.previousSummary),
+  hasGoals: Boolean(formDataObj.meetingGoals)
   });
 
 
