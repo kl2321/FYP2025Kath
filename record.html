@@ -573,6 +573,50 @@ async function checkAudioActivity() {
       form.append('file', fullBlob, 'full_recording.webm');
       form.append('session_id', sessionId);
       form.append('duration_minutes', duration.toString());
+
+       // ✅ 新增：收集并添加form_data
+  const formDataObj = {
+    // 基本配置
+    role: document.getElementById('role')?.value || 'student',
+    module: document.getElementById('module')?.value || '',
+    meetingType: document.getElementById('meeting-type')?.value || '',
+    projectWeek: document.getElementById('project-week')?.value || '',
+    
+    // 团队信息
+    groupName: document.getElementById('group-name')?.value || '',
+    groupNumber: document.getElementById('group-number')?.value || '',
+    
+    // 团队成员（转换为数组）
+    teamMembers: (function() {
+      const membersInput = document.getElementById('team-members')?.value || '';
+      return membersInput.split(',').map(m => m.trim()).filter(m => m);
+    })(),
+    
+    // 会议目标
+    meetingGoals: document.getElementById('meeting-goals')?.value || '',
+    
+    // 上周会议纪要（重要！）
+    previousSummary: document.getElementById('previous-summary')?.value || '',
+    
+    // 其他可能的上下文
+    uploadedFiles: uploadedFiles.map(f => f.name) // 如果需要知道上传了哪些文件
+  };
+
+    // 将form_data添加到FormData
+  form.append('form_data', JSON.stringify(formDataObj));
+  
+  // 添加调试日志
+  console.log('📝 Sending form_data with final recording:', {
+    role: formDataObj.role,
+    module: formDataObj.module,
+    meetingType: formDataObj.meetingType,
+    projectWeek: formDataObj.projectWeek,
+    teamSize: formDataObj.teamMembers.length,
+    hasPreviousSummary: formDataObj.previousSummary.length > 0,
+    hasGoals: formDataObj.meetingGoals.length > 0
+  });
+
+
       
       try {
         // 发送到新的final-analyze端点
@@ -584,24 +628,53 @@ async function checkAudioActivity() {
         const result = await res.json();
         
         if (result.success) {
+
+          // 格式化输出，包含决策的详细信息
+      let decisionsText = 'None';
+      if (result.decisions && result.decisions.length > 0) {
+        decisionsText = result.decisions.map((d, i) => {
+          // 如果决策已经包含了Explicit和Tacit，直接显示
+          if (d.includes('Explicit:') && d.includes('Tacit:')) {
+            return d;
+          }
+          // 否则尝试从separate arrays中匹配
+          const explicit = result.explicit?.[i] || '';
+          const tacit = result.tacit?.[i] || '';
+          return `${d}\n  → Explicit: ${explicit}\n  → Tacit: ${tacit}`;
+        }).join('\n\n');
+      }
           textArea.value = `✨ FINAL MEETING SUMMARY ✨\n` +
-                          `Duration: ${duration} minutes\n` +
-                          `Speakers: ${result.metadata?.speakers || 'Unknown'}\n\n` +
-                          `📝 Complete Summary:\n${result.finalSummary}\n\n` +
-                          `🎯 Decisions:\n${result.decisions?.join('\n') || 'None'}\n\n` +
-                          `💡 Explicit Knowledge:\n${result.explicit?.join('\n') || 'None'}\n\n` +
-                          `💭 Tacit Knowledge:\n${result.tacit?.join('\n') || 'None'}`;
+                      `Duration: ${duration} minutes\n` +
+                      `Speakers: ${result.metadata?.speakers || 'Unknown'}\n` +
+                      `Module: ${formDataObj.module || 'Not specified'}\n` +
+                      `Meeting Type: ${formDataObj.meetingType || 'Not specified'}\n` +
+                      `${formDataObj.projectWeek ? `Project Week: ${formDataObj.projectWeek}\n` : ''}` +
+                      `\n📝 Complete Summary:\n${result.finalSummary}\n\n` +
+                      `🎯 Decisions & Knowledge:\n${decisionsText}\n\n` +
+                      `🎬 Actions:\n${result.actions?.join('\n') || 'None'}\n\n` +
+                      `💡 Strategic Reasoning:\n${result.reasoning || 'None'}\n\n` +
+                      `📚 Suggestions:\n${result.suggestions?.join('\n') || 'None'}`;
           
           // 保存最终总结
-          await saveFinalSummary(result);
-        }
-        
-      } catch (err) {
-        console.error('❌ Final processing failed:', err);
-        textArea.value += '\n\n❌ Final processing failed.';
-      }
+          await saveFinalSummary({
+        ...result,
+        context: formDataObj // 保存上下文供后续参考
+      });
+    
+       
+      console.log('✅ Final summary with context completed successfully');
+      
+    } else {
+      console.error('❌ Final processing failed:', result.error);
+      textArea.value = `❌ Final processing failed: ${result.error || 'Unknown error'}\n\n` +
+                      'Please try again or contact support if the issue persists.';
     }
-
+    
+  } catch (err) {
+    console.error('❌ Final processing failed:', err);
+    textArea.value += '\n\n❌ Final processing failed. Please check your connection and try again.';
+  }
+}
     // ========== 保存函数（保持原有逻辑） ==========
     async function saveIntermediateSummary(summary) {
       try {
@@ -627,28 +700,38 @@ async function checkAudioActivity() {
     }
 
     async function saveFinalSummary(result) {
-      try {
-        await fetch('https://fyp-2025-kath.vercel.app/api/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session: sessionId,
-            transcript: result.fullTranscript,
-            summary: result.finalSummary,
-            decision: result.decisions,
-            explicit: result.explicit,
-            tacit: result.tacit,
-            reasoning: result.reasoning,
-            suggestions: result.suggestions,
-            is_final: true,
-            duration_minutes: Math.floor((Date.now() - sessionStartTime) / 60000)
-          })
-        });
-        console.log('✅ Final summary saved');
-      } catch (err) {
-        console.error('Failed to save final:', err);
+  try {
+    const saveData = {
+      session: sessionId,
+      transcript: result.fullTranscript || '',
+      summary: result.finalSummary || '',
+      decision: result.decisions || [],
+      explicit: result.explicit || [],
+      tacit: result.tacit || [],
+      reasoning: result.reasoning || '',
+      suggestions: result.suggestions || [],
+      is_final: true,
+      metadata: {
+        ...result.metadata,
+        context: result.context // 保存表单上下文
       }
+    };
+    
+    const saveRes = await fetch('https://fyp-2025-kath.vercel.app/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(saveData)
+    });
+    
+    if (saveRes.ok) {
+      console.log('✅ Final summary saved to database');
+    } else {
+      console.warn('⚠️ Failed to save final summary');
     }
+  } catch (err) {
+    console.error('Error saving final summary:', err);
+  }
+}
 
     // ========== UI辅助函数 ==========
     function resetUI() {
