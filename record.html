@@ -555,6 +555,8 @@ async function checkAudioActivity() {
 
     // ========== 新增：处理完整录音 ==========
     async function processFinalRecording() {
+
+      console.log('🔍 检查 sessionStorage:', sessionStorage.getItem('formConfig'));
       if (fullRecordingChunks.length === 0) {
         console.warn('No full recording data');
         return;
@@ -574,32 +576,35 @@ async function checkAudioActivity() {
       form.append('session_id', sessionId);
       form.append('duration_minutes', duration.toString());
 
-       // ✅ 新增：收集并添加form_data
-  const formDataObj = {
-    // 基本配置
-    role: document.getElementById('role')?.value || 'student',
-    module: document.getElementById('module')?.value || '',
-    meetingType: document.getElementById('meeting-type')?.value || '',
-    projectWeek: document.getElementById('project-week')?.value || '',
+  //      // ✅ 新增：收集并添加form_data
+  // const formDataObj = {
+  //   // 基本配置
+  //   role: document.getElementById('role')?.value || 'student',
+  //   module: document.getElementById('module')?.value || '',
+  //   meetingType: document.getElementById('meeting-type')?.value || '',
+  //   projectWeek: document.getElementById('project-week')?.value || '',
     
-    // 团队信息
-    groupName: document.getElementById('group-name')?.value || '',
-    groupNumber: document.getElementById('group-number')?.value || '',
+  //   // 团队信息
+  //   groupName: document.getElementById('group-name')?.value || '',
+  //   groupNumber: document.getElementById('group-number')?.value || '',
     
-    // 团队成员（转换为数组）
-    teamMembers: (function() {
-      const membersInput = document.getElementById('team-members')?.value || '';
-      return membersInput.split(',').map(m => m.trim()).filter(m => m);
-    })(),
+  //   // 团队成员（转换为数组）
+  //   teamMembers: (function() {
+  //     const membersInput = document.getElementById('team-members')?.value || '';
+  //     return membersInput.split(',').map(m => m.trim()).filter(m => m);
+  //   })(),
     
-    // 会议目标
-    meetingGoals: document.getElementById('meeting-goals')?.value || '',
+  //   // 会议目标
+  //   meetingGoals: document.getElementById('meeting-goals')?.value || '',
     
-    // 上周会议纪要（重要！）
-    previousSummary: document.getElementById('previous-summary')?.value || '',
+  //   // 上周会议纪要（重要！）
+  //   previousSummary: document.getElementById('previous-summary')?.value || '',
     
     
-  };
+  // };
+
+  const formDataObj = JSON.parse(sessionStorage.getItem('formConfig') || '{}');
+  console.log('📝 从 sessionStorage 获取的配置:', formDataObj);
 
     // 将form_data添加到FormData
   form.append('form_data', JSON.stringify(formDataObj));
