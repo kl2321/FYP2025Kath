@@ -20,6 +20,7 @@ class CanvasManager {
         this.cardPositions = new Map();
         this.currentRow = 0;
         this.currentCol = 0;
+        this.timeInterval = 5; // 默认5分钟
         this.CONFIG = {
             CANVAS_WIDTH: 1200,
             CANVAS_HEIGHT: 800,
@@ -29,6 +30,10 @@ class CanvasManager {
             CARDS_PER_ROW: 3,
             PADDING: 40
         };
+    }
+    setTimeInterval(interval) {
+        this.timeInterval = interval;
+        console.log(`📊 Canvas interval set to: ${interval} minutes`);
     }
     initializeRealtimeCanvas() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -76,7 +81,7 @@ class CanvasManager {
             header.y = this.CONFIG.PADDING;
             this.realtimeFrame.appendChild(header);
             const timeline = figma.createText();
-            timeline.characters = "Duration: Every 10 mins";
+            timeline.characters = `Duration: Every ${this.timeInterval} mins`;
             timeline.fontSize = 14;
             timeline.fontName = { family: "Inter", style: "Regular" };
             timeline.fills = [{
@@ -328,14 +333,18 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
 function startMeeting(data) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // Reset statistics
+            const timeInterval = data.timeInterval || 5; // 默认5分钟
+            console.log(`⏱️ Meeting interval: ${timeInterval} minutes`);
+            canvasManager.setTimeInterval(timeInterval);
+            // Reset stati
+            // stics
             meetingStats = {
                 decisions: 0,
                 actions: 0,
                 speakers: new Set(),
                 cards: 0,
                 startTime: Date.now(),
-                currentMinute: 0
+                currentMinute: 0,
             };
             // Initialize real-time canvas
             yield canvasManager.initializeRealtimeCanvas();

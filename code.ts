@@ -527,6 +527,12 @@ class CanvasManager {
   private cardPositions: Map<string, { x: number; y: number }> = new Map();
   private currentRow: number = 0;
   private currentCol: number = 0;
+
+  private timeInterval: number = 5;  // 默认5分钟
+  setTimeInterval(interval: number): void {
+    this.timeInterval = interval;
+    console.log(`📊 Canvas interval set to: ${interval} minutes`);
+  }
   
   private readonly CONFIG = {
     CANVAS_WIDTH: 1200,
@@ -589,7 +595,7 @@ class CanvasManager {
     this.realtimeFrame.appendChild(header);
 
     const timeline = figma.createText();
-    timeline.characters = "Duration: Every 10 mins";
+    timeline.characters = `Duration: Every ${this.timeInterval} mins`; 
     timeline.fontSize = 14;
     timeline.fontName = { family: "Inter", style: "Regular" };
     timeline.fills = [{
@@ -886,14 +892,18 @@ figma.ui.onmessage = async (msg) => {
 // Start meeting and initialize canvas
 async function startMeeting(data: any) {
   try {
-    // Reset statistics
+     const timeInterval = data.timeInterval || 5;  // 默认5分钟
+    console.log(`⏱️ Meeting interval: ${timeInterval} minutes`);
+    canvasManager.setTimeInterval(timeInterval);
+    // Reset stati
+    // stics
     meetingStats = {
       decisions: 0,
       actions: 0,
       speakers: new Set(),
       cards: 0,
       startTime: Date.now(),
-      currentMinute: 0
+      currentMinute: 0,
     };
     
     // Initialize real-time canvas
