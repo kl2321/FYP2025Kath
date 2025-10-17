@@ -162,7 +162,7 @@
     let fullRecordingChunks = [];     // 完整录音的音频块
     let segmentStream = null;          // 分段录音流
     let fullStream = null;             // 完整录音流
-    
+   
     // ========== 修改原有变量 ==========
     let transcriptChunks = [];        // 保留，存储所有转录文本
     let segmentCount = 0;             // 替代原来的recordingCycleCount
@@ -598,8 +598,7 @@ async function checkAudioActivity() {
     // 上周会议纪要（重要！）
     previousSummary: document.getElementById('previous-summary')?.value || '',
     
-    // 其他可能的上下文
-    uploadedFiles: uploadedFiles.map(f => f.name) // 如果需要知道上传了哪些文件
+    
   };
 
     // 将form_data添加到FormData
