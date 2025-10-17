@@ -332,10 +332,14 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
 // Start meeting and initialize canvas
 function startMeeting(data) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
         try {
-            const timeInterval = data.timeInterval || 5; // 默认5分钟
-            console.log(`⏱️ Meeting interval: ${timeInterval} minutes`);
-            canvasManager.setTimeInterval(timeInterval);
+            //  const timeInterval = data.timeInterval || 5;  // 默认5分钟
+            // console.log(`⏱️ Meeting interval: ${timeInterval} minutes`);
+            // canvasManager.setTimeInterval(timeInterval);
+            const intervalMin = parseInt(((_b = (_a = data === null || data === void 0 ? void 0 : data.intervalMin) !== null && _a !== void 0 ? _a : data === null || data === void 0 ? void 0 : data.timeInterval) !== null && _b !== void 0 ? _b : 5).toString(), 10);
+            console.log(`⏱️ Meeting interval: ${intervalMin} minutes`);
+            canvasManager.setTimeInterval(intervalMin);
             // Reset stati
             // stics
             meetingStats = {
@@ -349,11 +353,12 @@ function startMeeting(data) {
             // Initialize real-time canvas
             yield canvasManager.initializeRealtimeCanvas();
             // Store meeting metadata
-            yield figma.clientStorage.setAsync(`${STORAGE_KEY_PREFIX}current_meeting`, Object.assign(Object.assign({}, data), { startTime: meetingStats.startTime }));
+            yield figma.clientStorage.setAsync(`${STORAGE_KEY_PREFIX}current_meeting`, Object.assign(Object.assign({}, data), { intervalMin, startTime: meetingStats.startTime }));
             // Notify UI
             figma.ui.postMessage({
                 type: 'meeting-started',
-                success: true
+                success: true,
+                intervalMin
             });
             figma.notify("✅ Meeting started - Real-time canvas ready");
         }

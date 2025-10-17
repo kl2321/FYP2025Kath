@@ -892,9 +892,15 @@ figma.ui.onmessage = async (msg) => {
 // Start meeting and initialize canvas
 async function startMeeting(data: any) {
   try {
-     const timeInterval = data.timeInterval || 5;  // 默认5分钟
-    console.log(`⏱️ Meeting interval: ${timeInterval} minutes`);
-    canvasManager.setTimeInterval(timeInterval);
+    //  const timeInterval = data.timeInterval || 5;  // 默认5分钟
+    // console.log(`⏱️ Meeting interval: ${timeInterval} minutes`);
+    // canvasManager.setTimeInterval(timeInterval);
+    const intervalMin = parseInt(
+  (data?.intervalMin ?? data?.timeInterval ?? 5).toString(),
+  10
+);
+console.log(`⏱️ Meeting interval: ${intervalMin} minutes`);
+canvasManager.setTimeInterval(intervalMin);
     // Reset stati
     // stics
     meetingStats = {
@@ -912,13 +918,15 @@ async function startMeeting(data: any) {
     // Store meeting metadata
     await figma.clientStorage.setAsync(`${STORAGE_KEY_PREFIX}current_meeting`, {
       ...data,
+      intervalMin,
       startTime: meetingStats.startTime
     });
     
     // Notify UI
     figma.ui.postMessage({
       type: 'meeting-started',
-      success: true
+      success: true,
+      intervalMin
     });
     
     figma.notify("✅ Meeting started - Real-time canvas ready");
