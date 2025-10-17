@@ -1893,6 +1893,21 @@ async function openExternalRecorder() {
   const recorderUrl = `${API_CONFIG.BASE_URL}/record.html?${params.toString()}`;
   console.log('📡 打开录音窗口，URL:', recorderUrl);
   window.open(recorderUrl, 'recorder', 'width=400,height=400');
+
+  parent.postMessage({
+  pluginMessage: {
+    type: 'start-meeting',
+    data: {
+      sessionId: recordingSessionId,
+      intervalMin,
+      module: formData.module,
+      meetingType: formData.meetingType,
+      role: formData.role,
+      projectWeek: formData.projectWeek,
+      teamMembers: formData.teamMembers || []
+    }
+  }
+}, '*');
   
   
   // 先保存所有配置到服务器
