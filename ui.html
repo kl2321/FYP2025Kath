@@ -820,8 +820,21 @@
       <div><strong>Module:</strong> <span id="moduleDisplay">--</span></div>
       <div><strong>Meeting Type:</strong> <span id="meetingTypeDisplay">--</span></div>
       <div><strong>Session ID:</strong> <span id="sessionIdDisplay">--</span></div>
-      <div><strong>Interval:</strong> Every <span id="intervalMinDisplay">5</span> minutes</div>
+      <div><strong>Interval:</strong> Every <span id="intervalMinDisplay">${intervalMin}</span> minutes</div>
     </div>
+  </div>
+
+   <div id="recording-interface"></div>
+    
+     <div style="margin-top: 20px; margin-bottom: 20px;">
+    <label for="cycleInput" style="font-weight: 600; margin-bottom: 8px; display: block;">
+      Summary interval (minutes):
+    </label>
+    <input id="cycleInput" type="number" value="5" min="1" max="30" 
+           style="width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+    <small style="color: #666; display: block; margin-top: 4px;">
+      AI will analyze and summarize every <strong id="intervalDisplay">${intervalMin}</strong> minutes
+    </small>
   </div>
 
   <!-- Recording URL Control -->
@@ -838,7 +851,7 @@
         🔗 Open Recorder
       </button>
       <button class="btn btn-secondary" id="copyLinkBtn" style="flex: 1; max-width: 200px;">
-        📋 Copy Link
+        📋 Copy Links
       </button>
     </div>
     
