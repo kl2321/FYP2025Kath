@@ -923,6 +923,12 @@ function testRealtimeAnalysis() {
     <button class="btn btn-secondary" onclick="goBackToRecording()">← Back to Recording</button>
     <button class="btn btn-primary" onclick="refreshProgress()">🔄 Refresh</button>
   </div>
+
+    <!-- Navigation Buttons -->
+  <div class="navigation">
+    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
+    <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button>
+  </div>
 </div>
    
   <script>
