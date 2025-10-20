@@ -289,46 +289,6 @@ function initializePlugin() {
         });
     });
 }
-// Message handling from UI
-figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('Received message:', msg);
-    switch (msg.type) {
-        case 'save-storage':
-            yield figma.clientStorage.setAsync(STORAGE_KEY_PREFIX + msg.key, msg.value);
-            break;
-        case 'load-storage':
-            const value = yield figma.clientStorage.getAsync(STORAGE_KEY_PREFIX + msg.key);
-            figma.ui.postMessage({
-                type: 'storage-loaded',
-                key: msg.key,
-                value: value
-            });
-            break;
-        case 'start-meeting':
-            yield startMeeting(msg.data);
-            break;
-        case 'add-decision':
-            yield addDecision(msg.data);
-            break;
-        case 'process-recording':
-            yield handleRecordingProcess(msg.formData, msg.audioData);
-            break;
-        case 'insert-summary':
-            yield insertFinalSummary(msg.data);
-            break;
-        case 'update-realtime':
-            yield updateRealtimeCanvas(msg.data);
-            break;
-        case 'clear-canvas':
-            canvasManager.clearCanvas();
-            break;
-        case 'resize':
-            figma.ui.resize(msg.width, msg.height);
-            break;
-        default:
-            console.log('Unknown message type:', msg.type);
-    }
-});
 // Start meeting and initialize canvas
 function startMeeting(data) {
     return __awaiter(this, void 0, void 0, function* () {

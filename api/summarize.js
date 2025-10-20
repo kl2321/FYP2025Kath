@@ -177,6 +177,11 @@ console.log('User length:', userPrompt.length, 'chars');
         .replace(/```$/, '')
          .trim();
       parsed = JSON.parse(jsonString);
+      console.log('✅ Successfully parsed OpenAI response:', {
+        hasDecisions: !!parsed.decisions,
+        decisionCount: parsed.decisions?.length || 0,
+        decisionsEmpty: !parsed.decisions || parsed.decisions.length === 0
+      });
     } catch (e) {
       console.error("❌ Failed to parse GPT output:", e);
       console.error("Raw content:", data.choices[0].message.content);
@@ -191,59 +196,150 @@ console.log('User length:', userPrompt.length, 'chars');
       
     }
 
-    // Return real-time decision analysis results
-    res.status(200).json({ 
+    // 🔥 NEW: Check if decisions array is empty or invalid
+    const decisions = Array.isArray(parsed.decisions) ? parsed.decisions : [];
+    const hasValidDecisions = decisions.length > 0 && 
+      decisions.some(d => d.decision && d.decision.trim().length > 0);
+
+    if (!hasValidDecisions) {
+      
+      console.log('ℹ️ No meaningful decisions found in this segment');
+      console.log('📊 Decision array:', decisions);
+      
+      return res.status(200).json({
+        success: true,
+        decisions: [],
+        noDecisions: true, // 🔑 Key flag for frontend
+        message: 'No decisions or key points identified in this segment',
+        analysisTime: new Date().toISOString(),
+        transcript: text,
+        
+        // Backward compatibility
+        summary: '',
+        decision: [],
+        explicit: [],
+        tacit: [],
+        reasoning: '',
+        suggestions: []
+      });
+    }
+
+    // 🔥 IMPROVED: Return successful analysis with complete data
+    console.log('✅ Real-time analysis completed:', {
+      decisionCount: decisions.length,
+      firstDecision: decisions[0]?.decision?.substring(0, 50) + '...'
+    });
+    
+    return res.status(200).json({ 
       // Primary response: decisions array
-      decisions: parsed.decisions || [],
+      success: true,
+      noDecisions: false,
+      decisions: decisions,
       analysisTime: new Date().toISOString(),
       
       // Include transcript for reference
       transcript: text,
       
-      // Backward compatibility fields (can be removed if frontend is updated)
-      summary: parsed.decisions?.map(d => d.decision).join('; ') || '',
-      decision: parsed.decisions?.map(d => d.decision) || [],
-      explicit: parsed.decisions?.flatMap(d => d.explicit_knowledge || []) || [],
-      tacit: parsed.decisions?.flatMap(d => d.tacit_knowledge || []) || [],
+      // Backward compatibility fields
+      summary: decisions.map(d => d.decision).join('; ') || '',
+      decision: decisions.map(d => d.decision) || [],
+      explicit: decisions.flatMap(d => d.explicit_knowledge || []) || [],
+      tacit: decisions.flatMap(d => d.tacit_knowledge || []) || [],
       reasoning: '',
       suggestions: [],
       
       // Metadata for debugging
       prompt_metadata: config.isDevelopment ? {
-        role,
-        module,
-        meetingType,
-        projectWeek,
-        groupName,
-        groupNumber,
+        role: validatedConfig.role,
+        module: validatedConfig.module,
+        meetingType: validatedConfig.meetingType,
+        projectWeek: validatedConfig.projectWeek,
+        groupName: validatedConfig.groupName,
+        groupNumber: validatedConfig.groupNumber,
         analysis_type: 'realtime',
-        pdf_context_length: pdfContext.length,
+        pdf_context_length: context_pdf.length,
         previous_summary_length: (avoid || '').length
       } : undefined
     });
 
   } catch (err) {
     console.error("❌ Real-time analysis error:", err);
+    console.error("Error stack:", err.stack);
     
     // Return detailed error in development
     if (config.isDevelopment) {
       return res.status(500).json({ 
+        success: false,
         error: 'Analysis failed',
         detail: err.message,
         stack: err.stack,
-        decisions: []
+        decisions: [],
+        noDecisions: false
       });
     }
+    
+    // Return simple error in production
+    return res.status(500).json({ 
+      success: false,
+      error: 'Analysis failed',
+      decisions: [],
+      noDecisions: false,
+      analysisTime: new Date().toISOString()
+    });
+
+  //   // Return real-time decision analysis results
+  //   res.status(200).json({ 
+  //     // Primary response: decisions array
+  //     decisions: parsed.decisions || [],
+  //     analysisTime: new Date().toISOString(),
+      
+  //     // Include transcript for reference
+  //     transcript: text,
+      
+  //     // Backward compatibility fields (can be removed if frontend is updated)
+  //     summary: parsed.decisions?.map(d => d.decision).join('; ') || '',
+  //     decision: parsed.decisions?.map(d => d.decision) || [],
+  //     explicit: parsed.decisions?.flatMap(d => d.explicit_knowledge || []) || [],
+  //     tacit: parsed.decisions?.flatMap(d => d.tacit_knowledge || []) || [],
+  //     reasoning: '',
+  //     suggestions: [],
+      
+  //     // Metadata for debugging
+  //     prompt_metadata: config.isDevelopment ? {
+  //       role,
+  //       module,
+  //       meetingType,
+  //       projectWeek,
+  //       groupName,
+  //       groupNumber,
+  //       analysis_type: 'realtime',
+  //       pdf_context_length: pdfContext.length,
+  //       previous_summary_length: (avoid || '').length
+  //     } : undefined
+  //   });
+
+  // } catch (err) {
+  //   console.error("❌ Real-time analysis error:", err);
+    
+  //   // Return detailed error in development
+  //   if (config.isDevelopment) {
+  //     return res.status(500).json({ 
+  //       error: 'Analysis failed',
+  //       detail: err.message,
+  //       stack: err.stack,
+  //       decisions: []
+  //     });
+  //   }
     
 
     
     
-  // Return simple error in production
-    return res.status(500).json({ 
-      error: 'Analysis failed',
-      decisions: [],
-      analysisTime: new Date().toISOString()
-    });
+  // // Return simple error in production
+  //   return res.status(500).json({ 
+  //     error: 'Analysis failed',
+  //     decisions: [],
+  //     analysisTime: new Date().toISOString()
+  //   });
 
 
   }
