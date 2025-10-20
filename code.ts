@@ -840,6 +840,103 @@ async function initializePlugin() {
 
 
 
+// =====================================
+// Message Handler - Routes UI messages to appropriate functions
+// =====================================
+figma.ui.onmessage = async (msg) => {
+  console.log('🔨 Received message:', msg.type);
+
+  try {
+    switch (msg.type) {
+      case 'save-storage':
+        await saveStorage(msg.key, msg.value);
+        break;
+      
+      case 'load-storage':
+        await loadStorage(msg.key);
+        break;
+      
+      case 'start-meeting':
+        await startMeeting(msg.data);
+        break;
+      
+      case 'add-decision':
+        await addDecision(msg.data);
+        break;
+      
+      case 'update-realtime':
+        await updateRealtimeCanvas(msg.data);
+        break;
+      
+      case 'process-recording':
+        await handleRecordingProcess(msg.formData, msg.audioData);
+        break;
+      
+      case 'insert-summary':
+        await insertFinalSummary(msg.data);
+        break;
+      
+      case 'file-upload':
+        await handleFileUpload(msg);
+        break;
+      
+      case 'test':
+        figma.notify("✅ Test message received!");
+        console.log('Test message handled successfully');
+        break;
+      
+      default:
+        console.log('⚠️ Unknown message type:', msg.type);
+    }
+ } catch (error) {
+    console.error('❌ Error handling message:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    figma.notify(`❌ Error: ${errorMessage}`);  // ✅ 修复了
+  }
+};
+
+// =====================================
+// Storage Functions
+// =====================================
+async function saveStorage(key: string, value: any) {
+  try {
+    await figma.clientStorage.setAsync(STORAGE_KEY_PREFIX + key, value);
+    console.log('💾 Saved to storage:', key);
+  } catch (error) {
+    console.error('❌ Failed to save:', error);
+  }
+}
+
+async function loadStorage(key: string) {
+  try {
+    const value = await figma.clientStorage.getAsync(STORAGE_KEY_PREFIX + key);
+    figma.ui.postMessage({
+      type: 'storage-loaded',
+      key: key,
+      value: value
+    });
+    console.log('📂 Loaded from storage:', key);
+  } catch (error) {
+    console.error('❌ Failed to load:', error);
+  }
+}
+
+async function handleFileUpload(msg: any) {
+  try {
+    const fileKey = `${STORAGE_KEY_PREFIX}file_${msg.fileName}`;
+    await figma.clientStorage.setAsync(fileKey, {
+      fileName: msg.fileName,
+      fileType: msg.fileType,
+      fileContent: msg.fileContent,
+      uploadedAt: Date.now()
+    });
+    console.log('📄 File stored:', msg.fileName);
+  } catch (error) {
+    console.error('❌ Failed to store file:', error);
+  }
+}
+
+
 // Start meeting and initialize canvas
 async function startMeeting(data: any) {
   try {

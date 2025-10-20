@@ -289,6 +289,98 @@ function initializePlugin() {
         });
     });
 }
+// =====================================
+// Message Handler - Routes UI messages to appropriate functions
+// =====================================
+figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('🔨 Received message:', msg.type);
+    try {
+        switch (msg.type) {
+            case 'save-storage':
+                yield saveStorage(msg.key, msg.value);
+                break;
+            case 'load-storage':
+                yield loadStorage(msg.key);
+                break;
+            case 'start-meeting':
+                yield startMeeting(msg.data);
+                break;
+            case 'add-decision':
+                yield addDecision(msg.data);
+                break;
+            case 'update-realtime':
+                yield updateRealtimeCanvas(msg.data);
+                break;
+            case 'process-recording':
+                yield handleRecordingProcess(msg.formData, msg.audioData);
+                break;
+            case 'insert-summary':
+                yield insertFinalSummary(msg.data);
+                break;
+            case 'file-upload':
+                yield handleFileUpload(msg);
+                break;
+            case 'test':
+                figma.notify("✅ Test message received!");
+                console.log('Test message handled successfully');
+                break;
+            default:
+                console.log('⚠️ Unknown message type:', msg.type);
+        }
+    }
+    catch (error) {
+        console.error('❌ Error handling message:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        figma.notify(`❌ Error: ${errorMessage}`); // ✅ 修复了
+    }
+});
+// =====================================
+// Storage Functions
+// =====================================
+function saveStorage(key, value) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield figma.clientStorage.setAsync(STORAGE_KEY_PREFIX + key, value);
+            console.log('💾 Saved to storage:', key);
+        }
+        catch (error) {
+            console.error('❌ Failed to save:', error);
+        }
+    });
+}
+function loadStorage(key) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const value = yield figma.clientStorage.getAsync(STORAGE_KEY_PREFIX + key);
+            figma.ui.postMessage({
+                type: 'storage-loaded',
+                key: key,
+                value: value
+            });
+            console.log('📂 Loaded from storage:', key);
+        }
+        catch (error) {
+            console.error('❌ Failed to load:', error);
+        }
+    });
+}
+function handleFileUpload(msg) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const fileKey = `${STORAGE_KEY_PREFIX}file_${msg.fileName}`;
+            yield figma.clientStorage.setAsync(fileKey, {
+                fileName: msg.fileName,
+                fileType: msg.fileType,
+                fileContent: msg.fileContent,
+                uploadedAt: Date.now()
+            });
+            console.log('📄 File stored:', msg.fileName);
+        }
+        catch (error) {
+            console.error('❌ Failed to store file:', error);
+        }
+    });
+}
 // Start meeting and initialize canvas
 function startMeeting(data) {
     return __awaiter(this, void 0, void 0, function* () {
