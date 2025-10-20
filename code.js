@@ -311,11 +311,15 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             case 'update-realtime':
                 yield updateRealtimeCanvas(msg.data);
                 break;
+            case 'stop-recording':
+                meetingStats.currentMinute = Math.floor((Date.now() - meetingStats.startTime) / 60000);
+                figma.notify(`Recording stopped after ${meetingStats.currentMinute} minutes`);
+                break;
             case 'process-recording':
                 yield handleRecordingProcess(msg.formData, msg.audioData);
                 break;
             case 'insert-summary':
-                yield insertFinalSummary(msg.data);
+                yield generateFinalSummary();
                 break;
             case 'file-upload':
                 yield handleFileUpload(msg);
@@ -323,6 +327,16 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             case 'test':
                 figma.notify("✅ Test message received!");
                 console.log('Test message handled successfully');
+                break;
+            case 'realtime-update':
+                // 处理实时更新
+                if (msg.data && msg.data.decision) {
+                    yield addDecision({
+                        text: msg.data.decision,
+                        owner: msg.data.speaker || "Unknown",
+                        type: 'decision'
+                    });
+                }
                 break;
             default:
                 console.log('⚠️ Unknown message type:', msg.type);
@@ -542,26 +556,49 @@ function handleRecordingProcess(formData, audioData) {
     });
 }
 // Insert final summary to canvas
-function insertFinalSummary(data) {
+// async function insertFinalSummary(data: any) {
+//   try {
+//     // Get saved summary
+//     const summary = await figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}last_summary`);
+//     if (!summary) {
+//       figma.notify("❌ No summary available");
+//       return;
+//     }
+//     // Get meeting metadata
+//     const metadata = await figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}current_meeting`);
+//     // Create final summary on canvas
+//     await canvasManager.createFinalSummary(summary, {
+//       ...metadata,
+//       ...data,
+//       week: data.week || 5
+//     });
+//     figma.notify("✅ Summary inserted to canvas!");
+//     // Clear real-time canvas if exists
+//     canvasManager.clearCanvas();
+//   } catch (error) {
+//     console.error('Error inserting summary:', error);
+//     figma.notify("❌ Failed to insert summary");
+//   }
+// }
+// 生成最终摘要
+function generateFinalSummary() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // Get saved summary
-            const summary = yield figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}last_summary`);
-            if (!summary) {
-                figma.notify("❌ No summary available");
-                return;
-            }
-            // Get meeting metadata
             const metadata = yield figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}current_meeting`);
-            // Create final summary on canvas
-            yield canvasManager.createFinalSummary(summary, Object.assign(Object.assign(Object.assign({}, metadata), data), { week: data.week || 5 }));
-            figma.notify("✅ Summary inserted to canvas!");
-            // Clear real-time canvas if exists
-            canvasManager.clearCanvas();
+            // 创建最终摘要Canvas
+            const summary = {
+                overview: `Meeting completed with ${meetingStats.decisions} decisions and ${meetingStats.actions} action items.`,
+                decisions: [`Total decisions made: ${meetingStats.decisions}`],
+                actions: [`Total action items: ${meetingStats.actions}`],
+                duration: Math.floor((Date.now() - meetingStats.startTime) / 60000),
+                participants: Array.from(meetingStats.speakers)
+            };
+            yield canvasManager.createFinalSummary(summary, metadata);
+            figma.notify("✅ Final summary created!");
         }
         catch (error) {
-            console.error('Error inserting summary:', error);
-            figma.notify("❌ Failed to insert summary");
+            console.error('Error generating final summary:', error);
+            figma.notify("❌ Failed to generate summary");
         }
     });
 }

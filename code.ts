@@ -503,6 +503,27 @@
 // =====================================
 // Canvas Manager (Integrated)
 // =====================================
+
+type UIToPluginMessage = 
+  | { type: 'save-storage'; key: string; value: any }
+  | { type: 'load-storage'; key: string }
+  | { type: 'start-meeting'; data: any }
+  | { type: 'add-decision-from-ui'; data: any }
+  | { type: 'stop-recording'; sessionId?: string }
+  | { type: 'generate-final-summary' }
+  | { type: 'file-upload'; fileName: string; fileType: string; fileSize: number }
+  | { type: 'process-recording'; formData: any; audioData: string }
+  | { type: 'insert-summary'; data: any }
+  | { type: 'test' };
+
+type PluginToUIMessage =
+  | { type: 'storage-loaded'; key: string; value: any }
+  | { type: 'update-stats'; stats: any }
+  | { type: 'meeting-started'; success: boolean; intervalMin?: number }
+  | { type: 'processing-start' }
+  | { type: 'processing-complete'; results: any; stats?: any }
+  | { type: 'processing-error'; error: string };
+
 interface DecisionCard {
   id: string;
   minute: number;
@@ -867,13 +888,18 @@ figma.ui.onmessage = async (msg) => {
       case 'update-realtime':
         await updateRealtimeCanvas(msg.data);
         break;
-      
+        
+      case 'stop-recording':
+      meetingStats.currentMinute = Math.floor((Date.now() - meetingStats.startTime) / 60000);
+      figma.notify(`Recording stopped after ${meetingStats.currentMinute} minutes`);
+      break;
+
       case 'process-recording':
         await handleRecordingProcess(msg.formData, msg.audioData);
         break;
       
       case 'insert-summary':
-        await insertFinalSummary(msg.data);
+        await generateFinalSummary();
         break;
       
       case 'file-upload':
@@ -884,6 +910,17 @@ figma.ui.onmessage = async (msg) => {
         figma.notify("✅ Test message received!");
         console.log('Test message handled successfully');
         break;
+
+      case 'realtime-update':
+      // 处理实时更新
+      if (msg.data && msg.data.decision) {
+        await addDecision({
+          text: msg.data.decision,
+          owner: msg.data.speaker || "Unknown",
+          type: 'decision'
+        });
+      }
+      break;
       
       default:
         console.log('⚠️ Unknown message type:', msg.type);
@@ -1114,34 +1151,58 @@ async function handleRecordingProcess(formData: any, audioData: string) {
 }
 
 // Insert final summary to canvas
-async function insertFinalSummary(data: any) {
+// async function insertFinalSummary(data: any) {
+//   try {
+//     // Get saved summary
+//     const summary = await figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}last_summary`);
+    
+//     if (!summary) {
+//       figma.notify("❌ No summary available");
+//       return;
+//     }
+    
+//     // Get meeting metadata
+//     const metadata = await figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}current_meeting`);
+    
+//     // Create final summary on canvas
+//     await canvasManager.createFinalSummary(summary, {
+//       ...metadata,
+//       ...data,
+//       week: data.week || 5
+//     });
+    
+//     figma.notify("✅ Summary inserted to canvas!");
+    
+//     // Clear real-time canvas if exists
+//     canvasManager.clearCanvas();
+    
+//   } catch (error) {
+//     console.error('Error inserting summary:', error);
+//     figma.notify("❌ Failed to insert summary");
+//   }
+// }
+
+// 生成最终摘要
+async function generateFinalSummary() {
   try {
-    // Get saved summary
-    const summary = await figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}last_summary`);
-    
-    if (!summary) {
-      figma.notify("❌ No summary available");
-      return;
-    }
-    
-    // Get meeting metadata
     const metadata = await figma.clientStorage.getAsync(`${STORAGE_KEY_PREFIX}current_meeting`);
     
-    // Create final summary on canvas
-    await canvasManager.createFinalSummary(summary, {
-      ...metadata,
-      ...data,
-      week: data.week || 5
-    });
+    // 创建最终摘要Canvas
+    const summary = {
+      overview: `Meeting completed with ${meetingStats.decisions} decisions and ${meetingStats.actions} action items.`,
+      decisions: [`Total decisions made: ${meetingStats.decisions}`],
+      actions: [`Total action items: ${meetingStats.actions}`],
+      duration: Math.floor((Date.now() - meetingStats.startTime) / 60000),
+      participants: Array.from(meetingStats.speakers)
+    };
     
-    figma.notify("✅ Summary inserted to canvas!");
+    await canvasManager.createFinalSummary(summary, metadata);
     
-    // Clear real-time canvas if exists
-    canvasManager.clearCanvas();
+    figma.notify("✅ Final summary created!");
     
   } catch (error) {
-    console.error('Error inserting summary:', error);
-    figma.notify("❌ Failed to insert summary");
+    console.error('Error generating final summary:', error);
+    figma.notify("❌ Failed to generate summary");
   }
 }
 
