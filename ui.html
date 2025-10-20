@@ -767,26 +767,31 @@
 
   <div id="recording-interface"></div>
     
-    <!-- 添加录音间隔设置 -->
-    <div style="margin-top: 30px;">
-      <label for="cycleInput">Summary interval (minutes):</label>
-      <input id="cycleInput" type="number" value="5" min="1" max="30" 
-             style="width: 80px; padding: 8px; margin-left: 10px;">
-    </div>
-    
-    <div style="margin-top: 40px;">
-      <div class="info-message info" style="text-align: left;">
-        <span>ℹ️</span>
-        <div>
-          <strong>Recording Instructions:</strong><br>
-          • A new window will open for recording<br>
-          • Allow microphone access when prompted<br>  
-          • Recording will auto-save every 5 minutes<br>
-          • You can stop recording from this page
-        </div>
+     <div style="margin-top: 20px; margin-bottom: 20px;">
+    <label for="cycleInput" style="font-weight: 600; margin-bottom: 8px; display: block;">
+      Summary interval (minutes):
+    </label>
+    <input id="cycleInput" type="number" value="5" min="1" max="30" 
+           style="width: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+    <small style="color: #666; display: block; margin-top: 4px;">
+      AI will analyze and summarize every <strong id="intervalDisplay">5</strong> minutes
+    </small>
+  </div>
+
+
+  <div style="margin-top: 30px;">
+    <div class="info-message info" style="text-align: left;">
+      <span>ℹ️</span>
+      <div>
+        <strong>Recording Instructions:</strong><br>
+        • A new window will open for recording<br>
+        • Allow microphone access when prompted<br>  
+        • Recording will auto-save periodically<br>
+        • You can stop recording from this page or the summary page
       </div>
     </div>
   </div>
+  
   
   <!-- 添加停止按钮（初始隐藏） -->
   <div style="text-align: center; margin-top: 20px;">
@@ -796,18 +801,7 @@
   </div>
 </div>
 
-<!-- 添加查看摘要按钮 -->
-<!-- <div style="text-align: center; margin-top: 20px;">
-  <button class="btn btn-primary" id="viewSummaryBtn" onclick="goToSummaryPage()" style="display: none;">
-    View Summary Demo
-  </button>
 
-<div style="text-align: center; margin-top: 20px;">
-    <button class="btn btn-primary" onclick="testRealtimeAnalysis()" 
-            style="background: #ff9800; border-color: #ff9800;">
-      🧪 Test Realtime Analysis (Dev Only)
-    </button>
-  </div> -->
 <!-- Navigation Buttons -->
   <div class="navigation">
     <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
@@ -1029,7 +1023,27 @@ window.goToSummaryPage = function() {
 // 在页面加载完成后，为测试添加一个按钮
 document.addEventListener('DOMContentLoaded', () => {
   // ... 原有代码 ...
+  const cycleInput = document.getElementById('cycleInput');
+  const intervalDisplay = document.getElementById('intervalDisplay');
   
+  if (cycleInput && intervalDisplay) {
+    // 初始化显示
+    intervalDisplay.textContent = cycleInput.value || '5';
+    
+    // 监听输入变化
+    cycleInput.addEventListener('input', function() {
+      const value = parseInt(this.value) || 5;
+      intervalDisplay.textContent = value;
+      
+      // 可选：添加视觉反馈
+      intervalDisplay.style.color = '#5E5CE6';
+      setTimeout(() => {
+        intervalDisplay.style.color = '';
+      }, 300);
+    });
+    
+    console.log('✅ Summary interval display initialized');
+  }
   // 添加测试按钮（可选）
   setTimeout(() => {
     const viewSummaryBtn = document.getElementById('viewSummaryBtn');
@@ -1043,6 +1057,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function changePage(direction) {
       // Save current page data
       savePageData();
+
+      if (currentPage === 3 && direction > 0) {
+    // 如果正在录音，提示用户
+    if (isExternalRecording) {
+      const confirmed = confirm('Recording is in progress. Go to summary page to view live progress?');
+      if (!confirmed) return;
+    }
+    
+    // 跳转到第4页（Summary页面）
+    currentPage = 4;
+    updatePageDisplay();
+    return;
+  }
 
       // Validate before moving forward
       if (direction > 0 && !validateCurrentPage()) {
@@ -2204,10 +2231,21 @@ function showRecordingInstructions(intervalMin) {
   // 计算需要几个5分钟的segments
   const segmentsNeeded = Math.ceil(intervalMin / 5);
   const actualInterval = segmentsNeeded * 5;
-  
+  const params = new URLSearchParams({
+    session: recordingSessionId,
+    intervalMin: intervalMin.toString(),
+    module: formData.module || 'DE4 ERO',
+    meetingType: formData.meetingType || 'brainstorming',
+    role: formData.role || 'student',
+    projectWeek: formData.projectWeek || '',
+    groupName: formData.groupName || '',
+    groupNumber: formData.groupNumber || '',
+    meetingGoals: encodeURIComponent(formData.meetingGoals || ''),
+    teamMembers: (formData.teamMembers || []).join('|')
+  });
   // 传递intervalMin参数到record.html
   const recordingURL = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&intervalMin=${intervalMin}&start=true`;
-  
+  console.log('📡 生成的录音URL:', recordingURL);
   // 更新录音页面UI
   const recordingInterface = document.getElementById('recording-interface');
   if (recordingInterface) {
@@ -3082,13 +3120,30 @@ window.copyRecordingLink = async function(url) {
 // 尝试打开录音页面
 window.attemptOpenRecorder = function(url) {
   console.log('用户点击打开录音页面');
+  console.log('📋 当前配置:', formData);
+
+  const params = new URLSearchParams({
+    session: recordingSessionId,
+    intervalMin: formData.intervalMin || 5,
+    module: formData.module || 'DE4 ERO',
+    meetingType: formData.meetingType || 'brainstorming',
+    role: formData.role || 'student',
+    projectWeek: formData.projectWeek || '',
+    groupName: formData.groupName || '',
+    groupNumber: formData.groupNumber || '',
+    meetingGoals: encodeURIComponent(formData.meetingGoals || ''),
+    teamMembers: (formData.teamMembers || []).join('|')
+  });
   
-  const newWindow = window.open(url, '_blank');
+  const fullUrl = `${API_CONFIG.BASE_URL}/record.html?${params.toString()}`;
+  console.log('🌐 完整URL:', fullUrl);
+  
+  const newWindow = window.open(fullUrl, '_blank');
   
   if (!newWindow || newWindow.closed) {
     showMessage('Popup blocked. Please use "Copy Link" instead.', 'warning');
     // 自动复制链接
-    copyRecordingLink(url);
+    copyRecordingLink(fullUrl);
   } else {
     showMessage('Recording page opened!', 'success');
     recordingWindow = newWindow;
