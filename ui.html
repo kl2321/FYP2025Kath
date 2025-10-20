@@ -1097,6 +1097,100 @@ function initializePage3() {
   }
 }
 
+// Update meeting statistics in real-time
+function updateMeetingStats() {
+  console.log('📊 开始更新会议统计');
+  
+  // Calculate current duration
+  const currentDuration = calculateDuration();
+  updateElement('durationDisplay', currentDuration);
+  
+  // Update decision count
+  const decisionsCount = meetingData.decisions?.length || 0;
+  updateElement('decisionsCount', decisionsCount);
+  
+  // Update speakers count
+  const speakersCount = meetingData.speakers?.length || 0;
+  updateElement('speakersCount', speakersCount);
+  
+  // Calculate next segment time
+  updateNextSegmentDisplay();
+  
+  // Update latest decisions display
+  updateLatestDecisions();
+  
+  console.log('📊 统计更新完成:', {
+    duration: currentDuration,
+    decisions: decisionsCount,
+    speakers: speakersCount
+  });
+}
+
+// Helper: Calculate meeting duration
+function calculateDuration() {
+  if (!meetingData.startTime) return '00:00';
+  
+  const now = Date.now();
+  const elapsed = now - meetingData.startTime;
+  const minutes = Math.floor(elapsed / 60000);
+  const seconds = Math.floor((elapsed % 60000) / 1000);
+  
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// Helper: Update next segment display
+function updateNextSegmentDisplay() {
+  if (!meetingData.interval || !meetingData.startTime) {
+    updateElement('nextSegmentTime', '--:--');
+    updateElement('segmentCountdown', '--');
+    return;
+  }
+  
+  const intervalMs = meetingData.interval * 60000;
+  const elapsed = Date.now() - meetingData.startTime;
+  const nextSegment = intervalMs - (elapsed % intervalMs);
+  
+  const minutes = Math.floor(nextSegment / 60000);
+  const seconds = Math.floor((nextSegment % 60000) / 1000);
+  
+  updateElement('nextSegmentTime', `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+  updateElement('segmentCountdown', `${minutes}m ${seconds}s`);
+}
+
+// Helper: Update latest decisions
+function updateLatestDecisions() {
+  const container = document.getElementById('latestDecisions');
+  if (!container) return;
+  
+  const decisions = meetingData.decisions || [];
+  
+  if (decisions.length === 0) {
+    container.innerHTML = '<em style="color: #999;">No decisions recorded yet. AI will analyze the discussion periodically.</em>';
+    return;
+  }
+  
+  // Show latest 3 decisions
+  const latest = decisions.slice(-3).reverse();
+  container.innerHTML = latest.map(decision => `
+    <div class="decision-item">
+      <strong>${decision.title || 'Untitled Decision'}</strong>
+      <p style="color: #666; font-size: 12px; margin-top: 4px;">
+        ${decision.description || 'No description'}
+      </p>
+    </div>
+  `).join('');
+}
+
+// Helper: Safe element update
+function updateElement(id, value) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.textContent = value;
+  } else {
+    console.warn(`⚠️ Element not found: ${id}`);
+  }
+}
+
 function handleOpenRecorderClick() {
   if (!currentRecordingURL) {
     showMessage('Recording link is not ready yet.', 'warning');
