@@ -866,7 +866,16 @@
   </div>
 
   <!-- Hidden Elements -->
-  <input type="hidden" id="cycleInput" value="5">
+  <!-- <input type="hidden" id="cycleInput" value="5"> -->
+   <!-- <div style="margin-bottom: 16px;">
+  <label for="cycleInput" style="font-weight: 600; display:block; margin-bottom: 6px;">
+    Summary interval (minutes)
+  </label>
+  <input id="cycleInput" type="number" min="1" max="30" value="5"
+         style="width: 100px; padding: 6px; border: 1px solid #ddd; border-radius: 5px;">
+  <small style="color:#666;">AI will summarize every <span id="intervalDisplay">5</span> minutes</small>
+</div> -->
+
 </div>
 <script>
 function testRealtimeAnalysis() {
@@ -1110,6 +1119,29 @@ function initializePage3() {
   }
 }
 
+function updateRecordingURL() {
+  const params = new URLSearchParams({
+    session: recordingSessionId,
+    intervalMin: (formData.intervalMin || 5).toString(),
+    module: formData.module || 'DE4 ERO',
+    meetingType: formData.meetingType || 'brainstorming',
+    role: formData.role || 'student',
+    projectWeek: formData.projectWeek || '',
+    groupName: formData.groupName || '',
+    groupNumber: formData.groupNumber || '',
+    meetingGoals: encodeURIComponent(formData.meetingGoals || ''),
+    teamMembers: (formData.teamMembers || []).join('|')
+  });
+
+  const recordingURL = `${API_CONFIG.BASE_URL}/record.html?${params.toString()}`;
+  const recordingUrlInput = document.getElementById('recordingUrl');
+  if (recordingUrlInput) recordingUrlInput.value = recordingURL;
+
+  console.log('🔗 Updated recorder URL:', recordingURL);
+}
+
+
+
 // Update meeting statistics in real-time
 function updateMeetingStats() {
   console.log('📊 开始更新会议统计');
@@ -1205,12 +1237,20 @@ function updateElement(id, value) {
 }
 
 function handleOpenRecorderClick() {
-  if (!currentRecordingURL) {
+  // ✅ Step 1: 先重新生成 URL（确保 interval 最新）
+  updateRecordingURL();
+
+  // ✅ Step 2: 获取最新的录音链接
+  const recordingUrlInput = document.getElementById('recordingUrl');
+  const latestURL = recordingUrlInput ? recordingUrlInput.value : currentRecordingURL;
+
+  if (!latestURL) {
     showMessage('Recording link is not ready yet.', 'warning');
     return;
   }
 
-  recordingWindow = window.open(currentRecordingURL, 'recorder', 'width=600,height=500');
+  // ✅ Step 3: 打开新窗口
+  recordingWindow = window.open(latestURL, 'recorder', 'width=600,height=500');
 
   if (!recordingWindow) {
     showMessage('Please allow pop-ups to open the recorder window.', 'warning');
@@ -1219,25 +1259,66 @@ function handleOpenRecorderClick() {
 
   showMessage('Recording window opened!', 'success');
 
+  // ✅ Step 4: 更新状态
   isRecording = true;
   isExternalRecording = true;
 
+  // ✅ Step 5: 通知 Figma 插件，带上最新 interval
   parent.postMessage({
     pluginMessage: {
       type: 'start-meeting',
       data: {
         sessionId: recordingSessionId,
-        intervalMin: formData.intervalMin || 5,
+        intervalMin: formData.intervalMin || 5,  // ✅ 实时 interval
         ...formData
       }
     }
   }, '*');
 
+  // ✅ Step 6: 开始轮询 Supabase
   startPolling(recordingSessionId);
 
-  // 刷新导航按钮状态
+  // ✅ Step 7: 刷新导航按钮状态
   updatePageDisplay();
+
+  console.log('🎤 Recorder opened with URL:', latestURL);
 }
+
+
+// function handleOpenRecorderClick() {
+//   if (!currentRecordingURL) {
+//     showMessage('Recording link is not ready yet.', 'warning');
+//     return;
+//   }
+
+//   recordingWindow = window.open(currentRecordingURL, 'recorder', 'width=600,height=500');
+
+//   if (!recordingWindow) {
+//     showMessage('Please allow pop-ups to open the recorder window.', 'warning');
+//     return;
+//   }
+
+//   showMessage('Recording window opened!', 'success');
+
+//   isRecording = true;
+//   isExternalRecording = true;
+
+//   parent.postMessage({
+//     pluginMessage: {
+//       type: 'start-meeting',
+//       data: {
+//         sessionId: recordingSessionId,
+//         intervalMin: formData.intervalMin || 5,
+//         ...formData
+//       }
+//     }
+//   }, '*');
+
+//   startPolling(recordingSessionId);
+
+//   // 刷新导航按钮状态
+//   updatePageDisplay();
+// }
 
 async function handleCopyLinkClick() {
   if (!currentRecordingURL) {
@@ -1379,25 +1460,58 @@ document.addEventListener('DOMContentLoaded', () => {
   // ... 原有代码 ...
   const cycleInput = document.getElementById('cycleInput');
   const intervalDisplay = document.getElementById('intervalDisplay');
-  
+
   if (cycleInput && intervalDisplay) {
-    // 初始化显示
-    intervalDisplay.textContent = cycleInput.value || '5';
+  // 初始化显示
+  intervalDisplay.textContent = cycleInput.value || '5';
+  formData.intervalMin = parseInt(cycleInput.value) || 5;
+
+  // 监听输入变化（核心更新）
+  cycleInput.addEventListener('input', function () {
+    const value = parseInt(this.value) || 5;
     
-    // 监听输入变化
-    cycleInput.addEventListener('input', function() {
-      const value = parseInt(this.value) || 5;
-      intervalDisplay.textContent = value;
+    // 更新显示
+    intervalDisplay.textContent = value;
+    
+    // 更新全局数据
+    formData.intervalMin = value;
+    
+    // 更新 Session Detail 显示
+    const intervalMinDisplay = document.getElementById('intervalMinDisplay');
+    if (intervalMinDisplay) intervalMinDisplay.textContent = value;
+
+    // 更新录音URL
+    updateRecordingURL();
+
+    // 视觉反馈（可选）
+    intervalDisplay.style.color = '#5E5CE6';
+    setTimeout(() => {
+      intervalDisplay.style.color = '';
+    }, 300);
+
+    console.log('✅ Interval updated to', value);
+  });
+}
+
+  
+  // if (cycleInput && intervalDisplay) {
+  //   // 初始化显示
+  //   intervalDisplay.textContent = cycleInput.value || '5';
+    
+  //   // 监听输入变化
+  //   cycleInput.addEventListener('input', function() {
+  //     const value = parseInt(this.value) || 5;
+  //     intervalDisplay.textContent = value;
       
-      // 可选：添加视觉反馈
-      intervalDisplay.style.color = '#5E5CE6';
-      setTimeout(() => {
-        intervalDisplay.style.color = '';
-      }, 300);
-    });
+  //     // 可选：添加视觉反馈
+  //     intervalDisplay.style.color = '#5E5CE6';
+  //     setTimeout(() => {
+  //       intervalDisplay.style.color = '';
+  //     }, 300);
+  //   });
     
-    console.log('✅ Summary interval display initialized');
-  }
+  //   console.log('✅ Summary interval display initialized');
+  // }
   // 添加测试按钮（可选）
   setTimeout(() => {
     const viewSummaryBtn = document.getElementById('viewSummaryBtn');
