@@ -1126,7 +1126,7 @@ function initializePage3() {
   // 绑定页面交互（使用 onclick 避免重复绑定）
   const openRecorderBtn = document.getElementById('openRecorderBtn');
   if (openRecorderBtn) {
-    openRecorderBtn.onclick = handleOpenRecorderClick;
+    openRecorderBtn.onclick = openExternalRecorder;
   }
 
   const copyLinkBtn = document.getElementById('copyLinkBtn');
@@ -1394,40 +1394,6 @@ function handleOpenRecorderClick() {
 }
 
 
-// function handleOpenRecorderClick() {
-//   if (!currentRecordingURL) {
-//     showMessage('Recording link is not ready yet.', 'warning');
-//     return;
-//   }
-
-//   recordingWindow = window.open(currentRecordingURL, 'recorder', 'width=600,height=500');
-
-//   if (!recordingWindow) {
-//     showMessage('Please allow pop-ups to open the recorder window.', 'warning');
-//     return;
-//   }
-
-//   showMessage('Recording window opened!', 'success');
-
-//   isRecording = true;
-//   isExternalRecording = true;
-
-//   parent.postMessage({
-//     pluginMessage: {
-//       type: 'start-meeting',
-//       data: {
-//         sessionId: recordingSessionId,
-//         intervalMin: formData.intervalMin || 5,
-//         ...formData
-//       }
-//     }
-//   }, '*');
-
-//   startPolling(recordingSessionId);
-
-//   // 刷新导航按钮状态
-//   updatePageDisplay();
-// }
 
 async function handleCopyLinkClick() {
   if (!currentRecordingURL) {
@@ -2830,45 +2796,45 @@ function showRecordingInstructions(intervalMin) {
   // 传递intervalMin参数到record.html
   const recordingURL = `${API_CONFIG.BASE_URL}/record.html?session=${recordingSessionId}&intervalMin=${intervalMin}&start=true`;
   console.log('📡 生成的录音URL:', recordingURL);
-  // 更新录音页面UI
-  const recordingInterface = document.getElementById('recording-interface');
-  if (recordingInterface) {
-    recordingInterface.innerHTML = `
-      <div style="text-align: center; padding: 20px;">
-        <div class="info-message success" style="margin-bottom: 20px;">
-          <span>✅</span>
-          <span>Recording session ready! Choose how to open:</span>
-        </div>
+  // // 更新录音页面UI
+  // const recordingInterface = document.getElementById('recording-interface');
+  // if (recordingInterface) {
+  //   recordingInterface.innerHTML = `
+  //     <div style="text-align: center; padding: 20px;">
+  //       <div class="info-message success" style="margin-bottom: 20px;">
+  //         <span>✅</span>
+  //         <span>Recording session ready! Choose how to open:</span>
+  //       </div>
         
-        <div style="background: #f7f7f7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <p><strong>Session ID:</strong> ${recordingSessionId}</p>
-          <p><strong>Processing:</strong> Every 5 minutes</p>
-          <p><strong>Auto-summarize:</strong> Every ${actualInterval} minutes (${segmentsNeeded} segments)</p>
-          ${intervalMin !== actualInterval ? `<p><small>Adjusted from ${intervalMin} to ${actualInterval} minutes</small></p>` : ''}
-          ${formData.pdfText ? '<p>✅ PDF document uploaded</p>' : ''}
-        </div>
+  //       <div style="background: #f7f7f7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+  //         <p><strong>Session ID:</strong> ${recordingSessionId}</p>
+  //         <p><strong>Processing:</strong> Every 5 minutes</p>
+  //         <p><strong>Auto-summarize:</strong> Every ${actualInterval} minutes (${segmentsNeeded} segments)</p>
+  //         ${intervalMin !== actualInterval ? `<p><small>Adjusted from ${intervalMin} to ${actualInterval} minutes</small></p>` : ''}
+  //         ${formData.pdfText ? '<p>✅ PDF document uploaded</p>' : ''}
+  //       </div>
         
-        <!-- Option 1: Copy Link -->
-        <button class="btn btn-primary" onclick="copyRecordingLink('${recordingURL}')" style="margin: 10px;">
-          📋 Copy Recording Link
-        </button>
+  //       <!-- Option 1: Copy Link -->
+  //       <button class="btn btn-primary" onclick="copyRecordingLink('${recordingURL}')" style="margin: 10px;">
+  //         📋 Copy Recording Link
+  //       </button>
         
-        <!-- Option 2: Try to Open -->
-        <button class="btn btn-secondary" onclick="attemptOpenRecorder('${recordingURL}')" style="margin: 10px;">
-          🔗 Open Recording Page
-        </button>
+  //       <!-- Option 2: Try to Open -->
+  //       <button class="btn btn-secondary" onclick="attemptOpenRecorder('${recordingURL}')" style="margin: 10px;">
+  //         🔗 Open Recording Page
+  //       </button>
         
-        <div style="margin-top: 30px;">
-          <button class="btn btn-secondary" onclick="checkRecordingStatus()">
-            Check Status
-          </button>
-          <button class="btn btn-secondary" onclick="stopExternalRecording()" style="margin-left: 10px;">
-            Stop Recording
-          </button>
-        </div>
-      </div>
-    `;
-  }
+  //       <div style="margin-top: 30px;">
+  //         <button class="btn btn-secondary" onclick="checkRecordingStatus()">
+  //           Check Status
+  //         </button>
+  //         <button class="btn btn-secondary" onclick="stopExternalRecording()" style="margin-left: 10px;">
+  //           Stop Recording
+  //         </button>
+  //       </div>
+  //     </div>
+  //   `;
+  // }
   
   // 开始轮询
   startPolling(recordingSessionId);
