@@ -698,7 +698,15 @@
         <label for="meeting-goals">Meeting Goals (optional)</label>
         <textarea id="meeting-goals" placeholder="What do you hope to achieve in this meeting?"></textarea>
       </div>
+
+       <!-- Navigation Buttons -->
+  <div class="navigation">
+    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
+    <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button>
+  </div>
     </div>
+
+   
 
     <!-- Page 2: File Upload & Settings -->
     <div class="page" id="page2">
@@ -755,11 +763,17 @@
         <label for="progress-tracking" style="margin: 0;">Track the Project Progress</label>
       </div>
 
-
+<!-- Navigation Buttons -->
+  <div class="navigation">
+    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
+    <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button>
+  </div>
       
         </div>
       </div>
     </div>
+
+    
 
     <!-- Page 3: Recording -->
 <!-- <div class="page" id="page3">
@@ -802,11 +816,7 @@
 </div> -->
 
 
-<!-- Navigation Buttons -->
-  <div class="navigation">
-    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
-    <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button>
-  </div>
+
  <!-- Page 3: Recording Control (Simplified) -->
 <div class="page" id="page3">
   <h2 style="margin-bottom: 24px;">Recording Session</h2>
@@ -875,7 +885,11 @@
          style="width: 100px; padding: 6px; border: 1px solid #ddd; border-radius: 5px;">
   <small style="color:#666;">AI will summarize every <span id="intervalDisplay">5</span> minutes</small>
 </div> -->
-
+<!-- Navigation Buttons -->
+  <div class="navigation">
+    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
+    <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button>
+  </div>
 </div>
 <script>
 function testRealtimeAnalysis() {
@@ -914,6 +928,7 @@ function testRealtimeAnalysis() {
     callRealtimeSummarize("Test transcript", "");
   }
 }
+
 </script>
 
 </div>
@@ -981,6 +996,12 @@ function testRealtimeAnalysis() {
     <button class="btn btn-danger" id="stopRecordingMainBtn" style="padding: 15px 50px; font-size: 18px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer;">
       🛑 Stop Recording
     </button>
+  </div>
+
+   <!-- Navigation Buttons -->
+  <div class="navigation">
+    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
+    <!-- <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button> -->
   </div>
 </div>
 
@@ -1142,33 +1163,82 @@ function updateRecordingURL() {
 
 
 
-// Update meeting statistics in real-time
+// // Update meeting statistics in real-time
+// function updateMeetingStats() {
+//   console.log('📊 开始更新会议统计');
+  
+//   // Calculate current duration
+//   const currentDuration = calculateDuration();
+//   updateElement('durationDisplay', currentDuration);
+  
+//   // Update decision count
+//   const decisionsCount = meetingData.decisions?.length || 0;
+//   updateElement('decisionsCount', decisionsCount);
+  
+//   // Update speakers count
+//   const speakersCount = meetingData.speakers?.length || 0;
+//   updateElement('speakersCount', speakersCount);
+  
+//   // Calculate next segment time
+//   updateNextSegmentDisplay();
+  
+//   // Update latest decisions display
+//   updateLatestDecisions();
+  
+//   console.log('📊 统计更新完成:', {
+//     duration: currentDuration,
+//     decisions: decisionsCount,
+//     speakers: speakersCount
+//   });
+// }
+
+// Update meeting statistics in real-time (no meetingData dependency)
 function updateMeetingStats() {
   console.log('📊 开始更新会议统计');
-  
-  // Calculate current duration
-  const currentDuration = calculateDuration();
+
+  // 1) Duration：基于 recordingStartTime 计算
+  const currentDuration = calculateDurationSafe();
   updateElement('durationDisplay', currentDuration);
-  
-  // Update decision count
-  const decisionsCount = meetingData.decisions?.length || 0;
+
+  // 2) Decisions & Speakers：来源优先级 = formData.results.decisions -> latestDecisionsData -> []
+  const decisionsArr =
+    (formData?.results?.decisions && Array.isArray(formData.results.decisions) && formData.results.decisions.length > 0)
+      ? formData.results.decisions
+      : (Array.isArray(window.latestDecisionsData) ? window.latestDecisionsData : []);
+
+  const decisionsCount = decisionsArr.length || 0;
   updateElement('decisionsCount', decisionsCount);
-  
-  // Update speakers count
-  const speakersCount = meetingData.speakers?.length || 0;
-  updateElement('speakersCount', speakersCount);
-  
-  // Calculate next segment time
-  updateNextSegmentDisplay();
-  
-  // Update latest decisions display
-  updateLatestDecisions();
-  
+
+  // 基于决策推断参与者（如果有 speaker/owner 字段）
+  const speakersSet = new Set();
+  decisionsArr.forEach(d => {
+    if (d && typeof d === 'object') {
+      if (d.speaker) speakersSet.add(d.speaker);
+      if (d.owner) speakersSet.add(d.owner);
+    }
+  });
+  updateElement('speakersCount', speakersSet.size || 0);
+
+  // 3) Next analysis倒计时：用 intervalMin + recordingStartTime 计算，写入 id="nextAnalysisCountdown"
+  updateNextAnalysisCountdown();
+
+  // 4) Recent Activity：展示最近 1 条/几条决策到 id="recentActivity"
+  updateRecentActivity(decisionsArr);
+
   console.log('📊 统计更新完成:', {
     duration: currentDuration,
     decisions: decisionsCount,
-    speakers: speakersCount
+    speakers: speakersSet.size || 0
   });
+}
+
+// Helper: Calculate meeting duration from recordingStartTime
+function calculateDurationSafe() {
+  if (!window.recordingStartTime) return '00:00';
+  const elapsed = Date.now() - window.recordingStartTime;
+  const minutes = Math.floor(elapsed / 60000);
+  const seconds = Math.floor((elapsed % 60000) / 1000);
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 // Helper: Calculate meeting duration
@@ -1181,6 +1251,25 @@ function calculateDuration() {
   const seconds = Math.floor((elapsed % 60000) / 1000);
   
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// Helper: Update next analysis countdown (writes to #nextAnalysisCountdown)
+function updateNextAnalysisCountdown() {
+  const intervalMin = parseInt(formData?.intervalMin || '5', 10);
+  if (!intervalMin || !window.recordingStartTime) {
+    updateElement('nextAnalysisCountdown', '--:--');
+    return;
+  }
+
+  const intervalMs = intervalMin * 60000;
+  const elapsed = Date.now() - window.recordingStartTime;
+  const nextSegmentMs = intervalMs - (elapsed % intervalMs);
+
+  const m = Math.max(0, Math.floor(nextSegmentMs / 60000));
+  const s = Math.max(0, Math.floor((nextSegmentMs % 60000) / 1000));
+
+  const el = document.getElementById('nextAnalysisCountdown');
+  if (el) el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 // Helper: Update next segment display
@@ -1200,6 +1289,26 @@ function updateNextSegmentDisplay() {
   
   updateElement('nextSegmentTime', `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
   updateElement('segmentCountdown', `${minutes}m ${seconds}s`);
+}
+
+// Helper: Update recent activity panel (writes to #recentActivity)
+function updateRecentActivity(decisionsArr) {
+  const box = document.getElementById('recentActivity');
+  if (!box) return;
+
+  const arr = Array.isArray(decisionsArr) ? decisionsArr : [];
+  if (arr.length === 0) {
+    box.innerHTML = '<em style="color: #999;">Waiting for meeting data...</em>';
+    return;
+  }
+
+  // 取最近3条
+  const latest = arr.slice(-3).reverse();
+  box.innerHTML = latest.map(d => {
+    const text = typeof d === 'string' ? d : (d.decision || d.text || d.title || 'Untitled');
+    const num  = d?.decision_number ? `Decision ${d.decision_number}: ` : '';
+    return `<div style="margin-bottom:8px;"><strong style="color:#5E5CE6;">${num}</strong>${text}</div>`;
+  }).join('');
 }
 
 // Helper: Update latest decisions
@@ -1374,8 +1483,12 @@ function initializePage4() {
     });
   }
   
-  // 开始倒计时显示
-  startAnalysisCountdown();
+  // 可选：每秒刷新一次倒计时显示
+  if (window.__nextAnalysisTimer) clearInterval(window.__nextAnalysisTimer);
+  window.__nextAnalysisTimer = setInterval(() => {
+    // 只更新倒计时，避免太频繁的统计重算
+    updateNextAnalysisCountdown();
+  }, 1000);
 }
 
 // 停止录音功能
@@ -1416,7 +1529,7 @@ async function stopMeetingRecording() {
     setTimeout(() => {
       parent.postMessage({
         pluginMessage: {
-          type: 'generate-final-summary'
+          type:  'insert-summary'
         }
       }, '*');
     }, 2000);

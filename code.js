@@ -306,10 +306,8 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
                 yield startMeeting(msg.data);
                 break;
             case 'add-decision':
+            case 'add-decision-from-ui':
                 yield addDecision(msg.data);
-                break;
-            case 'update-realtime':
-                yield updateRealtimeCanvas(msg.data);
                 break;
             case 'stop-recording':
                 meetingStats.currentMinute = Math.floor((Date.now() - meetingStats.startTime) / 60000);
@@ -327,16 +325,6 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             case 'test':
                 figma.notify("✅ Test message received!");
                 console.log('Test message handled successfully');
-                break;
-            case 'realtime-update':
-                // 处理实时更新
-                if (msg.data && msg.data.decision) {
-                    yield addDecision({
-                        text: msg.data.decision,
-                        owner: msg.data.speaker || "Unknown",
-                        type: 'decision'
-                    });
-                }
                 break;
             default:
                 console.log('⚠️ Unknown message type:', msg.type);
@@ -471,33 +459,29 @@ function addDecision(data) {
     });
 }
 // Update real-time canvas with new content
-function updateRealtimeCanvas(data) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            // Process different types of updates
-            if (data.type === 'decision') {
-                yield addDecision(data);
-            }
-            else if (data.type === 'action') {
-                meetingStats.actions++;
-                meetingStats.cards++;
-                // Update UI statistics
-                figma.ui.postMessage({
-                    type: 'update-stats',
-                    stats: {
-                        decisions: meetingStats.decisions,
-                        actions: meetingStats.actions,
-                        speakers: meetingStats.speakers.size,
-                        cards: meetingStats.cards
-                    }
-                });
-            }
-        }
-        catch (error) {
-            console.error('Error updating canvas:', error);
-        }
-    });
-}
+// async function updateRealtimeCanvas(data: any) {
+//   try {
+//     // Process different types of updates
+//     if (data.type === 'decision') {
+//       await addDecision(data);
+//     } else if (data.type === 'action') {
+//       meetingStats.actions++;
+//       meetingStats.cards++;
+//       // Update UI statistics
+//       figma.ui.postMessage({
+//         type: 'update-stats',
+//         stats: {
+//           decisions: meetingStats.decisions,
+//           actions: meetingStats.actions,
+//           speakers: meetingStats.speakers.size,
+//           cards: meetingStats.cards
+//         }
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error updating canvas:', error);
+//   }
+// }
 // Process recording with AI
 function handleRecordingProcess(formData, audioData) {
     return __awaiter(this, void 0, void 0, function* () {

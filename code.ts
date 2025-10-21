@@ -504,25 +504,6 @@
 // Canvas Manager (Integrated)
 // =====================================
 
-type UIToPluginMessage = 
-  | { type: 'save-storage'; key: string; value: any }
-  | { type: 'load-storage'; key: string }
-  | { type: 'start-meeting'; data: any }
-  | { type: 'add-decision-from-ui'; data: any }
-  | { type: 'stop-recording'; sessionId?: string }
-  | { type: 'generate-final-summary' }
-  | { type: 'file-upload'; fileName: string; fileType: string; fileSize: number }
-  | { type: 'process-recording'; formData: any; audioData: string }
-  | { type: 'insert-summary'; data: any }
-  | { type: 'test' };
-
-type PluginToUIMessage =
-  | { type: 'storage-loaded'; key: string; value: any }
-  | { type: 'update-stats'; stats: any }
-  | { type: 'meeting-started'; success: boolean; intervalMin?: number }
-  | { type: 'processing-start' }
-  | { type: 'processing-complete'; results: any; stats?: any }
-  | { type: 'processing-error'; error: string };
 
 interface DecisionCard {
   id: string;
@@ -882,11 +863,8 @@ figma.ui.onmessage = async (msg) => {
         break;
       
       case 'add-decision':
+      case 'add-decision-from-ui':
         await addDecision(msg.data);
-        break;
-      
-      case 'update-realtime':
-        await updateRealtimeCanvas(msg.data);
         break;
         
       case 'stop-recording':
@@ -910,17 +888,6 @@ figma.ui.onmessage = async (msg) => {
         figma.notify("✅ Test message received!");
         console.log('Test message handled successfully');
         break;
-
-      case 'realtime-update':
-      // 处理实时更新
-      if (msg.data && msg.data.decision) {
-        await addDecision({
-          text: msg.data.decision,
-          owner: msg.data.speaker || "Unknown",
-          type: 'decision'
-        });
-      }
-      break;
       
       default:
         console.log('⚠️ Unknown message type:', msg.type);
@@ -1062,31 +1029,31 @@ async function addDecision(data: any) {
 }
 
 // Update real-time canvas with new content
-async function updateRealtimeCanvas(data: any) {
-  try {
-    // Process different types of updates
-    if (data.type === 'decision') {
-      await addDecision(data);
-    } else if (data.type === 'action') {
-      meetingStats.actions++;
-      meetingStats.cards++;
+// async function updateRealtimeCanvas(data: any) {
+//   try {
+//     // Process different types of updates
+//     if (data.type === 'decision') {
+//       await addDecision(data);
+//     } else if (data.type === 'action') {
+//       meetingStats.actions++;
+//       meetingStats.cards++;
       
-      // Update UI statistics
-      figma.ui.postMessage({
-        type: 'update-stats',
-        stats: {
-          decisions: meetingStats.decisions,
-          actions: meetingStats.actions,
-          speakers: meetingStats.speakers.size,
-          cards: meetingStats.cards
-        }
-      });
-    }
+//       // Update UI statistics
+//       figma.ui.postMessage({
+//         type: 'update-stats',
+//         stats: {
+//           decisions: meetingStats.decisions,
+//           actions: meetingStats.actions,
+//           speakers: meetingStats.speakers.size,
+//           cards: meetingStats.cards
+//         }
+//       });
+//     }
     
-  } catch (error) {
-    console.error('Error updating canvas:', error);
-  }
-}
+//   } catch (error) {
+//     console.error('Error updating canvas:', error);
+//   }
+// }
 
 // Process recording with AI
 async function handleRecordingProcess(formData: any, audioData: string) {
