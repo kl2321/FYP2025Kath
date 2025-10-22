@@ -802,7 +802,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
   try {
     await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
     await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
-    await figma.loadFontAsync({ family: 'Inter', style: 'SemiBold' });
+    await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
 
     const date = new Date().toLocaleDateString();
     const frame = figma.createFrame();

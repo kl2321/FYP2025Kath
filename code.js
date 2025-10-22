@@ -265,7 +265,7 @@ class CanvasManager {
             try {
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
-                yield figma.loadFontAsync({ family: 'Inter', style: 'SemiBold' });
+                yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
                 const date = new Date().toLocaleDateString();
                 const frame = figma.createFrame();
                 frame.name = `Meeting Summary - ${date}`;
