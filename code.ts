@@ -871,64 +871,50 @@ class CanvasManager {
         card.appendChild(summaryText);
       }
 
-      // Decisions section
+      // Decisions section with paired knowledge
       if (segment.decisions && segment.decisions.length > 0) {
-        const decisionsText = figma.createText();
-        decisionsText.fontName = { family: 'Inter', style: 'Bold' };
-        decisionsText.fontSize = 12;
-        decisionsText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
-        decisionsText.characters = '🎯 Decisions:';
-        card.appendChild(decisionsText);
+        const decisionsTitle = figma.createText();
+        decisionsTitle.fontName = { family: 'Inter', style: 'Bold' };
+        decisionsTitle.fontSize = 12;
+        decisionsTitle.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
+        decisionsTitle.characters = '🎯 Decisions:';
+        card.appendChild(decisionsTitle);
 
-        // List all decisions without truncation
-        const decisionsContent = figma.createText();
-        decisionsContent.fontName = { family: 'Inter', style: 'Regular' };
-        decisionsContent.fontSize = 12;
-        const decisionsStr = segment.decisions
-          .map((d: string, i: number) => `${i + 1}. ${d}`)
-          .join('\n');
-        decisionsContent.characters = decisionsStr;
-        decisionsContent.layoutAlign = 'STRETCH';
-        decisionsContent.textAutoResize = 'HEIGHT';
-        card.appendChild(decisionsContent);
-      }
+        // Loop through each decision and show its paired explicit and tacit knowledge
+        segment.decisions.forEach((decision: string, i: number) => {
+          // Decision text
+          const decisionText = figma.createText();
+          decisionText.fontName = { family: 'Inter', style: 'Bold' };
+          decisionText.fontSize = 12;
+          decisionText.characters = `${i + 1}. ${decision}`;
+          decisionText.layoutAlign = 'STRETCH';
+          decisionText.textAutoResize = 'HEIGHT';
+          card.appendChild(decisionText);
 
-      // Knowledge section (Explicit and Tacit)
-      if ((segment.explicit && segment.explicit.length > 0) ||
-          (segment.tacit && segment.tacit.length > 0)) {
+          // Explicit knowledge for this decision (if exists)
+          if (segment.explicit && segment.explicit[i]) {
+            const explicitText = figma.createText();
+            explicitText.fontName = { family: 'Inter', style: 'Regular' };
+            explicitText.fontSize = 11;
+            explicitText.characters = `   Explicit: ${segment.explicit[i]}`;
+            explicitText.layoutAlign = 'STRETCH';
+            explicitText.textAutoResize = 'HEIGHT';
+            explicitText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+            card.appendChild(explicitText);
+          }
 
-        const knowledgeTitle = figma.createText();
-        knowledgeTitle.fontName = { family: 'Inter', style: 'Bold' };
-        knowledgeTitle.fontSize = 12;
-        knowledgeTitle.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
-        knowledgeTitle.characters = '💡 Knowledge:';
-        card.appendChild(knowledgeTitle);
-
-        // Explicit knowledge
-        if (segment.explicit && segment.explicit.length > 0) {
-          const explicitText = figma.createText();
-          explicitText.fontName = { family: 'Inter', style: 'Regular' };
-          explicitText.fontSize = 11;
-          const explicitStr = segment.explicit.join(', ');
-          explicitText.characters = `Explicit: ${explicitStr}`;
-          explicitText.layoutAlign = 'STRETCH';
-          explicitText.textAutoResize = 'HEIGHT';
-          explicitText.fills = [{ type: 'SOLID', color: { r: 0.4, g: 0.4, b: 0.4 } }];
-          card.appendChild(explicitText);
-        }
-
-        // Tacit knowledge
-        if (segment.tacit && segment.tacit.length > 0) {
-          const tacitText = figma.createText();
-          tacitText.fontName = { family: 'Inter', style: 'Regular' };
-          tacitText.fontSize = 11;
-          const tacitStr = segment.tacit.join(', ');
-          tacitText.characters = `Tacit: ${tacitStr}`;
-          tacitText.layoutAlign = 'STRETCH';
-          tacitText.textAutoResize = 'HEIGHT';
-          tacitText.fills = [{ type: 'SOLID', color: { r: 0.4, g: 0.4, b: 0.4 } }];
-          card.appendChild(tacitText);
-        }
+          // Tacit knowledge for this decision (if exists)
+          if (segment.tacit && segment.tacit[i]) {
+            const tacitText = figma.createText();
+            tacitText.fontName = { family: 'Inter', style: 'Regular' };
+            tacitText.fontSize = 11;
+            tacitText.characters = `   Tacit: ${segment.tacit[i]}`;
+            tacitText.layoutAlign = 'STRETCH';
+            tacitText.textAutoResize = 'HEIGHT';
+            tacitText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+            card.appendChild(tacitText);
+          }
+        });
       }
 
       // Position card
