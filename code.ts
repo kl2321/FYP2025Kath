@@ -697,7 +697,7 @@ class CanvasManager {
     // 创建 segment summary card（比 decision card 更大）
     const card = figma.createFrame();
     card.name = `Segment ${segment.segmentNumber} Summary`;
-    card.resize(540, 320);  // 更大的卡片
+    card.resize(700, 100);  // 更大的卡片
     card.cornerRadius = 8;
     card.fills = [{
       type: 'SOLID',
@@ -709,16 +709,19 @@ class CanvasManager {
       color: { r: 0.7, g: 0.75, b: 0.9 }
     }];
     card.layoutMode = 'VERTICAL';
-    card.paddingLeft = 16;
-    card.paddingRight = 16;
-    card.paddingTop = 16;
-    card.paddingBottom = 16;
-    card.itemSpacing = 10;
+    card.primaryAxisSizingMode = 'AUTO'; // Auto height
+      card.counterAxisSizingMode = 'FIXED'; // Fixed width
+      card.paddingLeft = 20;
+      card.paddingRight = 20;
+      card.paddingTop = 20;
+      card.paddingBottom = 20;
+      card.itemSpacing = 12;
 
     // 1. 标题：Segment 编号和时间
     const title = figma.createText();
     title.fontName = { family: 'Inter', style: 'Bold' };
-    title.fontSize = 14;
+    title.fontSize = 16;
+    title.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.8 } }];
     title.characters = `📊 Segment ${segment.segmentNumber} (${segment.durationMinutes} min)`;
     title.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
     card.appendChild(title);
@@ -727,60 +730,102 @@ class CanvasManager {
     if (segment.summary) {
       const summaryText = figma.createText();
       summaryText.fontName = { family: 'Inter', style: 'Regular' };
-      summaryText.fontSize = 12;
-      summaryText.characters = segment.summary.length > 200
-        ? segment.summary.substring(0, 200) + '...'
-        : segment.summary;
-      summaryText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
-      summaryText.resize(500, summaryText.height);
-      card.appendChild(summaryText);
+      summaryText.fontSize = 13;
+      summaryText.characters = `Summary: ${segment.summary}`;
+        summaryText.layoutAlign = 'STRETCH';
+        summaryText.textAutoResize = 'HEIGHT';
+        card.appendChild(summaryText);
     }
 
     // 3. Decisions 列表
     if (segment.decisions && segment.decisions.length > 0) {
-      const decisionsText = figma.createText();
-      decisionsText.fontName = { family: 'Inter', style: 'Regular' };
-      decisionsText.fontSize = 11;
-      const decisionsContent = segment.decisions
-        .slice(0, 3)  // 最多显示3个决策
-        .map((d: string, i: number) => `  ${i + 1}. ${d.length > 50 ? d.substring(0, 50) + '...' : d}`)
-        .join('\n');
-      decisionsText.characters = `🎯 Decisions:\n${decisionsContent}`;
-      decisionsText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.2 } }];
-      decisionsText.resize(500, decisionsText.height);
-      card.appendChild(decisionsText);
+      const decisionsTitle = figma.createText();
+        decisionsTitle.fontName = { family: 'Inter', style: 'Bold' };
+        decisionsTitle.fontSize = 12;
+        decisionsTitle.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
+        decisionsTitle.characters = '🎯 Decisions:';
+        card.appendChild(decisionsTitle);
+
+        // Loop through each decision and show its paired explicit and tacit knowledge
+        segment.decisions.forEach((decision: string, i: number) => {
+          // Decision text
+          const decisionText = figma.createText();
+          decisionText.fontName = { family: 'Inter', style: 'Bold' };
+          decisionText.fontSize = 12;
+          decisionText.characters = `${i + 1}. ${decision}`;
+          decisionText.layoutAlign = 'STRETCH';
+          decisionText.textAutoResize = 'HEIGHT';
+          card.appendChild(decisionText);
+
+          // Explicit knowledge for this decision (if exists)
+          if (segment.explicit && segment.explicit[i]) {
+            const explicitText = figma.createText();
+            explicitText.fontName = { family: 'Inter', style: 'Regular' };
+            explicitText.fontSize = 11;
+            explicitText.characters = `   Explicit: ${segment.explicit[i]}`;
+            explicitText.layoutAlign = 'STRETCH';
+            explicitText.textAutoResize = 'HEIGHT';
+            explicitText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+            card.appendChild(explicitText);
+          }
+
+          // Tacit knowledge for this decision (if exists)
+          if (segment.tacit && segment.tacit[i]) {
+            const tacitText = figma.createText();
+            tacitText.fontName = { family: 'Inter', style: 'Regular' };
+            tacitText.fontSize = 11;
+            tacitText.characters = `   Tacit: ${segment.tacit[i]}`;
+            tacitText.layoutAlign = 'STRETCH';
+            tacitText.textAutoResize = 'HEIGHT';
+            tacitText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+            card.appendChild(tacitText);
+          }
+        });
+
+
+
+
+
+
+
+
+
+
+
+      }
+      
 
       // 如果有更多决策，显示提示
-      if (segment.decisions.length > 3) {
-        const moreText = figma.createText();
-        moreText.fontName = { family: 'Inter', style: 'Regular' };
-        moreText.fontSize = 10;
-        moreText.characters = `   +${segment.decisions.length - 3} more...`;
-        moreText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
-        card.appendChild(moreText);
-      }
-    }
+    //   if (segment.decisions.length > 3) {
+    //     const moreText = figma.createText();
+    //     moreText.fontName = { family: 'Inter', style: 'Regular' };
+    //     moreText.fontSize = 10;
+    //     moreText.characters = `   +${segment.decisions.length - 3} more...`;
+    //     moreText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+    //     card.appendChild(moreText);
+    //   }
+    // }
 
-    // 4. Knowledge (Explicit + Tacit)
-    const knowledgeItems: string[] = [];
-    if (segment.explicit && segment.explicit.length > 0) {
-      knowledgeItems.push(`💡 ${segment.explicit[0]}`);
-    }
-    if (segment.tacit && segment.tacit.length > 0) {
-      knowledgeItems.push(`🧠 ${segment.tacit[0]}`);
-    }
-    if (knowledgeItems.length > 0) {
-      const knowledgeText = figma.createText();
-      knowledgeText.fontName = { family: 'Inter', style: 'Regular' };
-      knowledgeText.fontSize = 10;
-      knowledgeText.characters = knowledgeItems.join('\n');
-      knowledgeText.fills = [{ type: 'SOLID', color: { r: 0.4, g: 0.4, b: 0.4 } }];
-      knowledgeText.resize(500, knowledgeText.height);
-      card.appendChild(knowledgeText);
-    }
+    // // 4. Knowledge (Explicit + Tacit)
+    // const knowledgeItems: string[] = [];
+    // if (segment.explicit && segment.explicit.length > 0) {
+    //   knowledgeItems.push(`💡 ${segment.explicit[0]}`);
+    // }
+    // if (segment.tacit && segment.tacit.length > 0) {
+    //   knowledgeItems.push(`🧠 ${segment.tacit[0]}`);
+    // }
+    // if (knowledgeItems.length > 0) {
+    //   const knowledgeText = figma.createText();
+    //   knowledgeText.fontName = { family: 'Inter', style: 'Regular' };
+    //   knowledgeText.fontSize = 10;
+    //   knowledgeText.characters = knowledgeItems.join('\n');
+    //   knowledgeText.fills = [{ type: 'SOLID', color: { r: 0.4, g: 0.4, b: 0.4 } }];
+    //   knowledgeText.resize(500, knowledgeText.height);
+    //   card.appendChild(knowledgeText);
+    // }
 
     // 位置：垂直堆叠，每个 segment 占一行
-    const yOffset = 150 + (segment.segmentNumber - 1) * 340;  // 150 = header height, 340 = card + gap
+    const yOffset = 150 + (segment.segmentNumber - 1) * 400;  // 150 = header height, 340 = card + gap
     card.x = 50;
     card.y = yOffset;
 
@@ -890,7 +935,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
   // Section 标题
   const titleText = figma.createText();
-  titleText.fontName = { family: 'Inter', style: 'SemiBold' };
+  titleText.fontName = { family: 'Inter', style: 'Bold' };
   titleText.fontSize = 16;
   titleText.characters = title;
   titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
