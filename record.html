@@ -697,7 +697,7 @@ async function checkAudioActivity() {
             reasoning: summary.reasoning,
             suggestions: summary.suggestions,
             is_intermediate: true,
-            segment_count: segmentCount
+            segment_number: segmentCount  // ✅ 修正字段名：segment_count → segment_number
           })
         });
       } catch (err) {
