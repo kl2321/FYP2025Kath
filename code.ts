@@ -503,6 +503,29 @@
 // =====================================
 // Canvas Manager (Integrated)
 // =====================================
+// Utility Functions
+// =====================================
+
+// ✅ Safe font loading with fallback
+async function loadFontSafely(family: string, style: string): Promise<void> {
+  try {
+    await figma.loadFontAsync({ family, style });
+  } catch (error) {
+    console.warn(`⚠️ Could not load font ${family} ${style}, trying Bold instead`);
+    try {
+      if (style !== 'Bold') {
+        await figma.loadFontAsync({ family, style: 'Bold' });
+      }
+    } catch (fallbackError) {
+      console.warn(`⚠️ Could not load font ${family} Bold, trying Regular instead`);
+      await figma.loadFontAsync({ family, style: 'Regular' });
+    }
+  }
+}
+
+// =====================================
+// Interfaces & Types
+// =====================================
 
 
 interface DecisionCard {
@@ -548,8 +571,8 @@ class CanvasManager {
 
   async initializeRealtimeCanvas(): Promise<void> {
     try {
-      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
-      await figma.loadFontAsync({ family: "Inter", style: "Bold" });
+      await loadFontSafely("Inter", "Regular");
+      await loadFontSafely("Inter", "Bold");
 
       this.realtimeFrame = figma.createFrame();
       this.realtimeFrame.name = "🔴 Real-time Meeting Canvas";
@@ -686,8 +709,9 @@ class CanvasManager {
 
   async createFinalSummary(summary: MeetingSummary, metadata: any): Promise<void> {
     try {
-      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
-      await figma.loadFontAsync({ family: "Inter", style: "Bold" });
+      // ✅ Use safe font loading with fallback
+      await loadFontSafely("Inter", "Regular");
+      await loadFontSafely("Inter", "Bold");
 
       const summaryFrame = figma.createFrame();
       summaryFrame.name = `Meeting Summary - ${new Date().toLocaleDateString()}`;
@@ -809,9 +833,9 @@ class CanvasManager {
         await this.initializeRealtimeCanvas();
       }
 
-      // Load fonts
-      await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
-      await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+      // Load fonts with fallback
+      await loadFontSafely('Inter', 'Regular');
+      await loadFontSafely('Inter', 'Bold');
 
       // Create card frame
       const card = figma.createFrame();
