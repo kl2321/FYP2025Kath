@@ -253,6 +253,68 @@ class CanvasManager {
             this.currentCol = 0;
         }
     }
+    // ✅ Add segment summary card from Supabase data
+    addSegmentSummaryCard(segment) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // Ensure canvas exists
+                if (!this.realtimeFrame) {
+                    yield this.initializeRealtimeCanvas();
+                }
+                // Load fonts
+                yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+                yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+                // Create card frame
+                const card = figma.createFrame();
+                card.name = `Segment ${segment.segmentNumber} Summary`;
+                card.resize(540, 320);
+                card.cornerRadius = 8;
+                card.fills = [{ type: 'SOLID', color: { r: 0.96, g: 0.97, b: 1 } }];
+                card.layoutMode = 'VERTICAL';
+                card.paddingLeft = 16;
+                card.paddingRight = 16;
+                card.paddingTop = 16;
+                card.paddingBottom = 16;
+                card.itemSpacing = 10;
+                // Title with duration
+                const title = figma.createText();
+                title.fontName = { family: 'Inter', style: 'Bold' };
+                title.fontSize = 14;
+                title.characters = `📊 Segment ${segment.segmentNumber} (${segment.durationMinutes} min)`;
+                card.appendChild(title);
+                // Summary text
+                const summaryText = figma.createText();
+                summaryText.fontName = { family: 'Inter', style: 'Regular' };
+                summaryText.fontSize = 12;
+                summaryText.characters = segment.summary || 'No summary';
+                summaryText.resize(500, summaryText.height);
+                card.appendChild(summaryText);
+                // Decisions list
+                if (segment.decisions && segment.decisions.length > 0) {
+                    const decisionsText = figma.createText();
+                    decisionsText.fontName = { family: 'Inter', style: 'Regular' };
+                    decisionsText.fontSize = 11;
+                    const decisionsStr = segment.decisions
+                        .map((d, i) => `${i + 1}. ${d}`)
+                        .join('\n');
+                    decisionsText.characters = `🎯 Decisions:\n${decisionsStr}`;
+                    card.appendChild(decisionsText);
+                }
+                // Position card
+                const yOffset = 150 + (segment.segmentNumber - 1) * 340;
+                card.x = 50;
+                card.y = yOffset;
+                console.log(`✅ Added segment ${segment.segmentNumber} summary card at y=${yOffset}`);
+                if (this.realtimeFrame) {
+                    this.realtimeFrame.appendChild(card);
+                }
+            }
+            catch (error) {
+                console.error('❌ Error adding segment summary card:', error);
+                throw error;
+            }
+        });
+    }
 }
 // =====================================
 // Main Plugin Code
@@ -273,6 +335,11 @@ let meetingStats = {
     cards: 0,
     startTime: 0,
     currentMinute: 0
+};
+// ✅ Meeting data storage for Supabase sync
+let meetingData = {
+    segments: [],
+    finalData: null
 };
 // Initialize canvas on plugin start
 function initializePlugin() {
@@ -318,6 +385,13 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
                 break;
             case 'insert-summary':
                 yield generateFinalSummary();
+                break;
+            case 'update-segment-summary':
+                yield handleSegmentSummary(msg.data);
+                break;
+            case 'final-summary-ready':
+                meetingData.finalData = msg.data;
+                console.log('✅ Final summary data received and stored');
                 break;
             case 'file-upload':
                 yield handleFileUpload(msg);
@@ -380,6 +454,32 @@ function handleFileUpload(msg) {
         }
         catch (error) {
             console.error('❌ Failed to store file:', error);
+        }
+    });
+}
+// ✅ Handle segment summary from Supabase
+function handleSegmentSummary(data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            console.log('📊 Received segment summary:', data.segmentNumber);
+            // Store segment data
+            meetingData.segments.push(data);
+            // Add segment summary card to canvas
+            yield canvasManager.addSegmentSummaryCard({
+                segmentNumber: data.segmentNumber,
+                summary: data.summary,
+                decisions: data.decisions || [],
+                explicit: data.explicit || [],
+                tacit: data.tacit || [],
+                reasoning: data.reasoning || '',
+                durationMinutes: data.durationMinutes || 5
+            });
+            // Update statistics
+            meetingStats.decisions += (data.decisions || []).length;
+            console.log('✅ Added segment', data.segmentNumber, 'summary card');
+        }
+        catch (error) {
+            console.error('❌ Failed to handle segment summary:', error);
         }
     });
 }
