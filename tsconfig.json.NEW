@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "lib": ["es2019"],
+    "strict": true,
+    "types": ["@figma/plugin-typings"]
+  }
+}
