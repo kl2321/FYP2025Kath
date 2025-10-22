@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `${config.supabase.url}/rest/v1/sessions?session_id=eq.${session}`,
+      `${config.supabase.url}/rest/v1/sessions?session_id=eq.${session}&order=id.desc&limit=1`,
       {
         method: 'GET',
         headers: {
@@ -29,6 +29,8 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     if (data.length > 0) {
+       console.log(`✅ Returned latest record for session ${session}: ID=${data[0].id}`);
+
       return res.status(200).json(data[0]);
     } else {
       return res.status(200).json({}); // 未找到结果
