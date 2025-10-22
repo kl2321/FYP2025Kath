@@ -702,44 +702,93 @@ class CanvasManager {
                 // Load fonts with fallback
                 yield loadFontSafely('Inter', 'Regular');
                 yield loadFontSafely('Inter', 'Bold');
-                // Create card frame
+                // Create card frame with AUTO height
                 const card = figma.createFrame();
                 card.name = `Segment ${segment.segmentNumber} Summary`;
-                card.resize(540, 320);
+                card.resize(700, 100); // Wider card, temporary height
                 card.cornerRadius = 8;
                 card.fills = [{ type: 'SOLID', color: { r: 0.96, g: 0.97, b: 1 } }];
                 card.layoutMode = 'VERTICAL';
-                card.paddingLeft = 16;
-                card.paddingRight = 16;
-                card.paddingTop = 16;
-                card.paddingBottom = 16;
-                card.itemSpacing = 10;
+                card.primaryAxisSizingMode = 'AUTO'; // Auto height
+                card.counterAxisSizingMode = 'FIXED'; // Fixed width
+                card.paddingLeft = 20;
+                card.paddingRight = 20;
+                card.paddingTop = 20;
+                card.paddingBottom = 20;
+                card.itemSpacing = 12;
                 // Title with duration
                 const title = figma.createText();
                 title.fontName = { family: 'Inter', style: 'Bold' };
-                title.fontSize = 14;
+                title.fontSize = 16;
+                title.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.8 } }];
                 title.characters = `📊 Segment ${segment.segmentNumber} (${segment.durationMinutes} min)`;
                 card.appendChild(title);
-                // Summary text
-                const summaryText = figma.createText();
-                summaryText.fontName = { family: 'Inter', style: 'Regular' };
-                summaryText.fontSize = 12;
-                summaryText.characters = segment.summary || 'No summary';
-                summaryText.resize(500, summaryText.height);
-                card.appendChild(summaryText);
-                // Decisions list
+                // Summary section
+                if (segment.summary) {
+                    const summaryText = figma.createText();
+                    summaryText.fontName = { family: 'Inter', style: 'Regular' };
+                    summaryText.fontSize = 13;
+                    summaryText.characters = `Summary: ${segment.summary}`;
+                    summaryText.layoutAlign = 'STRETCH';
+                    summaryText.textAutoResize = 'HEIGHT';
+                    card.appendChild(summaryText);
+                }
+                // Decisions section
                 if (segment.decisions && segment.decisions.length > 0) {
                     const decisionsText = figma.createText();
-                    decisionsText.fontName = { family: 'Inter', style: 'Regular' };
-                    decisionsText.fontSize = 11;
+                    decisionsText.fontName = { family: 'Inter', style: 'Bold' };
+                    decisionsText.fontSize = 12;
+                    decisionsText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
+                    decisionsText.characters = '🎯 Decisions:';
+                    card.appendChild(decisionsText);
+                    // List all decisions without truncation
+                    const decisionsContent = figma.createText();
+                    decisionsContent.fontName = { family: 'Inter', style: 'Regular' };
+                    decisionsContent.fontSize = 12;
                     const decisionsStr = segment.decisions
                         .map((d, i) => `${i + 1}. ${d}`)
                         .join('\n');
-                    decisionsText.characters = `🎯 Decisions:\n${decisionsStr}`;
-                    card.appendChild(decisionsText);
+                    decisionsContent.characters = decisionsStr;
+                    decisionsContent.layoutAlign = 'STRETCH';
+                    decisionsContent.textAutoResize = 'HEIGHT';
+                    card.appendChild(decisionsContent);
+                }
+                // Knowledge section (Explicit and Tacit)
+                if ((segment.explicit && segment.explicit.length > 0) ||
+                    (segment.tacit && segment.tacit.length > 0)) {
+                    const knowledgeTitle = figma.createText();
+                    knowledgeTitle.fontName = { family: 'Inter', style: 'Bold' };
+                    knowledgeTitle.fontSize = 12;
+                    knowledgeTitle.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
+                    knowledgeTitle.characters = '💡 Knowledge:';
+                    card.appendChild(knowledgeTitle);
+                    // Explicit knowledge
+                    if (segment.explicit && segment.explicit.length > 0) {
+                        const explicitText = figma.createText();
+                        explicitText.fontName = { family: 'Inter', style: 'Regular' };
+                        explicitText.fontSize = 11;
+                        const explicitStr = segment.explicit.join(', ');
+                        explicitText.characters = `Explicit: ${explicitStr}`;
+                        explicitText.layoutAlign = 'STRETCH';
+                        explicitText.textAutoResize = 'HEIGHT';
+                        explicitText.fills = [{ type: 'SOLID', color: { r: 0.4, g: 0.4, b: 0.4 } }];
+                        card.appendChild(explicitText);
+                    }
+                    // Tacit knowledge
+                    if (segment.tacit && segment.tacit.length > 0) {
+                        const tacitText = figma.createText();
+                        tacitText.fontName = { family: 'Inter', style: 'Regular' };
+                        tacitText.fontSize = 11;
+                        const tacitStr = segment.tacit.join(', ');
+                        tacitText.characters = `Tacit: ${tacitStr}`;
+                        tacitText.layoutAlign = 'STRETCH';
+                        tacitText.textAutoResize = 'HEIGHT';
+                        tacitText.fills = [{ type: 'SOLID', color: { r: 0.4, g: 0.4, b: 0.4 } }];
+                        card.appendChild(tacitText);
+                    }
                 }
                 // Position card
-                const yOffset = 150 + (segment.segmentNumber - 1) * 340;
+                const yOffset = 150 + (segment.segmentNumber - 1) * 400; // More spacing for larger cards
                 card.x = 50;
                 card.y = yOffset;
                 console.log(`✅ Added segment ${segment.segmentNumber} summary card at y=${yOffset}`);
