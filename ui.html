@@ -3410,19 +3410,19 @@ function startPolling(sessionId) {
   // 初始化状态变量
   let lastSegmentNumber = 0;        // 【新增】跟踪已处理的segment编号
   let lastFinalData = null;         // 【新增】跟踪最终结果
-  let pollTimeoutId = null;
+  //let pollTimeoutId = null;
   let pollCount = 0;
 
   console.log('🔄 开始轮询，Session ID:', sessionId);
 
   // 设置超时处理（30秒后停止轮询）
-  pollTimeoutId = setTimeout(() => {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      console.warn('⚠️ 轮询超时');
-      showMessage('Recording timeout. Please check your connection.', 'warning');
-    }
-  }, API_CONFIG.polling.timeout || 30000);
+  // pollTimeoutId = setTimeout(() => {
+  //   if (pollInterval) {
+  //     clearInterval(pollInterval);
+  //     console.warn('⚠️ 轮询超时');
+  //     showMessage('Recording timeout. Please check your connection.', 'warning');
+  //   }
+  // }, API_CONFIG.polling.timeout || 30000);
 
   // 开始定期轮询
   pollInterval = setInterval(async () => {
@@ -3445,13 +3445,13 @@ function startPolling(sessionId) {
         console.log('📊 新的 segment:', data.segment_number);
 
         // 清除超时（说明还在活动）
-        if (pollTimeoutId) {
-          clearTimeout(pollTimeoutId);
-          pollTimeoutId = setTimeout(() => {
-            clearInterval(pollInterval);
-            console.warn('⚠️ 轮询超时');
-          }, 30000);
-        }
+        // if (pollTimeoutId) {
+        //   clearTimeout(pollTimeoutId);
+        //   pollTimeoutId = setTimeout(() => {
+        //     clearInterval(pollInterval);
+        //     console.warn('⚠️ 轮询超时');
+        //   }, 30000);
+        // }
 
         // 【新增】发送完整的 segment summary 给 code.ts
         parent.postMessage({
@@ -3514,7 +3514,7 @@ function startPolling(sessionId) {
 
         // 停止轮询
         clearInterval(pollInterval);
-        clearTimeout(pollTimeoutId);
+        //clearTimeout(pollTimeoutId);
 
         // 触发最终摘要生成
         setTimeout(() => {
@@ -3535,7 +3535,7 @@ function startPolling(sessionId) {
       if (pollRetryCount >= API_CONFIG.polling.maxRetries) {
         console.error('❌ 达到最大重试次数，停止轮询');
         clearInterval(pollInterval);
-        clearTimeout(pollTimeoutId);
+       // clearTimeout(pollTimeoutId);
         showMessage('Connection lost. Please check your network.', 'error');
       }
     }
@@ -3548,10 +3548,10 @@ function startPolling(sessionId) {
       clearInterval(pollInterval);
       pollInterval = null;
     }
-    if (pollTimeoutId) {
-      clearTimeout(pollTimeoutId);
-      pollTimeoutId = null;
-    }
+  //   if (pollTimeoutId) {
+  //     clearTimeout(pollTimeoutId);
+  //     pollTimeoutId = null;
+  //   }
   };
 }
 // ===== 辅助函数：停止轮询 =====
