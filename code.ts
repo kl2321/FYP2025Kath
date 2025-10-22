@@ -800,6 +800,74 @@ class CanvasManager {
       this.currentCol = 0;
     }
   }
+
+  // ✅ Add segment summary card from Supabase data
+  async addSegmentSummaryCard(segment: any): Promise<void> {
+    try {
+      // Ensure canvas exists
+      if (!this.realtimeFrame) {
+        await this.initializeRealtimeCanvas();
+      }
+
+      // Load fonts
+      await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+      await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+
+      // Create card frame
+      const card = figma.createFrame();
+      card.name = `Segment ${segment.segmentNumber} Summary`;
+      card.resize(540, 320);
+      card.cornerRadius = 8;
+      card.fills = [{ type: 'SOLID', color: { r: 0.96, g: 0.97, b: 1 } }];
+      card.layoutMode = 'VERTICAL';
+      card.paddingLeft = 16;
+      card.paddingRight = 16;
+      card.paddingTop = 16;
+      card.paddingBottom = 16;
+      card.itemSpacing = 10;
+
+      // Title with duration
+      const title = figma.createText();
+      title.fontName = { family: 'Inter', style: 'Bold' };
+      title.fontSize = 14;
+      title.characters = `📊 Segment ${segment.segmentNumber} (${segment.durationMinutes} min)`;
+      card.appendChild(title);
+
+      // Summary text
+      const summaryText = figma.createText();
+      summaryText.fontName = { family: 'Inter', style: 'Regular' };
+      summaryText.fontSize = 12;
+      summaryText.characters = segment.summary || 'No summary';
+      summaryText.resize(500, summaryText.height);
+      card.appendChild(summaryText);
+
+      // Decisions list
+      if (segment.decisions && segment.decisions.length > 0) {
+        const decisionsText = figma.createText();
+        decisionsText.fontName = { family: 'Inter', style: 'Regular' };
+        decisionsText.fontSize = 11;
+        const decisionsStr = segment.decisions
+          .map((d: string, i: number) => `${i + 1}. ${d}`)
+          .join('\n');
+        decisionsText.characters = `🎯 Decisions:\n${decisionsStr}`;
+        card.appendChild(decisionsText);
+      }
+
+      // Position card
+      const yOffset = 150 + (segment.segmentNumber - 1) * 340;
+      card.x = 50;
+      card.y = yOffset;
+
+      console.log(`✅ Added segment ${segment.segmentNumber} summary card at y=${yOffset}`);
+
+      if (this.realtimeFrame) {
+        this.realtimeFrame.appendChild(card);
+      }
+    } catch (error) {
+      console.error('❌ Error adding segment summary card:', error);
+      throw error;
+    }
+  }
 }
 
 // =====================================
@@ -824,6 +892,12 @@ let meetingStats = {
   cards: 0,
   startTime: 0,
   currentMinute: 0
+};
+
+// ✅ Meeting data storage for Supabase sync
+let meetingData = {
+  segments: [] as any[],
+  finalData: null as any
 };
 
 // Initialize canvas on plugin start
@@ -879,16 +953,25 @@ figma.ui.onmessage = async (msg) => {
       case 'insert-summary':
         await generateFinalSummary();
         break;
-      
+
+      case 'update-segment-summary':
+        await handleSegmentSummary(msg.data);
+        break;
+
+      case 'final-summary-ready':
+        meetingData.finalData = msg.data;
+        console.log('✅ Final summary data received and stored');
+        break;
+
       case 'file-upload':
         await handleFileUpload(msg);
         break;
-      
+
       case 'test':
         figma.notify("✅ Test message received!");
         console.log('Test message handled successfully');
         break;
-      
+
       default:
         console.log('⚠️ Unknown message type:', msg.type);
     }
@@ -940,6 +1023,33 @@ async function handleFileUpload(msg: any) {
   }
 }
 
+// ✅ Handle segment summary from Supabase
+async function handleSegmentSummary(data: any) {
+  try {
+    console.log('📊 Received segment summary:', data.segmentNumber);
+
+    // Store segment data
+    meetingData.segments.push(data);
+
+    // Add segment summary card to canvas
+    await canvasManager.addSegmentSummaryCard({
+      segmentNumber: data.segmentNumber,
+      summary: data.summary,
+      decisions: data.decisions || [],
+      explicit: data.explicit || [],
+      tacit: data.tacit || [],
+      reasoning: data.reasoning || '',
+      durationMinutes: data.durationMinutes || 5
+    });
+
+    // Update statistics
+    meetingStats.decisions += (data.decisions || []).length;
+
+    console.log('✅ Added segment', data.segmentNumber, 'summary card');
+  } catch (error) {
+    console.error('❌ Failed to handle segment summary:', error);
+  }
+}
 
 // Start meeting and initialize canvas
 async function startMeeting(data: any) {
