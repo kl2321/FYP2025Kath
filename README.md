@@ -477,7 +477,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 ## 👤 Author
 
-**Katherine Li**  
+**Katherine Luo**  
 Final Year Project 2025  
 Design Engineering Programme  
 Imperial College London
@@ -488,7 +488,7 @@ Imperial College London
 
 - **GitHub Issues**: https://github.com/kl2321/FYP2025Kath/issues
 - **Documentation**: Check `/docs` folder for detailed guides
-- **Email**: [Your contact email for project inquiries]
+- **Email**: [sluo20021124@outlook.com]
 
 ---
 
