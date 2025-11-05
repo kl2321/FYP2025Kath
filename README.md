@@ -478,7 +478,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 ## 👤 Author
 
 **Katherine Luo**  
-Final Year Project 2025  
+UROP Research Project 2025  
 Design Engineering Programme  
 Imperial College London
 
