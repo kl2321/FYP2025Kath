@@ -294,54 +294,37 @@ class CanvasManager {
     }
     createFinalSummaryWithData(finalData) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c;
             try {
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
-                yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
                 const date = new Date().toLocaleDateString();
                 const frame = figma.createFrame();
                 frame.name = `Meeting Summary - ${date}`;
-                frame.resize(1000, 1400); // 更宽一些
-                frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.99 } }]; // 浅灰背景
-                frame.cornerRadius = 16; // 圆角更大
+                frame.resize(1000, 1400);
+                frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.99 } }];
+                frame.cornerRadius = 16;
                 frame.layoutMode = 'VERTICAL';
                 frame.paddingLeft = 40;
                 frame.paddingRight = 40;
                 frame.paddingTop = 40;
                 frame.paddingBottom = 40;
-                frame.itemSpacing = 24; // 增加间距
-                frame.primaryAxisSizingMode = 'AUTO'; // 自动高度
-                // const frame = figma.createFrame();
-                // frame.name = `Meeting Summary - ${date}`;
-                // frame.resize(900, 1200);
-                // frame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+                frame.itemSpacing = 24;
+                frame.primaryAxisSizingMode = 'AUTO';
                 frame.strokeWeight = 2;
                 frame.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.85 } }];
-                frame.cornerRadius = 8;
-                frame.layoutMode = 'VERTICAL';
-                frame.paddingLeft = 32;
-                frame.paddingRight = 32;
-                frame.paddingTop = 32;
-                frame.paddingBottom = 32;
-                frame.itemSpacing = 20;
-                // 标题
-                // const title = figma.createText();
-                // title.fontName = { family: 'Inter', style: 'Bold' };
-                // title.fontSize = 24;
-                // title.characters = '📋 Meeting Summary';
                 // 创建标题容器
                 const headerFrame = figma.createFrame();
                 headerFrame.layoutMode = 'HORIZONTAL';
                 headerFrame.counterAxisSizingMode = 'AUTO';
                 headerFrame.primaryAxisSizingMode = 'AUTO';
-                headerFrame.fills = []; // 透明背景
+                headerFrame.fills = [];
                 headerFrame.itemSpacing = 16;
                 const title = figma.createText();
                 title.fontName = { family: 'Inter', style: 'Bold' };
-                title.fontSize = 32; // 更大的标题
+                title.fontSize = 32;
                 title.characters = '📋 Meeting Summary';
                 title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.2 } }];
-                // 添加日期
                 const dateText = figma.createText();
                 dateText.fontName = { family: 'Inter', style: 'Regular' };
                 dateText.fontSize = 14;
@@ -350,65 +333,288 @@ class CanvasManager {
                 headerFrame.appendChild(title);
                 frame.appendChild(headerFrame);
                 frame.appendChild(dateText);
-                title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
-                frame.appendChild(title);
-                // 📊 Summary
-                if (finalData.summary) {
-                    this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
+                // 检查数据结构类型并处理
+                if (finalData.duration_overview || finalData.decision_summary) {
+                    // ========== 新数据结构处理 ==========
+                    // 📊 Meeting Overview
+                    if (finalData.duration_overview) {
+                        this.addSectionToFrame(frame, '📊 Meeting Overview', finalData.duration_overview);
+                    }
+                    // 📍 Key Topics
+                    if (finalData.key_topics_discussed && finalData.key_topics_discussed.length > 0) {
+                        const topicsContent = finalData.key_topics_discussed
+                            .map((topic) => `• ${topic}`)
+                            .join('\n');
+                        this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
+                    }
+                    // 🎯 Key Decisions with Knowledge
+                    if (((_a = finalData.decision_summary) === null || _a === void 0 ? void 0 : _a.decisions) && finalData.decision_summary.decisions.length > 0) {
+                        const decisionsContent = finalData.decision_summary.decisions
+                            .map((d, i) => {
+                            let text = `${i + 1}. ${d.decision}`;
+                            if (d.rationale) {
+                                text += `\n   📝 Rationale: ${d.rationale}`;
+                            }
+                            if (d.impact) {
+                                text += `\n   💫 Impact: ${d.impact}`;
+                            }
+                            return text;
+                        })
+                            .join('\n\n');
+                        this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+                        // 提取所有 Explicit Knowledge
+                        const allExplicit = [];
+                        finalData.decision_summary.decisions.forEach((d) => {
+                            if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge)) {
+                                d.explicit_knowledge.forEach((e) => {
+                                    if (e && !allExplicit.includes(e)) {
+                                        allExplicit.push(e);
+                                    }
+                                });
+                            }
+                        });
+                        if (allExplicit.length > 0) {
+                            const explicitContent = allExplicit
+                                .map((e) => `•  ${e}`)
+                                .join('\n\n');
+                            this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
+                        }
+                        // 提取所有 Tacit Knowledge
+                        const allTacit = [];
+                        finalData.decision_summary.decisions.forEach((d) => {
+                            if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge)) {
+                                d.tacit_knowledge.forEach((t) => {
+                                    if (t && !allTacit.includes(t)) {
+                                        allTacit.push(t);
+                                    }
+                                });
+                            }
+                        });
+                        if (allTacit.length > 0) {
+                            const tacitContent = allTacit
+                                .map((t) => `•  ${t}`)
+                                .join('\n\n');
+                            this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
+                        }
+                    }
+                    // 📈 Progress Status
+                    if (finalData.progress_check) {
+                        let progressContent = '';
+                        if (finalData.progress_check.current_week) {
+                            progressContent += `📅 Current Week: ${finalData.progress_check.current_week}\n`;
+                        }
+                        if (finalData.progress_check.alignment_status) {
+                            const statusEmoji = finalData.progress_check.alignment_status === 'on_track' ? '✅' : '⚠️';
+                            progressContent += `${statusEmoji} Status: ${finalData.progress_check.alignment_status}\n`;
+                        }
+                        if (finalData.progress_check.actual_progress && finalData.progress_check.actual_progress.length > 0) {
+                            progressContent += `\nProgress Achieved:\n`;
+                            progressContent += finalData.progress_check.actual_progress
+                                .map((p) => `• ${p}`)
+                                .join('\n');
+                        }
+                        if (finalData.progress_check.gaps_identified && finalData.progress_check.gaps_identified.length > 0) {
+                            progressContent += `\n\nGaps Identified:\n`;
+                            progressContent += finalData.progress_check.gaps_identified
+                                .map((g) => `• ${g}`)
+                                .join('\n');
+                        }
+                        if (progressContent) {
+                            this.addSectionToFrame(frame, '📈 Progress Status', progressContent);
+                        }
+                    }
+                    // ✅ Action Items
+                    if (((_b = finalData.action_items) === null || _b === void 0 ? void 0 : _b.immediate_next_steps) && finalData.action_items.immediate_next_steps.length > 0) {
+                        const actionsContent = finalData.action_items.immediate_next_steps
+                            .map((a) => {
+                            const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
+                            return `${priorityEmoji} ${a.action}\n   👤 Owner: ${a.owner}\n   📅 Due: ${a.deadline}`;
+                        })
+                            .join('\n\n');
+                        this.addSectionToFrame(frame, '✅ Action Items', actionsContent);
+                        // Upcoming Week Focus
+                        if (finalData.action_items.upcoming_week_focus && finalData.action_items.upcoming_week_focus.length > 0) {
+                            const focusContent = finalData.action_items.upcoming_week_focus
+                                .map((f) => `• ${f}`)
+                                .join('\n');
+                            this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
+                        }
+                    }
+                    // 📚 Learning Materials
+                    if (((_c = finalData.learning_materials) === null || _c === void 0 ? void 0 : _c.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
+                        const resourcesContent = finalData.learning_materials.recommended_resources
+                            .map((r) => {
+                            const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
+                            return `${priorityEmoji} ${r.title}\n   Type: ${r.resource_type}\n   ${r.relevance}`;
+                        })
+                            .join('\n\n');
+                        this.addSectionToFrame(frame, '📚 Recommended Resources', resourcesContent);
+                    }
                 }
-                // 🎯 Key Decisions
-                // if (finalData.decisions && finalData.decisions.length > 0) {
-                //   const decisionsContent = finalData.decisions
-                //     .map((d: string, i: number) => `${i + 1}. ${d}`)
-                //     .join('\n\n');
-                //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
-                // }
-                if (finalData.decisions && finalData.decisions.length > 0) {
-                    const decisionsContent = finalData.decisions
-                        .map((d, i) => `${i + 1}. ${d}`)
-                        .join('\n\n'); // 双换行增加间距
-                    this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+                else {
+                    // ========== 旧数据结构处理（保持兼容） ==========
+                    // 📊 Summary
+                    if (finalData.summary) {
+                        this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
+                    }
+                    // 🎯 Key Decisions
+                    if (finalData.decisions && finalData.decisions.length > 0) {
+                        const decisionsContent = finalData.decisions
+                            .map((d, i) => `${i + 1}. ${d}`)
+                            .join('\n\n');
+                        this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+                    }
+                    // 💡 Explicit Knowledge
+                    if (finalData.explicit && finalData.explicit.length > 0) {
+                        const explicitContent = finalData.explicit
+                            .map((e) => `•  ${e}`)
+                            .join('\n\n');
+                        this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
+                    }
+                    // 🧠 Tacit Knowledge
+                    if (finalData.tacit && finalData.tacit.length > 0) {
+                        const tacitContent = finalData.tacit
+                            .map((t) => `•  ${t}`)
+                            .join('\n\n');
+                        this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
+                    }
+                    // 🤔 Reasoning
+                    if (finalData.reasoning) {
+                        this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
+                    }
+                    // 🚀 Suggestions
+                    if (finalData.suggestions && finalData.suggestions.length > 0) {
+                        const suggestionsContent = finalData.suggestions
+                            .map((s) => `• ${s}`)
+                            .join('\n\n');
+                        this.addSectionToFrame(frame, '🚀 Suggestions & Next Steps', suggestionsContent);
+                    }
                 }
-                // 💡 Explicit Knowledge
-                if (finalData.explicit && finalData.explicit.length > 0) {
-                    const explicitContent = finalData.explicit
-                        .map((e, i) => `•  ${e}`) // 添加空格
-                        .join('\n\n'); // 双换行
-                    this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
-                }
-                // 🧠 Tacit Knowledge
-                if (finalData.tacit && finalData.tacit.length > 0) {
-                    const tacitContent = finalData.tacit
-                        .map((t, i) => `•  ${t}`) // 添加空格
-                        .join('\n\n'); // 双换行
-                    this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
-                }
-                // 🤔 Reasoning
-                if (finalData.reasoning) {
-                    this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
-                }
-                // 💬 Suggestions
-                if (finalData.suggestions && finalData.suggestions.length > 0) {
-                    const suggestionsContent = finalData.suggestions
-                        .map((s, i) => `• ${s}`)
-                        .join('\n');
-                    this.addSectionToFrame(frame, '💬 Suggestions', suggestionsContent);
-                }
-                // 居中显示
-                const bounds = figma.viewport.bounds;
-                frame.x = bounds.x + (bounds.width - frame.width) / 2;
-                frame.y = bounds.y + 100;
+                // 将框架添加到画布并居中显示
                 figma.currentPage.appendChild(frame);
-                figma.currentPage.selection = [frame];
                 figma.viewport.scrollAndZoomIntoView([frame]);
-                console.log('✅ Final summary canvas created with Supabase data');
+                console.log('✅ Final summary canvas created with formatted layout');
             }
             catch (error) {
-                console.error('❌ Error creating final summary:', error);
+                console.error('❌ Error creating final summary with data:', error);
                 throw error;
             }
         });
     }
+    // async createFinalSummaryWithData(finalData: any): Promise<void> {
+    //   try {
+    //     await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+    //     await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+    //     await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+    //     const date = new Date().toLocaleDateString();
+    //     const frame = figma.createFrame();
+    // frame.name = `Meeting Summary - ${date}`;
+    // frame.resize(1000, 1400);  // 更宽一些
+    // frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.99 } }];  // 浅灰背景
+    // frame.cornerRadius = 16;  // 圆角更大
+    // frame.layoutMode = 'VERTICAL';
+    // frame.paddingLeft = 40;
+    // frame.paddingRight = 40;
+    // frame.paddingTop = 40;
+    // frame.paddingBottom = 40;
+    // frame.itemSpacing = 24;  // 增加间距
+    // frame.primaryAxisSizingMode = 'AUTO';  // 自动高度
+    //     // const frame = figma.createFrame();
+    //     // frame.name = `Meeting Summary - ${date}`;
+    //     // frame.resize(900, 1200);
+    //     // frame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+    //     frame.strokeWeight = 2;
+    //     frame.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.85 } }];
+    //     frame.cornerRadius = 8;
+    //     frame.layoutMode = 'VERTICAL';
+    //     frame.paddingLeft = 32;
+    //     frame.paddingRight = 32;
+    //     frame.paddingTop = 32;
+    //     frame.paddingBottom = 32;
+    //     frame.itemSpacing = 20;
+    //     // 标题
+    //     // const title = figma.createText();
+    //     // title.fontName = { family: 'Inter', style: 'Bold' };
+    //     // title.fontSize = 24;
+    //     // title.characters = '📋 Meeting Summary';
+    //     // 创建标题容器
+    // const headerFrame = figma.createFrame();
+    // headerFrame.layoutMode = 'HORIZONTAL';
+    // headerFrame.counterAxisSizingMode = 'AUTO';
+    // headerFrame.primaryAxisSizingMode = 'AUTO';
+    // headerFrame.fills = [];  // 透明背景
+    // headerFrame.itemSpacing = 16;
+    // const title = figma.createText();
+    // title.fontName = { family: 'Inter', style: 'Bold' };
+    // title.fontSize = 32;  // 更大的标题
+    // title.characters = '📋 Meeting Summary';
+    // title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.2 } }];
+    // // 添加日期
+    // const dateText = figma.createText();
+    // dateText.fontName = { family: 'Inter', style: 'Regular' };
+    // dateText.fontSize = 14;
+    // dateText.characters = date;
+    // dateText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.6 } }];
+    // headerFrame.appendChild(title);
+    // frame.appendChild(headerFrame);
+    // frame.appendChild(dateText);
+    //     title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
+    //     frame.appendChild(title);
+    //     // 📊 Summary
+    //     if (finalData.summary) {
+    //       this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
+    //     }
+    //     // 🎯 Key Decisions
+    //     // if (finalData.decisions && finalData.decisions.length > 0) {
+    //     //   const decisionsContent = finalData.decisions
+    //     //     .map((d: string, i: number) => `${i + 1}. ${d}`)
+    //     //     .join('\n\n');
+    //     //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+    //     // }
+    //     if (finalData.decisions && finalData.decisions.length > 0) {
+    //   const decisionsContent = finalData.decisions
+    //     .map((d: string, i: number) => `${i + 1}. ${d}`)
+    //     .join('\n\n');  // 双换行增加间距
+    //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+    // }
+    //     // 💡 Explicit Knowledge
+    //     if (finalData.explicit && finalData.explicit.length > 0) {
+    //       const explicitContent = finalData.explicit
+    //        .map((e: string, i: number) => `•  ${e}`)  // 添加空格
+    //     .join('\n\n');  // 双换行
+    //       this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
+    //     }
+    //     // 🧠 Tacit Knowledge
+    //     if (finalData.tacit && finalData.tacit.length > 0) {
+    //       const tacitContent = finalData.tacit
+    //         .map((t: string, i: number) => `•  ${t}`)  // 添加空格
+    //     .join('\n\n');  // 双换行
+    //       this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
+    //     }
+    //     // 🤔 Reasoning
+    //     if (finalData.reasoning) {
+    //       this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
+    //     }
+    //     // 💬 Suggestions
+    //     if (finalData.suggestions && finalData.suggestions.length > 0) {
+    //       const suggestionsContent = finalData.suggestions
+    //         .map((s: string, i: number) => `• ${s}`)
+    //         .join('\n');
+    //       this.addSectionToFrame(frame, '💬 Suggestions', suggestionsContent);
+    //     }
+    //     // 居中显示
+    //     const bounds = figma.viewport.bounds;
+    //     frame.x = bounds.x + (bounds.width - frame.width) / 2;
+    //     frame.y = bounds.y + 100;
+    //     figma.currentPage.appendChild(frame);
+    //     figma.currentPage.selection = [frame];
+    //     figma.viewport.scrollAndZoomIntoView([frame]);
+    //     console.log('✅ Final summary canvas created with Supabase data');
+    //   } catch (error) {
+    //     console.error('❌ Error creating final summary:', error);
+    //     throw error;
+    //   }
+    // }
     addSectionToFrame(parent, title, content) {
         // 创建 section 卡片
         const sectionCard = figma.createFrame();
