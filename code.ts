@@ -765,7 +765,8 @@ class CanvasManager {
             explicitText.characters = `   Explicit: ${segment.explicit[i]}`;
             explicitText.layoutAlign = 'STRETCH';
             explicitText.textAutoResize = 'HEIGHT';
-            explicitText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+           // explicitText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+            explicitText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }]; // Blue color for Explicit
             card.appendChild(explicitText);
           }
 
@@ -777,7 +778,8 @@ class CanvasManager {
             tacitText.characters = `   Tacit: ${segment.tacit[i]}`;
             tacitText.layoutAlign = 'STRETCH';
             tacitText.textAutoResize = 'HEIGHT';
-            tacitText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+            //tacitText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+            tacitText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }]; // Orange color for Tacit
             card.appendChild(tacitText);
           }
         });
