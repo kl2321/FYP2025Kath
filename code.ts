@@ -853,9 +853,21 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 
     const date = new Date().toLocaleDateString();
     const frame = figma.createFrame();
-    frame.name = `Meeting Summary - ${date}`;
-    frame.resize(900, 1200);
-    frame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+frame.name = `Meeting Summary - ${date}`;
+frame.resize(1000, 1400);  // 更宽一些
+frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.99 } }];  // 浅灰背景
+frame.cornerRadius = 16;  // 圆角更大
+frame.layoutMode = 'VERTICAL';
+frame.paddingLeft = 40;
+frame.paddingRight = 40;
+frame.paddingTop = 40;
+frame.paddingBottom = 40;
+frame.itemSpacing = 24;  // 增加间距
+frame.primaryAxisSizingMode = 'AUTO';  // 自动高度
+    // const frame = figma.createFrame();
+    // frame.name = `Meeting Summary - ${date}`;
+    // frame.resize(900, 1200);
+    // frame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
     frame.strokeWeight = 2;
     frame.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.85 } }];
     frame.cornerRadius = 8;
@@ -867,10 +879,34 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
     frame.itemSpacing = 20;
 
     // 标题
-    const title = figma.createText();
-    title.fontName = { family: 'Inter', style: 'Bold' };
-    title.fontSize = 24;
-    title.characters = '📋 Meeting Summary';
+    // const title = figma.createText();
+    // title.fontName = { family: 'Inter', style: 'Bold' };
+    // title.fontSize = 24;
+    // title.characters = '📋 Meeting Summary';
+    // 创建标题容器
+const headerFrame = figma.createFrame();
+headerFrame.layoutMode = 'HORIZONTAL';
+headerFrame.counterAxisSizingMode = 'AUTO';
+headerFrame.primaryAxisSizingMode = 'AUTO';
+headerFrame.fills = [];  // 透明背景
+headerFrame.itemSpacing = 16;
+
+const title = figma.createText();
+title.fontName = { family: 'Inter', style: 'Bold' };
+title.fontSize = 32;  // 更大的标题
+title.characters = '📋 Meeting Summary';
+title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.2 } }];
+
+// 添加日期
+const dateText = figma.createText();
+dateText.fontName = { family: 'Inter', style: 'Regular' };
+dateText.fontSize = 14;
+dateText.characters = date;
+dateText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.6 } }];
+
+headerFrame.appendChild(title);
+frame.appendChild(headerFrame);
+frame.appendChild(dateText);
     title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
     frame.appendChild(title);
 
@@ -880,26 +916,32 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
     }
 
     // 🎯 Key Decisions
+    // if (finalData.decisions && finalData.decisions.length > 0) {
+    //   const decisionsContent = finalData.decisions
+    //     .map((d: string, i: number) => `${i + 1}. ${d}`)
+    //     .join('\n\n');
+    //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+    // }
     if (finalData.decisions && finalData.decisions.length > 0) {
-      const decisionsContent = finalData.decisions
-        .map((d: string, i: number) => `${i + 1}. ${d}`)
-        .join('\n\n');
-      this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
-    }
+  const decisionsContent = finalData.decisions
+    .map((d: string, i: number) => `${i + 1}. ${d}`)
+    .join('\n\n');  // 双换行增加间距
+  this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+}
 
     // 💡 Explicit Knowledge
     if (finalData.explicit && finalData.explicit.length > 0) {
       const explicitContent = finalData.explicit
-        .map((e: string, i: number) => `• ${e}`)
-        .join('\n');
+       .map((e: string, i: number) => `•  ${e}`)  // 添加空格
+    .join('\n\n');  // 双换行
       this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
     }
 
     // 🧠 Tacit Knowledge
     if (finalData.tacit && finalData.tacit.length > 0) {
       const tacitContent = finalData.tacit
-        .map((t: string, i: number) => `• ${t}`)
-        .join('\n');
+        .map((t: string, i: number) => `•  ${t}`)  // 添加空格
+    .join('\n\n');  // 双换行
       this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
     }
 
@@ -933,25 +975,94 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
   }
 }
 
-// 辅助方法：添加 section 到 frame
 private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
+  // 创建 section 卡片
+  const sectionCard = figma.createFrame();
+  sectionCard.layoutMode = 'VERTICAL';
+  sectionCard.counterAxisSizingMode = 'AUTO';
+  sectionCard.primaryAxisSizingMode = 'AUTO';
+  sectionCard.layoutAlign = 'STRETCH';
+  sectionCard.paddingLeft = 24;
+  sectionCard.paddingRight = 24;
+  sectionCard.paddingTop = 20;
+  sectionCard.paddingBottom = 20;
+  sectionCard.cornerRadius = 12;
+  sectionCard.itemSpacing = 12;
+  
+  // 根据标题类型设置背景色
+  if (title.includes('Summary')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];  // 淡蓝
+  } else if (title.includes('Decisions')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }];  // 淡红
+  } else if (title.includes('Explicit')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }];  // 蓝色调
+  } else if (title.includes('Tacit')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }];  // 橘色调
+  } else {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];  // 白色
+  }
+  
+  // 添加边框
+  sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
+  sectionCard.strokeWeight = 1;
+  
   // Section 标题
   const titleText = figma.createText();
   titleText.fontName = { family: 'Inter', style: 'Bold' };
-  titleText.fontSize = 16;
+  titleText.fontSize = 18;  // 增大标题
   titleText.characters = title;
-  titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
-  parent.appendChild(titleText);
-
+  
+  // 标题颜色（使用之前的颜色逻辑）
+  if (title.includes('Explicit')) {
+    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
+  } else if (title.includes('Tacit')) {
+    titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
+  } else {
+    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
+  }
+  
+  sectionCard.appendChild(titleText);
+  
+  // 添加分隔线
+  const divider = figma.createLine();
+  divider.resize(100, 0);
+  divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
+  divider.strokeWeight = 1;
+  divider.layoutAlign = 'STRETCH';
+  sectionCard.appendChild(divider);
+  
   // Section 内容
   const contentText = figma.createText();
   contentText.fontName = { family: 'Inter', style: 'Regular' };
-  contentText.fontSize = 13;
+  contentText.fontSize = 14;  // 稍大的字体
   contentText.characters = content || 'N/A';
-  contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
-  contentText.resize(836, contentText.height);
-  parent.appendChild(contentText);
+  contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
+  contentText.layoutAlign = 'STRETCH';
+  contentText.textAutoResize = 'HEIGHT';
+  contentText.lineHeight = { value: 150, unit: 'PERCENT' };  // 增加行高
+  
+  sectionCard.appendChild(contentText);
+  parent.appendChild(sectionCard);
 }
+// 辅助方法：添加 section 到 frame
+// private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
+//   // Section 标题
+//   const titleText = figma.createText();
+//   titleText.fontName = { family: 'Inter', style: 'Bold' };
+//   titleText.fontSize = 16;
+//   titleText.characters = title;
+//   titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
+//   parent.appendChild(titleText);
+
+//   // Section 内容
+//   const contentText = figma.createText();
+//   contentText.fontName = { family: 'Inter', style: 'Regular' };
+//   contentText.fontSize = 13;
+//   contentText.characters = content || 'N/A';
+//   contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
+//   contentText.resize(836, contentText.height);
+//   parent.appendChild(contentText);
+// }
 
   async createFinalSummary(summary: MeetingSummary, metadata: any): Promise<void> {
     try {
