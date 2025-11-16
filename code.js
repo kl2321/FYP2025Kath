@@ -367,7 +367,7 @@ class CanvasManager {
                         finalData.decision_summary.decisions.forEach((d) => {
                             if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge)) {
                                 d.explicit_knowledge.forEach((e) => {
-                                    if (e && !allExplicit.includes(e)) {
+                                    if (e && !allExplicit.indexOf(e)) {
                                         allExplicit.push(e);
                                     }
                                 });
@@ -384,7 +384,7 @@ class CanvasManager {
                         finalData.decision_summary.decisions.forEach((d) => {
                             if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge)) {
                                 d.tacit_knowledge.forEach((t) => {
-                                    if (t && !allTacit.includes(t)) {
+                                    if (t && !allTacit.indexOf(t)) {
                                         allTacit.push(t);
                                     }
                                 });

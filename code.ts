@@ -928,7 +928,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
         finalData.decision_summary.decisions.forEach((d: any) => {
           if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge)) {
             d.explicit_knowledge.forEach((e: string) => {
-              if (e && !allExplicit.includes(e)) {
+              if (e && !allExplicit.indexOf(e)) {
                 allExplicit.push(e);
               }
             });
@@ -947,7 +947,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
         finalData.decision_summary.decisions.forEach((d: any) => {
           if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge)) {
             d.tacit_knowledge.forEach((t: string) => {
-              if (t && !allTacit.includes(t)) {
+              if (t && !allTacit.indexOf(t)) {
                 allTacit.push(t);
               }
             });
