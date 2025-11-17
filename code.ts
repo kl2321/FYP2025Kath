@@ -847,6 +847,67 @@ class CanvasManager {
 
 async createFinalSummaryWithData(finalData: any): Promise<void> {
   try {
+    // 🔍 调试：看看原始传进来的数据长什么样
+    console.log('🔍 [createFinalSummaryWithData] raw input =', finalData);
+
+    // ① 如果 finalData 自己是一个 JSON 字符串，先尝试解析
+    if (typeof finalData === 'string') {
+      try {
+        finalData = JSON.parse(finalData);
+        console.log('✅ Parsed finalData from string');
+      } catch (e) {
+        console.warn('⚠️ finalData 是字符串但无法解析为 JSON', e);
+      }
+    }
+
+    // ② 如果没有 duration_overview / decision_summary，
+    //    但 summary 里面藏着 JSON（你现在的情况），就从 summary 里解析
+    if (
+      (!finalData || (!finalData.duration_overview && !finalData.decision_summary)) &&
+      typeof finalData?.summary === 'string' &&
+      finalData.summary.includes('duration_overview')
+    ) {
+      try {
+        const parsed = JSON.parse(finalData.summary);
+        finalData = parsed;
+        console.log('✅ Parsed JSON from finalData.summary');
+      } catch (e) {
+        console.warn('⚠️ finalData.summary 无法解析为 JSON', e);
+      }
+    }
+
+    // ③ 有些返回可能是 { "": { ...真正数据... }, otherKeys... }
+    //    如果发现顶层有 "" 这个 key，把它展开
+    if (
+  finalData &&
+  typeof finalData === 'object' &&
+  (finalData as any)[''] &&
+  typeof (finalData as any)[''] === 'object'
+) {
+  const inner = (finalData as any)['']; // 这里面有 duration_overview 等
+  const merged: any = {};
+
+  // 先把 inner 里的字段拷进去（duration_overview / keytopicsdiscussed / overallteamdynamics…）
+  for (const key in inner) {
+    if (Object.prototype.hasOwnProperty.call(inner, key)) {
+      merged[key] = inner[key];
+    }
+  }
+
+  // 再把原来 finalData 里除了 "" 以外的顶层字段拷进去（decision_summary / progress_check / action_items / learning_materials…）
+  for (const key in finalData) {
+    if (!Object.prototype.hasOwnProperty.call(finalData, key)) continue;
+    if (key === '') continue; // 跳过空 key
+
+    merged[key] = (finalData as any)[key];
+  }
+
+  finalData = merged;
+  console.log('✅ Unwrapped empty-key object in finalData (no Object.entries)');
+}
+
+    // 归一化之后，再打印一次看看现在的结构
+    console.log('✅ [createFinalSummaryWithData] normalized data =', finalData);
     await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
     await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
 
@@ -892,6 +953,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 
     // 检查数据结构类型并处理
     if (finalData.duration_overview || finalData.decision_summary) {
+       console.log('✅ Using NEW final summary structure');
       // ========== 新数据结构处理 ==========
       
       // 📊 Meeting Overview
@@ -906,13 +968,13 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       //     .join('\n');
       //   this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
       // }
-      const topics =
+      const KeyTopics =
   finalData.keytopicsdiscussed ||   // 你现在的字段
   finalData.key_topics_discussed || // 将来如果你想换下划线字段也兼容
   finalData.keyTopicsDiscussed;     // 兼容驼峰
 
-if (Array.isArray(topics) && topics.length > 0) {
-  const topicsContent = topics
+if (Array.isArray(KeyTopics) && KeyTopics.length > 0) {
+  const topicsContent = KeyTopics
     .map((topic: string) => `• ${topic}`)
     .join('\n');
   this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
@@ -954,6 +1016,24 @@ if (Array.isArray(topics) && topics.length > 0) {
      
       }
 // 📈 Progress Status
+// 📊 Alignment Status
+const alignmentStatus =
+  finalData.progress_check.alignmentstatus ||   // 你的 JSON 字段
+  finalData.progress_check.alignment_status;    // 旧字段
+
+if (alignmentStatus) {
+  const statusEmoji =
+    alignmentStatus === 'on_track' || alignmentStatus === 'ontrack'
+      ? '✅'
+      : '⚠️';
+
+  this.addSectionToFrame(
+    frame,
+    '📊 Alignment Status',
+    `${statusEmoji} ${alignmentStatus}`
+  );
+}
+
 if (finalData.progress_check) {
   const pc = finalData.progress_check;
 
@@ -1153,6 +1233,7 @@ if (finalData.action_items) {
 }
 
     } else {
+      console.log('⚠️ Using LEGACY final summary structure');
       // ========== 旧数据结构处理（保持兼容） ==========
       
       // 📊 Summary
@@ -1451,79 +1532,79 @@ private addSectionToFrame(parent: FrameNode, title: string, content: string): vo
 //   parent.appendChild(contentText);
 // }
 
-  async createFinalSummary(summary: MeetingSummary, metadata: any): Promise<void> {
-    try {
-      await figma.loadFontAsync({ family: "Inter", style: "Regular" });
-      await figma.loadFontAsync({ family: "Inter", style: "Bold" });
+  // async createFinalSummary(summary: MeetingSummary, metadata: any): Promise<void> {
+  //   try {
+  //     await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+  //     await figma.loadFontAsync({ family: "Inter", style: "Bold" });
 
-      const summaryFrame = figma.createFrame();
-      summaryFrame.name = `Meeting Summary - ${new Date().toLocaleDateString()}`;
-      summaryFrame.resize(900, 800);
+  //     const summaryFrame = figma.createFrame();
+  //     summaryFrame.name = `Meeting Summary - ${new Date().toLocaleDateString()}`;
+  //     summaryFrame.resize(900, 800);
       
-      summaryFrame.fills = [{
-        type: 'SOLID',
-        color: { r: 1, g: 1, b: 1 }
-      }];
-      summaryFrame.cornerRadius = 12;
+  //     summaryFrame.fills = [{
+  //       type: 'SOLID',
+  //       color: { r: 1, g: 1, b: 1 }
+  //     }];
+  //     summaryFrame.cornerRadius = 12;
       
-      summaryFrame.layoutMode = 'VERTICAL';
-      summaryFrame.paddingTop = 40;
-      summaryFrame.paddingRight = 40;
-      summaryFrame.paddingBottom = 40;
-      summaryFrame.paddingLeft = 40;
-      summaryFrame.itemSpacing = 32;
+  //     summaryFrame.layoutMode = 'VERTICAL';
+  //     summaryFrame.paddingTop = 40;
+  //     summaryFrame.paddingRight = 40;
+  //     summaryFrame.paddingBottom = 40;
+  //     summaryFrame.paddingLeft = 40;
+  //     summaryFrame.itemSpacing = 32;
       
-      summaryFrame.x = figma.viewport.center.x - 450;
-      summaryFrame.y = figma.viewport.center.y - 400;
+  //     summaryFrame.x = figma.viewport.center.x - 450;
+  //     summaryFrame.y = figma.viewport.center.y - 400;
       
-      // Add title
-      const title = figma.createText();
-      title.characters = "📋 Meeting Summary";
-      title.fontSize = 28;
-      title.fontName = { family: "Inter", style: "Bold" };
-      summaryFrame.appendChild(title);
+  //     // Add title
+  //     const title = figma.createText();
+  //     title.characters = "📋 Meeting Summary";
+  //     title.fontSize = 28;
+  //     title.fontName = { family: "Inter", style: "Bold" };
+  //     summaryFrame.appendChild(title);
       
-      // Add metadata
-      const metadata_text = figma.createText();
-      metadata_text.characters = `${metadata.module || 'DE4 ERO'} | ${metadata.meetingType || 'Brainstorming'} | ${new Date().toLocaleDateString()}`;
-      metadata_text.fontSize = 14;
-      metadata_text.fontName = { family: "Inter", style: "Regular" };
-      metadata_text.fills = [{
-        type: 'SOLID',
-        color: { r: 0.4, g: 0.4, b: 0.4 }
-      }];
-      summaryFrame.appendChild(metadata_text);
+  //     // Add metadata
+  //     const metadata_text = figma.createText();
+  //     metadata_text.characters = `${metadata.module || 'DE4 ERO'} | ${metadata.meetingType || 'Brainstorming'} | ${new Date().toLocaleDateString()}`;
+  //     metadata_text.fontSize = 14;
+  //     metadata_text.fontName = { family: "Inter", style: "Regular" };
+  //     metadata_text.fills = [{
+  //       type: 'SOLID',
+  //       color: { r: 0.4, g: 0.4, b: 0.4 }
+  //     }];
+  //     summaryFrame.appendChild(metadata_text);
       
-      // Add sections
-      if (summary.overview) {
-        await this.addSummarySection(summaryFrame, "📊 Executive Summary", summary.overview);
-      }
+  //     // Add sections
+  //     if (summary.overview) {
+  //       await this.addSummarySection(summaryFrame, "📊 Executive Summary", summary.overview);
+  //     }
       
-      if (summary.decisions && summary.decisions.length > 0) {
-        await this.addSummarySection(
-          summaryFrame, 
-          "🎯 Key Decisions", 
-          summary.decisions.map((d, i) => `${i + 1}. ${d}`).join('\n')
-        );
-      }
+  //     if (summary.decisions && summary.decisions.length > 0) {
+  //       await this.addSummarySection(
+  //         summaryFrame, 
+  //         "🎯 Key Decisions", 
+  //         summary.decisions.map((d, i) => `${i + 1}. ${d}`).join('\n')
+  //       );
+  //     }
       
-      if (summary.actions && summary.actions.length > 0) {
-        await this.addSummarySection(
-          summaryFrame,
-          "✅ Action Items",
-          summary.actions.map(a => `• ${a}`).join('\n')
-        );
-      }
+  //     if (summary.actions && summary.actions.length > 0) {
+  //       await this.addSummarySection(
+  //         summaryFrame,
+  //         "✅ Action Items",
+  //         summary.actions.map(a => `• ${a}`).join('\n')
+  //       );
+  //     }
       
-      figma.currentPage.appendChild(summaryFrame);
-      figma.currentPage.selection = [summaryFrame];
-      figma.viewport.scrollAndZoomIntoView([summaryFrame]);
+  //     figma.currentPage.appendChild(summaryFrame);
+  //     figma.currentPage.selection = [summaryFrame];
+  //     figma.viewport.scrollAndZoomIntoView([summaryFrame]);
       
-    } catch (error) {
-      console.error('Error creating final summary:', error);
-      throw error;
-    }
-  }
+  //   } catch (error) {
+  //     console.error('Error creating final summary:', error);
+  //     throw error;
+  //   }
+  // }
 
   private async addSummarySection(parent: FrameNode, title: string, content: string): Promise<void> {
     const section = figma.createFrame();

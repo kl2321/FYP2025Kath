@@ -296,6 +296,59 @@ class CanvasManager {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
+                // 🔍 调试：看看原始传进来的数据长什么样
+                console.log('🔍 [createFinalSummaryWithData] raw input =', finalData);
+                // ① 如果 finalData 自己是一个 JSON 字符串，先尝试解析
+                if (typeof finalData === 'string') {
+                    try {
+                        finalData = JSON.parse(finalData);
+                        console.log('✅ Parsed finalData from string');
+                    }
+                    catch (e) {
+                        console.warn('⚠️ finalData 是字符串但无法解析为 JSON', e);
+                    }
+                }
+                // ② 如果没有 duration_overview / decision_summary，
+                //    但 summary 里面藏着 JSON（你现在的情况），就从 summary 里解析
+                if ((!finalData || (!finalData.duration_overview && !finalData.decision_summary)) &&
+                    typeof (finalData === null || finalData === void 0 ? void 0 : finalData.summary) === 'string' &&
+                    finalData.summary.includes('duration_overview')) {
+                    try {
+                        const parsed = JSON.parse(finalData.summary);
+                        finalData = parsed;
+                        console.log('✅ Parsed JSON from finalData.summary');
+                    }
+                    catch (e) {
+                        console.warn('⚠️ finalData.summary 无法解析为 JSON', e);
+                    }
+                }
+                // ③ 有些返回可能是 { "": { ...真正数据... }, otherKeys... }
+                //    如果发现顶层有 "" 这个 key，把它展开
+                if (finalData &&
+                    typeof finalData === 'object' &&
+                    finalData[''] &&
+                    typeof finalData[''] === 'object') {
+                    const inner = finalData['']; // 这里面有 duration_overview 等
+                    const merged = {};
+                    // 先把 inner 里的字段拷进去（duration_overview / keytopicsdiscussed / overallteamdynamics…）
+                    for (const key in inner) {
+                        if (Object.prototype.hasOwnProperty.call(inner, key)) {
+                            merged[key] = inner[key];
+                        }
+                    }
+                    // 再把原来 finalData 里除了 "" 以外的顶层字段拷进去（decision_summary / progress_check / action_items / learning_materials…）
+                    for (const key in finalData) {
+                        if (!Object.prototype.hasOwnProperty.call(finalData, key))
+                            continue;
+                        if (key === '')
+                            continue; // 跳过空 key
+                        merged[key] = finalData[key];
+                    }
+                    finalData = merged;
+                    console.log('✅ Unwrapped empty-key object in finalData (no Object.entries)');
+                }
+                // 归一化之后，再打印一次看看现在的结构
+                console.log('✅ [createFinalSummaryWithData] normalized data =', finalData);
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
                 const date = new Date().toLocaleDateString();
@@ -335,6 +388,7 @@ class CanvasManager {
                 frame.appendChild(dateText);
                 // 检查数据结构类型并处理
                 if (finalData.duration_overview || finalData.decision_summary) {
+                    console.log('✅ Using NEW final summary structure');
                     // ========== 新数据结构处理 ==========
                     // 📊 Meeting Overview
                     if (finalData.duration_overview) {
@@ -347,11 +401,11 @@ class CanvasManager {
                     //     .join('\n');
                     //   this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
                     // }
-                    const topics = finalData.keytopicsdiscussed || // 你现在的字段
+                    const KeyTopics = finalData.keytopicsdiscussed || // 你现在的字段
                         finalData.key_topics_discussed || // 将来如果你想换下划线字段也兼容
                         finalData.keyTopicsDiscussed; // 兼容驼峰
-                    if (Array.isArray(topics) && topics.length > 0) {
-                        const topicsContent = topics
+                    if (Array.isArray(KeyTopics) && KeyTopics.length > 0) {
+                        const topicsContent = KeyTopics
                             .map((topic) => `• ${topic}`)
                             .join('\n');
                         this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
@@ -385,6 +439,15 @@ class CanvasManager {
                         });
                     }
                     // 📈 Progress Status
+                    // 📊 Alignment Status
+                    const alignmentStatus = finalData.progress_check.alignmentstatus || // 你的 JSON 字段
+                        finalData.progress_check.alignment_status; // 旧字段
+                    if (alignmentStatus) {
+                        const statusEmoji = alignmentStatus === 'on_track' || alignmentStatus === 'ontrack'
+                            ? '✅'
+                            : '⚠️';
+                        this.addSectionToFrame(frame, '📊 Alignment Status', `${statusEmoji} ${alignmentStatus}`);
+                    }
                     if (finalData.progress_check) {
                         const pc = finalData.progress_check;
                         // 当前周 & 整体状态
@@ -546,6 +609,7 @@ class CanvasManager {
                     }
                 }
                 else {
+                    console.log('⚠️ Using LEGACY final summary structure');
                     // ========== 旧数据结构处理（保持兼容） ==========
                     // 📊 Summary
                     if (finalData.summary) {
@@ -816,63 +880,68 @@ class CanvasManager {
     //   contentText.resize(836, contentText.height);
     //   parent.appendChild(contentText);
     // }
-    createFinalSummary(summary, metadata) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield figma.loadFontAsync({ family: "Inter", style: "Regular" });
-                yield figma.loadFontAsync({ family: "Inter", style: "Bold" });
-                const summaryFrame = figma.createFrame();
-                summaryFrame.name = `Meeting Summary - ${new Date().toLocaleDateString()}`;
-                summaryFrame.resize(900, 800);
-                summaryFrame.fills = [{
-                        type: 'SOLID',
-                        color: { r: 1, g: 1, b: 1 }
-                    }];
-                summaryFrame.cornerRadius = 12;
-                summaryFrame.layoutMode = 'VERTICAL';
-                summaryFrame.paddingTop = 40;
-                summaryFrame.paddingRight = 40;
-                summaryFrame.paddingBottom = 40;
-                summaryFrame.paddingLeft = 40;
-                summaryFrame.itemSpacing = 32;
-                summaryFrame.x = figma.viewport.center.x - 450;
-                summaryFrame.y = figma.viewport.center.y - 400;
-                // Add title
-                const title = figma.createText();
-                title.characters = "📋 Meeting Summary";
-                title.fontSize = 28;
-                title.fontName = { family: "Inter", style: "Bold" };
-                summaryFrame.appendChild(title);
-                // Add metadata
-                const metadata_text = figma.createText();
-                metadata_text.characters = `${metadata.module || 'DE4 ERO'} | ${metadata.meetingType || 'Brainstorming'} | ${new Date().toLocaleDateString()}`;
-                metadata_text.fontSize = 14;
-                metadata_text.fontName = { family: "Inter", style: "Regular" };
-                metadata_text.fills = [{
-                        type: 'SOLID',
-                        color: { r: 0.4, g: 0.4, b: 0.4 }
-                    }];
-                summaryFrame.appendChild(metadata_text);
-                // Add sections
-                if (summary.overview) {
-                    yield this.addSummarySection(summaryFrame, "📊 Executive Summary", summary.overview);
-                }
-                if (summary.decisions && summary.decisions.length > 0) {
-                    yield this.addSummarySection(summaryFrame, "🎯 Key Decisions", summary.decisions.map((d, i) => `${i + 1}. ${d}`).join('\n'));
-                }
-                if (summary.actions && summary.actions.length > 0) {
-                    yield this.addSummarySection(summaryFrame, "✅ Action Items", summary.actions.map(a => `• ${a}`).join('\n'));
-                }
-                figma.currentPage.appendChild(summaryFrame);
-                figma.currentPage.selection = [summaryFrame];
-                figma.viewport.scrollAndZoomIntoView([summaryFrame]);
-            }
-            catch (error) {
-                console.error('Error creating final summary:', error);
-                throw error;
-            }
-        });
-    }
+    // async createFinalSummary(summary: MeetingSummary, metadata: any): Promise<void> {
+    //   try {
+    //     await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+    //     await figma.loadFontAsync({ family: "Inter", style: "Bold" });
+    //     const summaryFrame = figma.createFrame();
+    //     summaryFrame.name = `Meeting Summary - ${new Date().toLocaleDateString()}`;
+    //     summaryFrame.resize(900, 800);
+    //     summaryFrame.fills = [{
+    //       type: 'SOLID',
+    //       color: { r: 1, g: 1, b: 1 }
+    //     }];
+    //     summaryFrame.cornerRadius = 12;
+    //     summaryFrame.layoutMode = 'VERTICAL';
+    //     summaryFrame.paddingTop = 40;
+    //     summaryFrame.paddingRight = 40;
+    //     summaryFrame.paddingBottom = 40;
+    //     summaryFrame.paddingLeft = 40;
+    //     summaryFrame.itemSpacing = 32;
+    //     summaryFrame.x = figma.viewport.center.x - 450;
+    //     summaryFrame.y = figma.viewport.center.y - 400;
+    //     // Add title
+    //     const title = figma.createText();
+    //     title.characters = "📋 Meeting Summary";
+    //     title.fontSize = 28;
+    //     title.fontName = { family: "Inter", style: "Bold" };
+    //     summaryFrame.appendChild(title);
+    //     // Add metadata
+    //     const metadata_text = figma.createText();
+    //     metadata_text.characters = `${metadata.module || 'DE4 ERO'} | ${metadata.meetingType || 'Brainstorming'} | ${new Date().toLocaleDateString()}`;
+    //     metadata_text.fontSize = 14;
+    //     metadata_text.fontName = { family: "Inter", style: "Regular" };
+    //     metadata_text.fills = [{
+    //       type: 'SOLID',
+    //       color: { r: 0.4, g: 0.4, b: 0.4 }
+    //     }];
+    //     summaryFrame.appendChild(metadata_text);
+    //     // Add sections
+    //     if (summary.overview) {
+    //       await this.addSummarySection(summaryFrame, "📊 Executive Summary", summary.overview);
+    //     }
+    //     if (summary.decisions && summary.decisions.length > 0) {
+    //       await this.addSummarySection(
+    //         summaryFrame, 
+    //         "🎯 Key Decisions", 
+    //         summary.decisions.map((d, i) => `${i + 1}. ${d}`).join('\n')
+    //       );
+    //     }
+    //     if (summary.actions && summary.actions.length > 0) {
+    //       await this.addSummarySection(
+    //         summaryFrame,
+    //         "✅ Action Items",
+    //         summary.actions.map(a => `• ${a}`).join('\n')
+    //       );
+    //     }
+    //     figma.currentPage.appendChild(summaryFrame);
+    //     figma.currentPage.selection = [summaryFrame];
+    //     figma.viewport.scrollAndZoomIntoView([summaryFrame]);
+    //   } catch (error) {
+    //     console.error('Error creating final summary:', error);
+    //     throw error;
+    //   }
+    // }
     addSummarySection(parent, title, content) {
         return __awaiter(this, void 0, void 0, function* () {
             const section = figma.createFrame();
