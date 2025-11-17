@@ -158,23 +158,40 @@ export default async function handler(req, res) {
       } catch {}
 
       // Return results
-      return res.status(200).json({
-        success: true,
-        fullTranscript: formattedTranscript,
-        finalSummary: finalAnalysis.summary,
-        decisions: finalAnalysis.decision,
-        actions: finalAnalysis.actions,
-        explicit: finalAnalysis.explicit,
-        tacit: finalAnalysis.tacit,
-        reasoning: finalAnalysis.reasoning,
-        suggestions: finalAnalysis.suggestions,
-        metadata: {
-          duration: transcript.audio_duration,
-          speakers: countUniqueSpeakers(transcript.utterances),
-          words: transcript.words?.length || 0,
-          confidence: transcript.confidence
-        }
-      });
+      // 🔧 检查是否是新的 JSON 格式
+      if (finalAnalysis.meeting_summary || finalAnalysis.decision_summary) {
+        // 新的 final_comprehensive JSON 格式
+        return res.status(200).json({
+          success: true,
+          fullTranscript: formattedTranscript,
+          finalSummary: finalAnalysis,  // 直接返回整个 JSON 对象
+          metadata: {
+            duration: transcript.audio_duration,
+            speakers: countUniqueSpeakers(transcript.utterances),
+            words: transcript.words?.length || 0,
+            confidence: transcript.confidence
+          }
+        });
+      } else {
+        // 旧的文本解析格式（向后兼容）
+        return res.status(200).json({
+          success: true,
+          fullTranscript: formattedTranscript,
+          finalSummary: finalAnalysis.summary,
+          decisions: finalAnalysis.decision,
+          actions: finalAnalysis.actions,
+          explicit: finalAnalysis.explicit,
+          tacit: finalAnalysis.tacit,
+          reasoning: finalAnalysis.reasoning,
+          suggestions: finalAnalysis.suggestions,
+          metadata: {
+            duration: transcript.audio_duration,
+            speakers: countUniqueSpeakers(transcript.utterances),
+            words: transcript.words?.length || 0,
+            confidence: transcript.confidence
+          }
+        });
+      }
 
     } catch (err) {
       console.error('❌ Final processing error:', err?.response?.data || err.message);
@@ -422,8 +439,29 @@ function formatCompleteSpeakerTranscript(transcript) {
 
 function parseGPTResponseEnhanced(content) {
   try {
+    // 🔧 首先尝试解析为 JSON（因为 final_comprehensive 格式要求返回 JSON）
+    let jsonData = null;
+
+    // 尝试提取 JSON 块（可能被 ```json 包裹）
+    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/i) || content.match(/```\s*([\s\S]*?)\s*```/);
+    const jsonStr = jsonMatch ? jsonMatch[1] : content.trim();
+
+    try {
+      jsonData = JSON.parse(jsonStr);
+      console.log('✅ Parsed GPT response as JSON');
+
+      // 如果成功解析为 JSON，转换为旧的 sections 格式
+      if (jsonData.meeting_summary || jsonData.decision_summary) {
+        // 这是新的 final_comprehensive 格式
+        return jsonData;  // 直接返回 JSON 对象
+      }
+    } catch (e) {
+      console.log('ℹ️ Not a JSON response, falling back to text parsing');
+    }
+
+    // 如果不是 JSON，使用正则表达式解析文本格式
     const sections = {};
-    
+
     // 提取Summary（保持不变）
     const summaryMatch = content.match(/(?:Summary|Overview)[:：]?\s*([^\n]+(?:\n(?!Decision|Reasoning|Suggestions)[^\n]+)*)/i);
     sections.summary = summaryMatch ? summaryMatch[1].trim() : 'No summary available';
