@@ -294,7 +294,7 @@ class CanvasManager {
     }
     createFinalSummaryWithData(finalData) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c, _d;
+            var _a;
             try {
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
@@ -341,8 +341,17 @@ class CanvasManager {
                         this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
                     }
                     // 📍 Key Topics
-                    if (finalData.keytopics_discussed && finalData.keytopicsdiscussed.length > 0) {
-                        const topicsContent = finalData.keytopicsdiscussed
+                    // if (finalData.keytopicsdiscussed && finalData.keytopicsdiscussed.length > 0) {
+                    //     const topicsContent = finalData.keytopicsdiscussed
+                    //     .map((topic: string) => `• ${topic}`)
+                    //     .join('\n');
+                    //   this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
+                    // }
+                    const topics = finalData.keytopicsdiscussed || // 你现在的字段
+                        finalData.key_topics_discussed || // 将来如果你想换下划线字段也兼容
+                        finalData.keyTopicsDiscussed; // 兼容驼峰
+                    if (Array.isArray(topics) && topics.length > 0) {
+                        const topicsContent = topics
                             .map((topic) => `• ${topic}`)
                             .join('\n');
                         this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
@@ -377,49 +386,163 @@ class CanvasManager {
                     }
                     // 📈 Progress Status
                     if (finalData.progress_check) {
-                        // let progressContent = '';
-                        if (finalData.progress_check.current_week) {
-                            this.addSectionToFrame(frame, '📅 Current Week', finalData.progress_check.current_week);
+                        const pc = finalData.progress_check;
+                        // 当前周 & 整体状态
+                        if (pc.current_week) {
+                            this.addSectionToFrame(frame, '📅 Current Week', pc.current_week);
                         }
-                        if (finalData.progress_check.alignment_status) {
-                            const statusEmoji = finalData.progress_check.alignment_status === 'on_track' ? '✅' : '⚠️';
-                            this.addSectionToFrame(frame, '📊 Alignment Status', `${statusEmoji} ${finalData.progress_check.alignment_status}`);
+                        if (pc.alignment_status) {
+                            const statusEmoji = pc.alignment_status === 'on_track' ? '✅' :
+                                pc.alignment_status === 'behind' ? '⚠️' : 'ℹ️';
+                            this.addSectionToFrame(frame, '📊 Alignment Status', `${statusEmoji} ${pc.alignment_status}`);
                         }
-                        if (finalData.progress_check.actual_progress && finalData.progress_check.actual_progress.length > 0) {
-                            const progressContent = finalData.progress_check.actual_progress
+                        // 预期里程碑
+                        if (Array.isArray(pc.expected_milestones) && pc.expected_milestones.length > 0) {
+                            const expectedContent = pc.expected_milestones
+                                .map((m) => `• ${m}`)
+                                .join('\n');
+                            this.addSectionToFrame(frame, '🎯 Expected Milestones', expectedContent);
+                        }
+                        // 实际进度
+                        if (Array.isArray(pc.actual_progress) && pc.actual_progress.length > 0) {
+                            const progressContent = pc.actual_progress
                                 .map((p) => `• ${p}`)
                                 .join('\n');
                             this.addSectionToFrame(frame, '✅ Progress Achieved', progressContent);
                         }
-                        if (finalData.progress_check.gaps_identified && finalData.progress_check.gaps_identified.length > 0) {
-                            const gapsContent = finalData.progress_check.gaps_identified
+                        // 缺口
+                        if (Array.isArray(pc.gaps_identified) && pc.gaps_identified.length > 0) {
+                            const gapsContent = pc.gaps_identified
                                 .map((g) => `• ${g}`)
                                 .join('\n');
                             this.addSectionToFrame(frame, '⚠️ Gaps Identified', gapsContent);
                         }
+                        // 上周 action review
+                        if (pc.lastweekaction_review) {
+                            const lw = pc.lastweekaction_review;
+                            let text = '';
+                            if (Array.isArray(lw.previous_actions) && lw.previous_actions.length > 0) {
+                                text += 'Previous actions:\n';
+                                lw.previous_actions.forEach((a, i) => {
+                                    var _a;
+                                    const status = ((_a = lw.completion_status) === null || _a === void 0 ? void 0 : _a[i]) ? ` (${lw.completion_status[i]})` : '';
+                                    text += `• ${a}${status}\n`;
+                                });
+                            }
+                            if (Array.isArray(lw.blockers_discussed) && lw.blockers_discussed.length > 0) {
+                                text += '\nBlockers:\n';
+                                text += lw.blockers_discussed.map((b) => `• ${b}`).join('\n');
+                            }
+                            if (text.trim()) {
+                                this.addSectionToFrame(frame, '📎 Last Week Actions Review', text.trim());
+                            }
+                        }
                     }
+                    // 📈 Progress Status
+                    // if (finalData.progress_check) {
+                    //   // let progressContent = '';
+                    //   if (finalData.progress_check.current_week) {
+                    //       this.addSectionToFrame(frame, '📅 Current Week', finalData.progress_check.current_week);
+                    //   }
+                    //   if (finalData.progress_check.alignment_status) {
+                    //     const statusEmoji = finalData.progress_check.alignment_status === 'on_track' ? '✅' : '⚠️';
+                    //     this.addSectionToFrame(frame, '📊 Alignment Status', `${statusEmoji} ${finalData.progress_check.alignment_status}`);
+                    //   }
+                    //   if (finalData.progress_check.actual_progress && finalData.progress_check.actual_progress.length > 0) {
+                    //      const progressContent = finalData.progress_check.actual_progress
+                    //       .map((p: string) => `• ${p}`)
+                    //       .join('\n');
+                    //        this.addSectionToFrame(frame, '✅ Progress Achieved', progressContent);
+                    //   }
+                    //   if (finalData.progress_check.gaps_identified && finalData.progress_check.gaps_identified.length > 0) {
+                    //      const gapsContent = finalData.progress_check.gaps_identified
+                    //       .map((g: string) => `• ${g}`)
+                    //       .join('\n');
+                    //        this.addSectionToFrame(frame, '⚠️ Gaps Identified', gapsContent);
+                    //   }
+                    // }
+                    // // ✅ Action Items
+                    // if (finalData.action_items?.immediatenext_steps && finalData.action_items.immediatenext_steps.length > 0) {
+                    //    finalData.action_items.immediatenext_steps.forEach((a: any, i: number) => {
+                    //     const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
+                    //     const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
+                    //     this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
+                    //   });
+                    // }
+                    // // 🎯 Next Week Focus (独立 section)
+                    // if (finalData.action_items?.upcomingweek_focus && finalData.action_items.upcomingweek_focus.length > 0) {
+                    //   const focusContent = finalData.action_items.upcomingweek_focus
+                    //     .map((f: string) => `• ${f}`)
+                    //     .join('\n');
+                    //   this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
+                    // }
                     // ✅ Action Items
-                    if (((_b = finalData.action_items) === null || _b === void 0 ? void 0 : _b.immediatenext_steps) && finalData.action_items.immediatenext_steps.length > 0) {
-                        finalData.action_items.immediatenext_steps.forEach((a, i) => {
-                            const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
-                            const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
-                            this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
-                        });
-                    }
-                    // 🎯 Next Week Focus (独立 section)
-                    if (((_c = finalData.action_items) === null || _c === void 0 ? void 0 : _c.upcomingweek_focus) && finalData.action_items.upcomingweek_focus.length > 0) {
-                        const focusContent = finalData.action_items.upcomingweek_focus
-                            .map((f) => `• ${f}`)
-                            .join('\n');
-                        this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
+                    if (finalData.action_items) {
+                        const ai = finalData.action_items;
+                        // 1. Immediate next steps
+                        const immediate = ai.immediatenextsteps || // 你的 JSON 里是这个
+                            ai.immediatenext_steps; // 兼容你之前写错的版本
+                        if (Array.isArray(immediate) && immediate.length > 0) {
+                            immediate.forEach((a, i) => {
+                                const priorityEmoji = a.priority === 'high' ? '🔴' :
+                                    a.priority === 'medium' ? '🟡' : '🟢';
+                                const actionText = `${a.action}\n\n` +
+                                    (a.owner ? `Owner: ${a.owner}\n` : '') +
+                                    (a.deadline ? `Deadline: ${a.deadline}\n` : '') +
+                                    (a.priority ? `Priority: ${priorityEmoji} ${a.priority}` : '');
+                                this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText.trim());
+                            });
+                        }
+                        // 2. Next week focus
+                        const upcoming = ai.upcomingweekfocus || // 你的 JSON 里是这个
+                            ai.upcomingweek_focus; // 兼容你之前写的
+                        if (Array.isArray(upcoming) && upcoming.length > 0) {
+                            const focusContent = upcoming
+                                .map((f) => `• ${f}`)
+                                .join('\n');
+                            this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
+                        }
+                        // 3. Dependencies（你 JSON 里也有）
+                        if (Array.isArray(ai.dependencies) && ai.dependencies.length > 0) {
+                            const depsContent = ai.dependencies
+                                .map((d) => `• ${d}`)
+                                .join('\n');
+                            this.addSectionToFrame(frame, '🔗 Dependencies', depsContent);
+                        }
                     }
                     // 📚 Learning Materials
-                    if (((_d = finalData.learning_materials) === null || _d === void 0 ? void 0 : _d.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
-                        finalData.learning_materials.recommended_resources.forEach((r, i) => {
-                            const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
-                            const resourceText = `${priorityEmoji} ${r.title}\n\nType: ${r.resource_type}\nRelevance: ${r.relevance}`;
-                            this.addSectionToFrame(frame, `📚 Resource ${i + 1}`, resourceText);
-                        });
+                    if (finalData.learning_materials) {
+                        const lm = finalData.learning_materials;
+                        if (lm.recommended_resources && lm.recommended_resources.length > 0) {
+                            lm.recommended_resources.forEach((r, i) => {
+                                const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
+                                const resourceText = `${priorityEmoji} ${r.title}\n\n` +
+                                    (r.resource_type ? `Type: ${r.resource_type}\n` : '') +
+                                    (r.relevance ? `Relevance: ${r.relevance}` : '');
+                                this.addSectionToFrame(frame, `📚 Resource ${i + 1}`, resourceText);
+                            });
+                        }
+                        // 2. Skill gaps
+                        if (Array.isArray(lm.skillgapsidentified) && lm.skillgapsidentified.length > 0) {
+                            const skillsContent = lm.skillgapsidentified
+                                .map((s) => `• ${s}`)
+                                .join('\n');
+                            this.addSectionToFrame(frame, '📈 Skill Gaps Identified', skillsContent);
+                        }
+                        // 3. Module-specific guidance（可能是 string 或 array）
+                        if (lm.modulespecificguidance) {
+                            const mg = Array.isArray(lm.modulespecificguidance)
+                                ? lm.modulespecificguidance.map((s) => `• ${s}`).join('\n')
+                                : lm.modulespecificguidance;
+                            this.addSectionToFrame(frame, '🧭 Module-Specific Guidance', mg);
+                        }
+                        // 4. Suggested next learning
+                        if (Array.isArray(lm.suggestednextlearning) && lm.suggestednextlearning.length > 0) {
+                            const nextContent = lm.suggestednextlearning
+                                .map((s) => `• ${s}`)
+                                .join('\n');
+                            this.addSectionToFrame(frame, '📖 Suggested Next Learning', nextContent);
+                        }
                     }
                 }
                 else {
