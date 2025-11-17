@@ -471,6 +471,79 @@ class CanvasManager {
             }
         });
     }
+    addSectionToFrame(parent, title, content) {
+        // 创建 section 卡片
+        const sectionCard = figma.createFrame();
+        sectionCard.layoutMode = 'VERTICAL';
+        sectionCard.counterAxisSizingMode = 'AUTO';
+        sectionCard.primaryAxisSizingMode = 'AUTO';
+        sectionCard.layoutAlign = 'STRETCH';
+        sectionCard.paddingLeft = 24;
+        sectionCard.paddingRight = 24;
+        sectionCard.paddingTop = 20;
+        sectionCard.paddingBottom = 20;
+        sectionCard.cornerRadius = 12;
+        sectionCard.itemSpacing = 12;
+        // 根据标题类型设置背景色
+        if (title.includes('Summary') || title.includes('Overview')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }]; // 淡蓝
+        }
+        else if (title.includes('Decision')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }]; // 淡红
+        }
+        else if (title.includes('Explicit')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }]; // 蓝色调
+        }
+        else if (title.includes('Tacit')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }]; // 橘色调
+        }
+        else if (title.includes('Action')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 1, b: 0.95 } }]; // 淡绿
+        }
+        else if (title.includes('Resource') || title.includes('Learning')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.98, b: 0.93 } }]; // 淡黄
+        }
+        else {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // 白色
+        }
+        // 添加边框
+        sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
+        sectionCard.strokeWeight = 1;
+        // Section 标题
+        const titleText = figma.createText();
+        titleText.fontName = { family: 'Inter', style: 'Bold' };
+        titleText.fontSize = 18;
+        titleText.characters = title;
+        // 标题颜色
+        if (title.includes('Explicit')) {
+            titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
+        }
+        else if (title.includes('Tacit')) {
+            titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
+        }
+        else {
+            titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
+        }
+        sectionCard.appendChild(titleText);
+        // 添加分隔线
+        const divider = figma.createLine();
+        divider.resize(100, 0);
+        divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
+        divider.strokeWeight = 1;
+        divider.layoutAlign = 'STRETCH';
+        sectionCard.appendChild(divider);
+        // Section 内容
+        const contentText = figma.createText();
+        contentText.fontName = { family: 'Inter', style: 'Regular' };
+        contentText.fontSize = 14;
+        contentText.characters = content || 'N/A';
+        contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
+        contentText.layoutAlign = 'STRETCH';
+        contentText.textAutoResize = 'HEIGHT';
+        contentText.lineHeight = { value: 150, unit: 'PERCENT' };
+        sectionCard.appendChild(contentText);
+        parent.appendChild(sectionCard);
+    }
     // async createFinalSummaryWithData(finalData: any): Promise<void> {
     //   try {
     //     await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
@@ -585,73 +658,6 @@ class CanvasManager {
     //     throw error;
     //   }
     // }
-    addSectionToFrame(parent, title, content) {
-        // 创建 section 卡片
-        const sectionCard = figma.createFrame();
-        sectionCard.layoutMode = 'VERTICAL';
-        sectionCard.counterAxisSizingMode = 'AUTO';
-        sectionCard.primaryAxisSizingMode = 'AUTO';
-        sectionCard.layoutAlign = 'STRETCH';
-        sectionCard.paddingLeft = 24;
-        sectionCard.paddingRight = 24;
-        sectionCard.paddingTop = 20;
-        sectionCard.paddingBottom = 20;
-        sectionCard.cornerRadius = 12;
-        sectionCard.itemSpacing = 12;
-        // 根据标题类型设置背景色
-        if (title.includes('Summary')) {
-            sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }]; // 淡蓝
-        }
-        else if (title.includes('Decisions')) {
-            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }]; // 淡红
-        }
-        else if (title.includes('Explicit')) {
-            sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }]; // 蓝色调
-        }
-        else if (title.includes('Tacit')) {
-            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }]; // 橘色调
-        }
-        else {
-            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // 白色
-        }
-        // 添加边框
-        sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
-        sectionCard.strokeWeight = 1;
-        // Section 标题
-        const titleText = figma.createText();
-        titleText.fontName = { family: 'Inter', style: 'Bold' };
-        titleText.fontSize = 18; // 增大标题
-        titleText.characters = title;
-        // 标题颜色（使用之前的颜色逻辑）
-        if (title.includes('Explicit')) {
-            titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
-        }
-        else if (title.includes('Tacit')) {
-            titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
-        }
-        else {
-            titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
-        }
-        sectionCard.appendChild(titleText);
-        // 添加分隔线
-        const divider = figma.createLine();
-        divider.resize(100, 0);
-        divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
-        divider.strokeWeight = 1;
-        divider.layoutAlign = 'STRETCH';
-        sectionCard.appendChild(divider);
-        // Section 内容
-        const contentText = figma.createText();
-        contentText.fontName = { family: 'Inter', style: 'Regular' };
-        contentText.fontSize = 14; // 稍大的字体
-        contentText.characters = content || 'N/A';
-        contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
-        contentText.layoutAlign = 'STRETCH';
-        contentText.textAutoResize = 'HEIGHT';
-        contentText.lineHeight = { value: 150, unit: 'PERCENT' }; // 增加行高
-        sectionCard.appendChild(contentText);
-        parent.appendChild(sectionCard);
-    }
     // 辅助方法：添加 section 到 frame
     // private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
     //   // Section 标题
