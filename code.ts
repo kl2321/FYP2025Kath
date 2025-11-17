@@ -900,44 +900,22 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       }
 
       // 📍 Key Topics
-      if (finalData.key_topics_discussed && finalData.key_topics_discussed.length > 0) {
+      if (finalData.keytopics_discussed && finalData.keytopicsdiscussed.length > 0) {
+          const topicsContent = finalData.keytopicsdiscussed
+          .map((topic: string) => `• ${topic}`)
+          .join('\n');
+        this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
+      }
+
+      // 🎯 Key Decisions with Knowledge
+      if (finalData.decision_summary?.decisions && finalData.decision_summary.decisions.length > 0) {
         finalData.decision_summary.decisions.forEach((d: any, i: number) => {
           // Decision 主内容
           let decisionText = `${d.decision || ''}`;
 
           if (d.rationale) {
             decisionText += `\n\nRationale:\n${d.rationale}`;
-      //   const topicsContent = finalData.key_topics_discussed
-      //     .map((topic: string) => `• ${topic}`)
-      //     .join('\n');
-      //   this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
-      // }
 
-      // // 🎯 Key Decisions with Knowledge
-      // if (finalData.decision_summary?.decisions && finalData.decision_summary.decisions.length > 0) {
-      //   const decisionsContent = finalData.decision_summary.decisions
-      //     .map((d: any, i: number) => {
-      //       let text = `${i + 1}. ${d.decision}`;
-      //       if (d.rationale) {
-      //         text += `\n   📝 Rationale: ${d.rationale}`;
-      //       }
-      //       if (d.impact) {
-      //         text += `\n   💫 Impact: ${d.impact}`;
-      //       }
-      //       return text;
-      //     })
-      //     .join('\n\n');
-      //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
-
-      //   // 提取所有 Explicit Knowledge
-      //   const allExplicit: string[] = [];
-      //   finalData.decision_summary.decisions.forEach((d: any) => {
-      //     if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge)) {
-      //       d.explicit_knowledge.forEach((e: string) => {
-      //         if (e && !allExplicit.indexOf(e)) {
-      //           allExplicit.push(e);
-      //         }
-      //       });
           }
  if (d.impact) {
             decisionText += `\n\nImpact:\n${d.impact}`;
@@ -949,24 +927,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
             decisionText += d.explicit_knowledge
               .map((e: string) => `• ${e}`)
               .join('\n');
-        // });
-        
-        // if (allExplicit.length > 0) {
-        //   const explicitContent = allExplicit
-        //     .map((e: string) => `•  ${e}`)
-        //     .join('\n\n');
-        //   this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
-        // }
-
-        // // 提取所有 Tacit Knowledge
-        // const allTacit: string[] = [];
-        // finalData.decision_summary.decisions.forEach((d: any) => {
-        //   if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge)) {
-        //     d.tacit_knowledge.forEach((t: string) => {
-        //       if (t && !allTacit.indexOf(t)) {
-        //         allTacit.push(t);
-        //       }
-        //     });
+  
           }
             // 添加 Tacit Knowledge (如果有)
           if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge) && d.tacit_knowledge.length > 0) {
@@ -979,12 +940,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
           this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, decisionText);
         });
         
-        // if (allTacit.length > 0) {
-        //   const tacitContent = allTacit
-        //     .map((t: string) => `•  ${t}`)
-        //     .join('\n\n');
-        //   this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
-        // }
+     
       }
 
       // 📈 Progress Status
@@ -1019,16 +975,16 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       }
 
       // ✅ Action Items
-      if (finalData.action_items?.immediate_next_steps && finalData.action_items.immediate_next_steps.length > 0) {
-         finalData.action_items.immediate_next_steps.forEach((a: any, i: number) => {
+      if (finalData.action_items?.immediatenext_steps && finalData.action_items.immediatenext_steps.length > 0) {
+         finalData.action_items.immediatenext_steps.forEach((a: any, i: number) => {
           const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
           const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
           this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
         });
       }
       // 🎯 Next Week Focus (独立 section)
-      if (finalData.action_items?.upcoming_week_focus && finalData.action_items.upcoming_week_focus.length > 0) {
-        const focusContent = finalData.action_items.upcoming_week_focus
+      if (finalData.action_items?.upcomingweek_focus && finalData.action_items.upcomingweek_focus.length > 0) {
+        const focusContent = finalData.action_items.upcomingweek_focus
           .map((f: string) => `• ${f}`)
           .join('\n');
         this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);

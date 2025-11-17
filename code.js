@@ -294,7 +294,7 @@ class CanvasManager {
     }
     createFinalSummaryWithData(finalData) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c;
+            var _a, _b, _c, _d;
             try {
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
@@ -341,41 +341,19 @@ class CanvasManager {
                         this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
                     }
                     // 📍 Key Topics
-                    if (finalData.key_topics_discussed && finalData.key_topics_discussed.length > 0) {
+                    if (finalData.keytopics_discussed && finalData.keytopicsdiscussed.length > 0) {
+                        const topicsContent = finalData.keytopicsdiscussed
+                            .map((topic) => `• ${topic}`)
+                            .join('\n');
+                        this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
+                    }
+                    // 🎯 Key Decisions with Knowledge
+                    if (((_a = finalData.decision_summary) === null || _a === void 0 ? void 0 : _a.decisions) && finalData.decision_summary.decisions.length > 0) {
                         finalData.decision_summary.decisions.forEach((d, i) => {
                             // Decision 主内容
                             let decisionText = `${d.decision || ''}`;
                             if (d.rationale) {
                                 decisionText += `\n\nRationale:\n${d.rationale}`;
-                                //   const topicsContent = finalData.key_topics_discussed
-                                //     .map((topic: string) => `• ${topic}`)
-                                //     .join('\n');
-                                //   this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
-                                // }
-                                // // 🎯 Key Decisions with Knowledge
-                                // if (finalData.decision_summary?.decisions && finalData.decision_summary.decisions.length > 0) {
-                                //   const decisionsContent = finalData.decision_summary.decisions
-                                //     .map((d: any, i: number) => {
-                                //       let text = `${i + 1}. ${d.decision}`;
-                                //       if (d.rationale) {
-                                //         text += `\n   📝 Rationale: ${d.rationale}`;
-                                //       }
-                                //       if (d.impact) {
-                                //         text += `\n   💫 Impact: ${d.impact}`;
-                                //       }
-                                //       return text;
-                                //     })
-                                //     .join('\n\n');
-                                //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
-                                //   // 提取所有 Explicit Knowledge
-                                //   const allExplicit: string[] = [];
-                                //   finalData.decision_summary.decisions.forEach((d: any) => {
-                                //     if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge)) {
-                                //       d.explicit_knowledge.forEach((e: string) => {
-                                //         if (e && !allExplicit.indexOf(e)) {
-                                //           allExplicit.push(e);
-                                //         }
-                                //       });
                             }
                             if (d.impact) {
                                 decisionText += `\n\nImpact:\n${d.impact}`;
@@ -386,22 +364,6 @@ class CanvasManager {
                                 decisionText += d.explicit_knowledge
                                     .map((e) => `• ${e}`)
                                     .join('\n');
-                                // });
-                                // if (allExplicit.length > 0) {
-                                //   const explicitContent = allExplicit
-                                //     .map((e: string) => `•  ${e}`)
-                                //     .join('\n\n');
-                                //   this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
-                                // }
-                                // // 提取所有 Tacit Knowledge
-                                // const allTacit: string[] = [];
-                                // finalData.decision_summary.decisions.forEach((d: any) => {
-                                //   if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge)) {
-                                //     d.tacit_knowledge.forEach((t: string) => {
-                                //       if (t && !allTacit.indexOf(t)) {
-                                //         allTacit.push(t);
-                                //       }
-                                //     });
                             }
                             // 添加 Tacit Knowledge (如果有)
                             if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge) && d.tacit_knowledge.length > 0) {
@@ -412,12 +374,6 @@ class CanvasManager {
                             }
                             this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, decisionText);
                         });
-                        // if (allTacit.length > 0) {
-                        //   const tacitContent = allTacit
-                        //     .map((t: string) => `•  ${t}`)
-                        //     .join('\n\n');
-                        //   this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
-                        // }
                     }
                     // 📈 Progress Status
                     if (finalData.progress_check) {
@@ -443,22 +399,22 @@ class CanvasManager {
                         }
                     }
                     // ✅ Action Items
-                    if (((_a = finalData.action_items) === null || _a === void 0 ? void 0 : _a.immediate_next_steps) && finalData.action_items.immediate_next_steps.length > 0) {
-                        finalData.action_items.immediate_next_steps.forEach((a, i) => {
+                    if (((_b = finalData.action_items) === null || _b === void 0 ? void 0 : _b.immediatenext_steps) && finalData.action_items.immediatenext_steps.length > 0) {
+                        finalData.action_items.immediatenext_steps.forEach((a, i) => {
                             const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
                             const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
                             this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
                         });
                     }
                     // 🎯 Next Week Focus (独立 section)
-                    if (((_b = finalData.action_items) === null || _b === void 0 ? void 0 : _b.upcoming_week_focus) && finalData.action_items.upcoming_week_focus.length > 0) {
-                        const focusContent = finalData.action_items.upcoming_week_focus
+                    if (((_c = finalData.action_items) === null || _c === void 0 ? void 0 : _c.upcomingweek_focus) && finalData.action_items.upcomingweek_focus.length > 0) {
+                        const focusContent = finalData.action_items.upcomingweek_focus
                             .map((f) => `• ${f}`)
                             .join('\n');
                         this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
                     }
                     // 📚 Learning Materials
-                    if (((_c = finalData.learning_materials) === null || _c === void 0 ? void 0 : _c.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
+                    if (((_d = finalData.learning_materials) === null || _d === void 0 ? void 0 : _d.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
                         finalData.learning_materials.recommended_resources.forEach((r, i) => {
                             const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
                             const resourceText = `${priorityEmoji} ${r.title}\n\nType: ${r.resource_type}\nRelevance: ${r.relevance}`;
