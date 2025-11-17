@@ -992,7 +992,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
         // let progressContent = '';
         
         if (finalData.progress_check.current_week) {
-          this.addSectionToFrame(frame, '📅 Current Week', finalData.progress_check.current_week);
+            this.addSectionToFrame(frame, '📅 Current Week', finalData.progress_check.current_week);
         }
         
         if (finalData.progress_check.alignment_status) {
@@ -1002,25 +1002,19 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
         
         if (finalData.progress_check.actual_progress && finalData.progress_check.actual_progress.length > 0) {
            const progressContent = finalData.progress_check.actual_progress
-
             .map((p: string) => `• ${p}`)
             .join('\n');
-            this.addSectionToFrame(frame, '✅ Progress Achieved', progressContent);
+             this.addSectionToFrame(frame, '✅ Progress Achieved', progressContent);
         }
         
         if (finalData.progress_check.gaps_identified && finalData.progress_check.gaps_identified.length > 0) {
-          const gapsContent = finalData.progress_check.gaps_identified
+           const gapsContent = finalData.progress_check.gaps_identified
 
 
-          // progressContent += `\n\nGaps Identified:\n`;
-          // progressContent += finalData.progress_check.gaps_identified
             .map((g: string) => `• ${g}`)
             .join('\n');
              this.addSectionToFrame(frame, '⚠️ Gaps Identified', gapsContent);
-        }
-        
-        // if (progressContent) {
-        //   this.addSectionToFrame(frame, '📈 Progress Status', progressContent);
+     
         }
       }
 
@@ -1031,23 +1025,8 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
           const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
           this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
         });
-        // const actionsContent = finalData.action_items.immediate_next_steps
-        //   .map((a: any) => {
-        //     const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
-        //     return `${priorityEmoji} ${a.action}\n   👤 Owner: ${a.owner}\n   📅 Due: ${a.deadline}`;
-        //   })
-        //   .join('\n\n');
-        // this.addSectionToFrame(frame, '✅ Action Items', actionsContent);
-        
-        // // Upcoming Week Focus
-        // if (finalData.action_items.upcoming_week_focus && finalData.action_items.upcoming_week_focus.length > 0) {
-        //   const focusContent = finalData.action_items.upcoming_week_focus
-        //     .map((f: string) => `• ${f}`)
-        //     .join('\n');
-        //   this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
-        // }
       }
-       // 🎯 Next Week Focus (独立 section)
+      // 🎯 Next Week Focus (独立 section)
       if (finalData.action_items?.upcoming_week_focus && finalData.action_items.upcoming_week_focus.length > 0) {
         const focusContent = finalData.action_items.upcoming_week_focus
           .map((f: string) => `• ${f}`)
@@ -1055,22 +1034,16 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
         this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
       }
 
-      // 📚 Learning Materials - 每个资源独立 section
-
       // 📚 Learning Materials
       if (finalData.learning_materials?.recommended_resources && finalData.learning_materials.recommended_resources.length > 0) {
-         finalData.learning_materials.recommended_resources.forEach((r: any, i: number) => {
+       finalData.learning_materials.recommended_resources.forEach((r: any, i: number) => {
           const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
           const resourceText = `${priorityEmoji} ${r.title}\n\nType: ${r.resource_type}\nRelevance: ${r.relevance}`;
           this.addSectionToFrame(frame, `📚 Resource ${i + 1}`, resourceText);
         });
-        // const resourcesContent = finalData.learning_materials.recommended_resources
-        //   .map((r: any) => {
-        //     const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
-        //     return `${priorityEmoji} ${r.title}\n   Type: ${r.resource_type}\n   ${r.relevance}`;
-        //   })
-        //   .join('\n\n');
-        // this.addSectionToFrame(frame, '📚 Recommended Resources', resourcesContent);
+
+
+
       }
 
     } else {
@@ -1083,35 +1056,23 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 
       // 🎯 Key Decisions
       if (finalData.decisions && finalData.decisions.length > 0) {
-        finalData.decisions.forEach((d: string, i: number) => {
+       finalData.decisions.forEach((d: string, i: number) => {
           this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, d);
         });
-        // const decisionsContent = finalData.decisions
-        //   .map((d: string, i: number) => `${i + 1}. ${d}`)
-        //   .join('\n\n');
-        // this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
       }
 
       // 💡 Explicit Knowledge
       if (finalData.explicit && finalData.explicit.length > 0) {
-          finalData.explicit.forEach((e: string, i: number) => {
+       finalData.explicit.forEach((e: string, i: number) => {
           this.addSectionToFrame(frame, `💡 Explicit Knowledge ${i + 1}`, e);
         });
-        // const explicitContent = finalData.explicit
-        //   .map((e: string) => `•  ${e}`)
-        //   .join('\n\n');
-        // this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
       }
 
       // 🧠 Tacit Knowledge
       if (finalData.tacit && finalData.tacit.length > 0) {
-         finalData.tacit.forEach((t: string, i: number) => {
+        finalData.tacit.forEach((t: string, i: number) => {
           this.addSectionToFrame(frame, `🧠 Tacit Knowledge ${i + 1}`, t);
         });
-        // const tacitContent = finalData.tacit
-        //   .map((t: string) => `•  ${t}`)
-        //   .join('\n\n');
-        // this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
       }
 
       // 🤔 Reasoning
@@ -1124,10 +1085,6 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
         finalData.suggestions.forEach((s: string, i: number) => {
           this.addSectionToFrame(frame, `🚀 Suggestion ${i + 1}`, s);
         });
-        // const suggestionsContent = finalData.suggestions
-        //   .map((s: string) => `• ${s}`)
-        //   .join('\n\n');
-        // this.addSectionToFrame(frame, '🚀 Suggestions & Next Steps', suggestionsContent);
       }
     }
 
@@ -1141,79 +1098,6 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
     console.error('❌ Error creating final summary with data:', error);
     throw error;
   }
-}
-private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
-  // 创建 section 卡片
-  const sectionCard = figma.createFrame();
-  sectionCard.layoutMode = 'VERTICAL';
-  sectionCard.counterAxisSizingMode = 'AUTO';
-  sectionCard.primaryAxisSizingMode = 'AUTO';
-  sectionCard.layoutAlign = 'STRETCH';
-  sectionCard.paddingLeft = 24;
-  sectionCard.paddingRight = 24;
-  sectionCard.paddingTop = 20;
-  sectionCard.paddingBottom = 20;
-  sectionCard.cornerRadius = 12;
-  sectionCard.itemSpacing = 12;
-
-  // 根据标题类型设置背景色
-  if (title.includes('Summary') || title.includes('Overview')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];  // 淡蓝
-  } else if (title.includes('Decision')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }];  // 淡红
-  } else if (title.includes('Explicit')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }];  // 蓝色调
-  } else if (title.includes('Tacit')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }];  // 橘色调
-  } else if (title.includes('Action')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 1, b: 0.95 } }];  // 淡绿
-  } else if (title.includes('Resource') || title.includes('Learning')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.98, b: 0.93 } }];  // 淡黄
-  } else {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];  // 白色
-  }
-
-  // 添加边框
-  sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
-  sectionCard.strokeWeight = 1;
-
-  // Section 标题
-  const titleText = figma.createText();
-  titleText.fontName = { family: 'Inter', style: 'Bold' };
-  titleText.fontSize = 18;
-  titleText.characters = title;
-
-  // 标题颜色
-  if (title.includes('Explicit')) {
-    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
-  } else if (title.includes('Tacit')) {
-    titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
-  } else {
-    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
-  }
-
-  sectionCard.appendChild(titleText);
-
-  // 添加分隔线
-  const divider = figma.createLine();
-  divider.resize(100, 0);
-  divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
-  divider.strokeWeight = 1;
-  divider.layoutAlign = 'STRETCH';
-  sectionCard.appendChild(divider);
-
-  // Section 内容
-  const contentText = figma.createText();
-  contentText.fontName = { family: 'Inter', style: 'Regular' };
-  contentText.fontSize = 14;
-  contentText.characters = content || 'N/A';
-  contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
-  contentText.layoutAlign = 'STRETCH';
-  contentText.textAutoResize = 'HEIGHT';
-  contentText.lineHeight = { value: 150, unit: 'PERCENT' };
-
-  sectionCard.appendChild(contentText);
-  parent.appendChild(sectionCard);
 }
 
 // async createFinalSummaryWithData(finalData: any): Promise<void> {
@@ -1346,75 +1230,75 @@ private addSectionToFrame(parent: FrameNode, title: string, content: string): vo
 //   }
 // }
 
-// private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
-//   // 创建 section 卡片
-//   const sectionCard = figma.createFrame();
-//   sectionCard.layoutMode = 'VERTICAL';
-//   sectionCard.counterAxisSizingMode = 'AUTO';
-//   sectionCard.primaryAxisSizingMode = 'AUTO';
-//   sectionCard.layoutAlign = 'STRETCH';
-//   sectionCard.paddingLeft = 24;
-//   sectionCard.paddingRight = 24;
-//   sectionCard.paddingTop = 20;
-//   sectionCard.paddingBottom = 20;
-//   sectionCard.cornerRadius = 12;
-//   sectionCard.itemSpacing = 12;
+private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
+  // 创建 section 卡片
+  const sectionCard = figma.createFrame();
+  sectionCard.layoutMode = 'VERTICAL';
+  sectionCard.counterAxisSizingMode = 'AUTO';
+  sectionCard.primaryAxisSizingMode = 'AUTO';
+  sectionCard.layoutAlign = 'STRETCH';
+  sectionCard.paddingLeft = 24;
+  sectionCard.paddingRight = 24;
+  sectionCard.paddingTop = 20;
+  sectionCard.paddingBottom = 20;
+  sectionCard.cornerRadius = 12;
+  sectionCard.itemSpacing = 12;
   
-//   // 根据标题类型设置背景色
-//   if (title.includes('Summary')) {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];  // 淡蓝
-//   } else if (title.includes('Decisions')) {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }];  // 淡红
-//   } else if (title.includes('Explicit')) {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }];  // 蓝色调
-//   } else if (title.includes('Tacit')) {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }];  // 橘色调
-//   } else {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];  // 白色
-//   }
+  // 根据标题类型设置背景色
+  if (title.includes('Summary')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];  // 淡蓝
+  } else if (title.includes('Decisions')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }];  // 淡红
+  } else if (title.includes('Explicit')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }];  // 蓝色调
+  } else if (title.includes('Tacit')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }];  // 橘色调
+  } else {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];  // 白色
+  }
   
-//   // 添加边框
-//   sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
-//   sectionCard.strokeWeight = 1;
+  // 添加边框
+  sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
+  sectionCard.strokeWeight = 1;
   
-//   // Section 标题
-//   const titleText = figma.createText();
-//   titleText.fontName = { family: 'Inter', style: 'Bold' };
-//   titleText.fontSize = 18;  // 增大标题
-//   titleText.characters = title;
+  // Section 标题
+  const titleText = figma.createText();
+  titleText.fontName = { family: 'Inter', style: 'Bold' };
+  titleText.fontSize = 18;  // 增大标题
+  titleText.characters = title;
   
-//   // 标题颜色（使用之前的颜色逻辑）
-//   if (title.includes('Explicit')) {
-//     titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
-//   } else if (title.includes('Tacit')) {
-//     titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
-//   } else {
-//     titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
-//   }
+  // 标题颜色（使用之前的颜色逻辑）
+  if (title.includes('Explicit')) {
+    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
+  } else if (title.includes('Tacit')) {
+    titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
+  } else {
+    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
+  }
   
-//   sectionCard.appendChild(titleText);
+  sectionCard.appendChild(titleText);
   
-//   // 添加分隔线
-//   const divider = figma.createLine();
-//   divider.resize(100, 0);
-//   divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
-//   divider.strokeWeight = 1;
-//   divider.layoutAlign = 'STRETCH';
-//   sectionCard.appendChild(divider);
+  // 添加分隔线
+  const divider = figma.createLine();
+  divider.resize(100, 0);
+  divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
+  divider.strokeWeight = 1;
+  divider.layoutAlign = 'STRETCH';
+  sectionCard.appendChild(divider);
   
-//   // Section 内容
-//   const contentText = figma.createText();
-//   contentText.fontName = { family: 'Inter', style: 'Regular' };
-//   contentText.fontSize = 14;  // 稍大的字体
-//   contentText.characters = content || 'N/A';
-//   contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
-//   contentText.layoutAlign = 'STRETCH';
-//   contentText.textAutoResize = 'HEIGHT';
-//   contentText.lineHeight = { value: 150, unit: 'PERCENT' };  // 增加行高
+  // Section 内容
+  const contentText = figma.createText();
+  contentText.fontName = { family: 'Inter', style: 'Regular' };
+  contentText.fontSize = 14;  // 稍大的字体
+  contentText.characters = content || 'N/A';
+  contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
+  contentText.layoutAlign = 'STRETCH';
+  contentText.textAutoResize = 'HEIGHT';
+  contentText.lineHeight = { value: 150, unit: 'PERCENT' };  // 增加行高
   
-//   sectionCard.appendChild(contentText);
-//   parent.appendChild(sectionCard);
-// }
+  sectionCard.appendChild(contentText);
+  parent.appendChild(sectionCard);
+}
 // 辅助方法：添加 section 到 frame
 // private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
 //   // Section 标题

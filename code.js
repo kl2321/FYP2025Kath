@@ -437,493 +437,377 @@ class CanvasManager {
                         }
                         if (finalData.progress_check.gaps_identified && finalData.progress_check.gaps_identified.length > 0) {
                             const gapsContent = finalData.progress_check.gaps_identified
-                                // progressContent += `\n\nGaps Identified:\n`;
-                                // progressContent += finalData.progress_check.gaps_identified
                                 .map((g) => `• ${g}`)
                                 .join('\n');
                             this.addSectionToFrame(frame, '⚠️ Gaps Identified', gapsContent);
                         }
-                        // if (progressContent) {
-                        //   this.addSectionToFrame(frame, '📈 Progress Status', progressContent);
+                    }
+                    // ✅ Action Items
+                    if (((_a = finalData.action_items) === null || _a === void 0 ? void 0 : _a.immediate_next_steps) && finalData.action_items.immediate_next_steps.length > 0) {
+                        finalData.action_items.immediate_next_steps.forEach((a, i) => {
+                            const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
+                            const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
+                            this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
+                        });
+                    }
+                    // 🎯 Next Week Focus (独立 section)
+                    if (((_b = finalData.action_items) === null || _b === void 0 ? void 0 : _b.upcoming_week_focus) && finalData.action_items.upcoming_week_focus.length > 0) {
+                        const focusContent = finalData.action_items.upcoming_week_focus
+                            .map((f) => `• ${f}`)
+                            .join('\n');
+                        this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
+                    }
+                    // 📚 Learning Materials
+                    if (((_c = finalData.learning_materials) === null || _c === void 0 ? void 0 : _c.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
+                        finalData.learning_materials.recommended_resources.forEach((r, i) => {
+                            const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
+                            const resourceText = `${priorityEmoji} ${r.title}\n\nType: ${r.resource_type}\nRelevance: ${r.relevance}`;
+                            this.addSectionToFrame(frame, `📚 Resource ${i + 1}`, resourceText);
+                        });
                     }
                 }
-                // ✅ Action Items
-                if (((_a = finalData.action_items) === null || _a === void 0 ? void 0 : _a.immediate_next_steps) && finalData.action_items.immediate_next_steps.length > 0) {
-                    finalData.action_items.immediate_next_steps.forEach((a, i) => {
-                        const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
-                        const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
-                        this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
-                    });
-                    // const actionsContent = finalData.action_items.immediate_next_steps
-                    //   .map((a: any) => {
-                    //     const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
-                    //     return `${priorityEmoji} ${a.action}\n   👤 Owner: ${a.owner}\n   📅 Due: ${a.deadline}`;
-                    //   })
-                    //   .join('\n\n');
-                    // this.addSectionToFrame(frame, '✅ Action Items', actionsContent);
-                    // // Upcoming Week Focus
-                    // if (finalData.action_items.upcoming_week_focus && finalData.action_items.upcoming_week_focus.length > 0) {
-                    //   const focusContent = finalData.action_items.upcoming_week_focus
-                    //     .map((f: string) => `• ${f}`)
-                    //     .join('\n');
-                    //   this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
-                    // }
+                else {
+                    // ========== 旧数据结构处理（保持兼容） ==========
+                    // 📊 Summary
+                    if (finalData.summary) {
+                        this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
+                    }
+                    // 🎯 Key Decisions
+                    if (finalData.decisions && finalData.decisions.length > 0) {
+                        finalData.decisions.forEach((d, i) => {
+                            this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, d);
+                        });
+                    }
+                    // 💡 Explicit Knowledge
+                    if (finalData.explicit && finalData.explicit.length > 0) {
+                        finalData.explicit.forEach((e, i) => {
+                            this.addSectionToFrame(frame, `💡 Explicit Knowledge ${i + 1}`, e);
+                        });
+                    }
+                    // 🧠 Tacit Knowledge
+                    if (finalData.tacit && finalData.tacit.length > 0) {
+                        finalData.tacit.forEach((t, i) => {
+                            this.addSectionToFrame(frame, `🧠 Tacit Knowledge ${i + 1}`, t);
+                        });
+                    }
+                    // 🤔 Reasoning
+                    if (finalData.reasoning) {
+                        this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
+                    }
+                    // 🚀 Suggestions
+                    if (finalData.suggestions && finalData.suggestions.length > 0) {
+                        finalData.suggestions.forEach((s, i) => {
+                            this.addSectionToFrame(frame, `🚀 Suggestion ${i + 1}`, s);
+                        });
+                    }
                 }
-                // 🎯 Next Week Focus (独立 section)
-                if (((_b = finalData.action_items) === null || _b === void 0 ? void 0 : _b.upcoming_week_focus) && finalData.action_items.upcoming_week_focus.length > 0) {
-                    const focusContent = finalData.action_items.upcoming_week_focus
-                        .map((f) => `• ${f}`)
-                        .join('\n');
-                    this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
-                }
-                // 📚 Learning Materials - 每个资源独立 section
-                // 📚 Learning Materials
-                if (((_c = finalData.learning_materials) === null || _c === void 0 ? void 0 : _c.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
-                    finalData.learning_materials.recommended_resources.forEach((r, i) => {
-                        const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
-                        const resourceText = `${priorityEmoji} ${r.title}\n\nType: ${r.resource_type}\nRelevance: ${r.relevance}`;
-                        this.addSectionToFrame(frame, `📚 Resource ${i + 1}`, resourceText);
-                    });
-                    // const resourcesContent = finalData.learning_materials.recommended_resources
-                    //   .map((r: any) => {
-                    //     const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
-                    //     return `${priorityEmoji} ${r.title}\n   Type: ${r.resource_type}\n   ${r.relevance}`;
-                    //   })
-                    //   .join('\n\n');
-                    // this.addSectionToFrame(frame, '📚 Recommended Resources', resourcesContent);
-                }
+                // 将框架添加到画布并居中显示
+                figma.currentPage.appendChild(frame);
+                figma.viewport.scrollAndZoomIntoView([frame]);
+                console.log('✅ Final summary canvas created with formatted layout');
             }
-            finally { }
-            {
-                // ========== 旧数据结构处理（保持兼容） ==========
-                // 📊 Summary
-                if (finalData.summary) {
-                    this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
-                }
-                // 🎯 Key Decisions
-                if (finalData.decisions && finalData.decisions.length > 0) {
-                    finalData.decisions.forEach((d, i) => {
-                        this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, d);
-                    });
-                    // const decisionsContent = finalData.decisions
-                    //   .map((d: string, i: number) => `${i + 1}. ${d}`)
-                    //   .join('\n\n');
-                    // this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
-                }
-                // 💡 Explicit Knowledge
-                if (finalData.explicit && finalData.explicit.length > 0) {
-                    finalData.explicit.forEach((e, i) => {
-                        this.addSectionToFrame(frame, `💡 Explicit Knowledge ${i + 1}`, e);
-                    });
-                    // const explicitContent = finalData.explicit
-                    //   .map((e: string) => `•  ${e}`)
-                    //   .join('\n\n');
-                    // this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
-                }
-                // 🧠 Tacit Knowledge
-                if (finalData.tacit && finalData.tacit.length > 0) {
-                    finalData.tacit.forEach((t, i) => {
-                        this.addSectionToFrame(frame, `🧠 Tacit Knowledge ${i + 1}`, t);
-                    });
-                    // const tacitContent = finalData.tacit
-                    //   .map((t: string) => `•  ${t}`)
-                    //   .join('\n\n');
-                    // this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
-                }
-                // 🤔 Reasoning
-                if (finalData.reasoning) {
-                    this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
-                }
-                // 🚀 Suggestions
-                if (finalData.suggestions && finalData.suggestions.length > 0) {
-                    finalData.suggestions.forEach((s, i) => {
-                        this.addSectionToFrame(frame, `🚀 Suggestion ${i + 1}`, s);
-                    });
-                    // const suggestionsContent = finalData.suggestions
-                    //   .map((s: string) => `• ${s}`)
-                    //   .join('\n\n');
-                    // this.addSectionToFrame(frame, '🚀 Suggestions & Next Steps', suggestionsContent);
-                }
+            catch (error) {
+                console.error('❌ Error creating final summary with data:', error);
+                throw error;
             }
-            // 将框架添加到画布并居中显示
-            figma.currentPage.appendChild(frame);
-            figma.viewport.scrollAndZoomIntoView([frame]);
-            console.log('✅ Final summary canvas created with formatted layout');
         });
     }
-    catch(error) {
-        console.error('❌ Error creating final summary with data:', error);
-        throw error;
+    // async createFinalSummaryWithData(finalData: any): Promise<void> {
+    //   try {
+    //     await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+    //     await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+    //     await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+    //     const date = new Date().toLocaleDateString();
+    //     const frame = figma.createFrame();
+    // frame.name = `Meeting Summary - ${date}`;
+    // frame.resize(1000, 1400);  // 更宽一些
+    // frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.99 } }];  // 浅灰背景
+    // frame.cornerRadius = 16;  // 圆角更大
+    // frame.layoutMode = 'VERTICAL';
+    // frame.paddingLeft = 40;
+    // frame.paddingRight = 40;
+    // frame.paddingTop = 40;
+    // frame.paddingBottom = 40;
+    // frame.itemSpacing = 24;  // 增加间距
+    // frame.primaryAxisSizingMode = 'AUTO';  // 自动高度
+    //     // const frame = figma.createFrame();
+    //     // frame.name = `Meeting Summary - ${date}`;
+    //     // frame.resize(900, 1200);
+    //     // frame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+    //     frame.strokeWeight = 2;
+    //     frame.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.85 } }];
+    //     frame.cornerRadius = 8;
+    //     frame.layoutMode = 'VERTICAL';
+    //     frame.paddingLeft = 32;
+    //     frame.paddingRight = 32;
+    //     frame.paddingTop = 32;
+    //     frame.paddingBottom = 32;
+    //     frame.itemSpacing = 20;
+    //     // 标题
+    //     // const title = figma.createText();
+    //     // title.fontName = { family: 'Inter', style: 'Bold' };
+    //     // title.fontSize = 24;
+    //     // title.characters = '📋 Meeting Summary';
+    //     // 创建标题容器
+    // const headerFrame = figma.createFrame();
+    // headerFrame.layoutMode = 'HORIZONTAL';
+    // headerFrame.counterAxisSizingMode = 'AUTO';
+    // headerFrame.primaryAxisSizingMode = 'AUTO';
+    // headerFrame.fills = [];  // 透明背景
+    // headerFrame.itemSpacing = 16;
+    // const title = figma.createText();
+    // title.fontName = { family: 'Inter', style: 'Bold' };
+    // title.fontSize = 32;  // 更大的标题
+    // title.characters = '📋 Meeting Summary';
+    // title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.2 } }];
+    // // 添加日期
+    // const dateText = figma.createText();
+    // dateText.fontName = { family: 'Inter', style: 'Regular' };
+    // dateText.fontSize = 14;
+    // dateText.characters = date;
+    // dateText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.6 } }];
+    // headerFrame.appendChild(title);
+    // frame.appendChild(headerFrame);
+    // frame.appendChild(dateText);
+    //     title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
+    //     frame.appendChild(title);
+    //     // 📊 Summary
+    //     if (finalData.summary) {
+    //       this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
+    //     }
+    //     // 🎯 Key Decisions
+    //     // if (finalData.decisions && finalData.decisions.length > 0) {
+    //     //   const decisionsContent = finalData.decisions
+    //     //     .map((d: string, i: number) => `${i + 1}. ${d}`)
+    //     //     .join('\n\n');
+    //     //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+    //     // }
+    //     if (finalData.decisions && finalData.decisions.length > 0) {
+    //   const decisionsContent = finalData.decisions
+    //     .map((d: string, i: number) => `${i + 1}. ${d}`)
+    //     .join('\n\n');  // 双换行增加间距
+    //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+    // }
+    //     // 💡 Explicit Knowledge
+    //     if (finalData.explicit && finalData.explicit.length > 0) {
+    //       const explicitContent = finalData.explicit
+    //        .map((e: string, i: number) => `•  ${e}`)  // 添加空格
+    //     .join('\n\n');  // 双换行
+    //       this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
+    //     }
+    //     // 🧠 Tacit Knowledge
+    //     if (finalData.tacit && finalData.tacit.length > 0) {
+    //       const tacitContent = finalData.tacit
+    //         .map((t: string, i: number) => `•  ${t}`)  // 添加空格
+    //     .join('\n\n');  // 双换行
+    //       this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
+    //     }
+    //     // 🤔 Reasoning
+    //     if (finalData.reasoning) {
+    //       this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
+    //     }
+    //     // 💬 Suggestions
+    //     if (finalData.suggestions && finalData.suggestions.length > 0) {
+    //       const suggestionsContent = finalData.suggestions
+    //         .map((s: string, i: number) => `• ${s}`)
+    //         .join('\n');
+    //       this.addSectionToFrame(frame, '💬 Suggestions', suggestionsContent);
+    //     }
+    //     // 居中显示
+    //     const bounds = figma.viewport.bounds;
+    //     frame.x = bounds.x + (bounds.width - frame.width) / 2;
+    //     frame.y = bounds.y + 100;
+    //     figma.currentPage.appendChild(frame);
+    //     figma.currentPage.selection = [frame];
+    //     figma.viewport.scrollAndZoomIntoView([frame]);
+    //     console.log('✅ Final summary canvas created with Supabase data');
+    //   } catch (error) {
+    //     console.error('❌ Error creating final summary:', error);
+    //     throw error;
+    //   }
+    // }
+    addSectionToFrame(parent, title, content) {
+        // 创建 section 卡片
+        const sectionCard = figma.createFrame();
+        sectionCard.layoutMode = 'VERTICAL';
+        sectionCard.counterAxisSizingMode = 'AUTO';
+        sectionCard.primaryAxisSizingMode = 'AUTO';
+        sectionCard.layoutAlign = 'STRETCH';
+        sectionCard.paddingLeft = 24;
+        sectionCard.paddingRight = 24;
+        sectionCard.paddingTop = 20;
+        sectionCard.paddingBottom = 20;
+        sectionCard.cornerRadius = 12;
+        sectionCard.itemSpacing = 12;
+        // 根据标题类型设置背景色
+        if (title.includes('Summary')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }]; // 淡蓝
+        }
+        else if (title.includes('Decisions')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }]; // 淡红
+        }
+        else if (title.includes('Explicit')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }]; // 蓝色调
+        }
+        else if (title.includes('Tacit')) {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }]; // 橘色调
+        }
+        else {
+            sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // 白色
+        }
+        // 添加边框
+        sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
+        sectionCard.strokeWeight = 1;
+        // Section 标题
+        const titleText = figma.createText();
+        titleText.fontName = { family: 'Inter', style: 'Bold' };
+        titleText.fontSize = 18; // 增大标题
+        titleText.characters = title;
+        // 标题颜色（使用之前的颜色逻辑）
+        if (title.includes('Explicit')) {
+            titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
+        }
+        else if (title.includes('Tacit')) {
+            titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
+        }
+        else {
+            titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
+        }
+        sectionCard.appendChild(titleText);
+        // 添加分隔线
+        const divider = figma.createLine();
+        divider.resize(100, 0);
+        divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
+        divider.strokeWeight = 1;
+        divider.layoutAlign = 'STRETCH';
+        sectionCard.appendChild(divider);
+        // Section 内容
+        const contentText = figma.createText();
+        contentText.fontName = { family: 'Inter', style: 'Regular' };
+        contentText.fontSize = 14; // 稍大的字体
+        contentText.characters = content || 'N/A';
+        contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
+        contentText.layoutAlign = 'STRETCH';
+        contentText.textAutoResize = 'HEIGHT';
+        contentText.lineHeight = { value: 150, unit: 'PERCENT' }; // 增加行高
+        sectionCard.appendChild(contentText);
+        parent.appendChild(sectionCard);
     }
-}
-addSectionToFrame(parent, FrameNode, title, string, content, string);
-void {
-    // 创建 section 卡片
-    const: sectionCard = figma.createFrame(),
-    sectionCard, : .layoutMode = 'VERTICAL',
-    sectionCard, : .counterAxisSizingMode = 'AUTO',
-    sectionCard, : .primaryAxisSizingMode = 'AUTO',
-    sectionCard, : .layoutAlign = 'STRETCH',
-    sectionCard, : .paddingLeft = 24,
-    sectionCard, : .paddingRight = 24,
-    sectionCard, : .paddingTop = 20,
-    sectionCard, : .paddingBottom = 20,
-    sectionCard, : .cornerRadius = 12,
-    sectionCard, : .itemSpacing = 12,
-    // 根据标题类型设置背景色
-    if(title) { }, : .includes('Summary') || title.includes('Overview')
-};
-{
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }]; // 淡蓝
-}
-if (title.includes('Decision')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }]; // 淡红
-}
-else if (title.includes('Explicit')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }]; // 蓝色调
-}
-else if (title.includes('Tacit')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }]; // 橘色调
-}
-else if (title.includes('Action')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 1, b: 0.95 } }]; // 淡绿
-}
-else if (title.includes('Resource') || title.includes('Learning')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.98, b: 0.93 } }]; // 淡黄
-}
-else {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // 白色
-}
-// 添加边框
-sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
-sectionCard.strokeWeight = 1;
-// Section 标题
-const titleText = figma.createText();
-titleText.fontName = { family: 'Inter', style: 'Bold' };
-titleText.fontSize = 18;
-titleText.characters = title;
-// 标题颜色
-if (title.includes('Explicit')) {
-    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
-}
-else if (title.includes('Tacit')) {
-    titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
-}
-else {
-    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
-}
-sectionCard.appendChild(titleText);
-// 添加分隔线
-const divider = figma.createLine();
-divider.resize(100, 0);
-divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
-divider.strokeWeight = 1;
-divider.layoutAlign = 'STRETCH';
-sectionCard.appendChild(divider);
-// Section 内容
-const contentText = figma.createText();
-contentText.fontName = { family: 'Inter', style: 'Regular' };
-contentText.fontSize = 14;
-contentText.characters = content || 'N/A';
-contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
-contentText.layoutAlign = 'STRETCH';
-contentText.textAutoResize = 'HEIGHT';
-contentText.lineHeight = { value: 150, unit: 'PERCENT' };
-sectionCard.appendChild(contentText);
-parent.appendChild(sectionCard);
-// async createFinalSummaryWithData(finalData: any): Promise<void> {
-//   try {
-//     await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
-//     await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
-//     await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
-//     const date = new Date().toLocaleDateString();
-//     const frame = figma.createFrame();
-// frame.name = `Meeting Summary - ${date}`;
-// frame.resize(1000, 1400);  // 更宽一些
-// frame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 0.99 } }];  // 浅灰背景
-// frame.cornerRadius = 16;  // 圆角更大
-// frame.layoutMode = 'VERTICAL';
-// frame.paddingLeft = 40;
-// frame.paddingRight = 40;
-// frame.paddingTop = 40;
-// frame.paddingBottom = 40;
-// frame.itemSpacing = 24;  // 增加间距
-// frame.primaryAxisSizingMode = 'AUTO';  // 自动高度
-//     // const frame = figma.createFrame();
-//     // frame.name = `Meeting Summary - ${date}`;
-//     // frame.resize(900, 1200);
-//     // frame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-//     frame.strokeWeight = 2;
-//     frame.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.85 } }];
-//     frame.cornerRadius = 8;
-//     frame.layoutMode = 'VERTICAL';
-//     frame.paddingLeft = 32;
-//     frame.paddingRight = 32;
-//     frame.paddingTop = 32;
-//     frame.paddingBottom = 32;
-//     frame.itemSpacing = 20;
-//     // 标题
-//     // const title = figma.createText();
-//     // title.fontName = { family: 'Inter', style: 'Bold' };
-//     // title.fontSize = 24;
-//     // title.characters = '📋 Meeting Summary';
-//     // 创建标题容器
-// const headerFrame = figma.createFrame();
-// headerFrame.layoutMode = 'HORIZONTAL';
-// headerFrame.counterAxisSizingMode = 'AUTO';
-// headerFrame.primaryAxisSizingMode = 'AUTO';
-// headerFrame.fills = [];  // 透明背景
-// headerFrame.itemSpacing = 16;
-// const title = figma.createText();
-// title.fontName = { family: 'Inter', style: 'Bold' };
-// title.fontSize = 32;  // 更大的标题
-// title.characters = '📋 Meeting Summary';
-// title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.2 } }];
-// // 添加日期
-// const dateText = figma.createText();
-// dateText.fontName = { family: 'Inter', style: 'Regular' };
-// dateText.fontSize = 14;
-// dateText.characters = date;
-// dateText.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.6 } }];
-// headerFrame.appendChild(title);
-// frame.appendChild(headerFrame);
-// frame.appendChild(dateText);
-//     title.fills = [{ type: 'SOLID', color: { r: 0.1, g: 0.1, b: 0.1 } }];
-//     frame.appendChild(title);
-//     // 📊 Summary
-//     if (finalData.summary) {
-//       this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
-//     }
-//     // 🎯 Key Decisions
-//     // if (finalData.decisions && finalData.decisions.length > 0) {
-//     //   const decisionsContent = finalData.decisions
-//     //     .map((d: string, i: number) => `${i + 1}. ${d}`)
-//     //     .join('\n\n');
-//     //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
-//     // }
-//     if (finalData.decisions && finalData.decisions.length > 0) {
-//   const decisionsContent = finalData.decisions
-//     .map((d: string, i: number) => `${i + 1}. ${d}`)
-//     .join('\n\n');  // 双换行增加间距
-//   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
-// }
-//     // 💡 Explicit Knowledge
-//     if (finalData.explicit && finalData.explicit.length > 0) {
-//       const explicitContent = finalData.explicit
-//        .map((e: string, i: number) => `•  ${e}`)  // 添加空格
-//     .join('\n\n');  // 双换行
-//       this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
-//     }
-//     // 🧠 Tacit Knowledge
-//     if (finalData.tacit && finalData.tacit.length > 0) {
-//       const tacitContent = finalData.tacit
-//         .map((t: string, i: number) => `•  ${t}`)  // 添加空格
-//     .join('\n\n');  // 双换行
-//       this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
-//     }
-//     // 🤔 Reasoning
-//     if (finalData.reasoning) {
-//       this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
-//     }
-//     // 💬 Suggestions
-//     if (finalData.suggestions && finalData.suggestions.length > 0) {
-//       const suggestionsContent = finalData.suggestions
-//         .map((s: string, i: number) => `• ${s}`)
-//         .join('\n');
-//       this.addSectionToFrame(frame, '💬 Suggestions', suggestionsContent);
-//     }
-//     // 居中显示
-//     const bounds = figma.viewport.bounds;
-//     frame.x = bounds.x + (bounds.width - frame.width) / 2;
-//     frame.y = bounds.y + 100;
-//     figma.currentPage.appendChild(frame);
-//     figma.currentPage.selection = [frame];
-//     figma.viewport.scrollAndZoomIntoView([frame]);
-//     console.log('✅ Final summary canvas created with Supabase data');
-//   } catch (error) {
-//     console.error('❌ Error creating final summary:', error);
-//     throw error;
-//   }
-// }
-// private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
-//   // 创建 section 卡片
-//   const sectionCard = figma.createFrame();
-//   sectionCard.layoutMode = 'VERTICAL';
-//   sectionCard.counterAxisSizingMode = 'AUTO';
-//   sectionCard.primaryAxisSizingMode = 'AUTO';
-//   sectionCard.layoutAlign = 'STRETCH';
-//   sectionCard.paddingLeft = 24;
-//   sectionCard.paddingRight = 24;
-//   sectionCard.paddingTop = 20;
-//   sectionCard.paddingBottom = 20;
-//   sectionCard.cornerRadius = 12;
-//   sectionCard.itemSpacing = 12;
-//   // 根据标题类型设置背景色
-//   if (title.includes('Summary')) {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];  // 淡蓝
-//   } else if (title.includes('Decisions')) {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }];  // 淡红
-//   } else if (title.includes('Explicit')) {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }];  // 蓝色调
-//   } else if (title.includes('Tacit')) {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }];  // 橘色调
-//   } else {
-//     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];  // 白色
-//   }
-//   // 添加边框
-//   sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
-//   sectionCard.strokeWeight = 1;
-//   // Section 标题
-//   const titleText = figma.createText();
-//   titleText.fontName = { family: 'Inter', style: 'Bold' };
-//   titleText.fontSize = 18;  // 增大标题
-//   titleText.characters = title;
-//   // 标题颜色（使用之前的颜色逻辑）
-//   if (title.includes('Explicit')) {
-//     titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
-//   } else if (title.includes('Tacit')) {
-//     titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
-//   } else {
-//     titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
-//   }
-//   sectionCard.appendChild(titleText);
-//   // 添加分隔线
-//   const divider = figma.createLine();
-//   divider.resize(100, 0);
-//   divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
-//   divider.strokeWeight = 1;
-//   divider.layoutAlign = 'STRETCH';
-//   sectionCard.appendChild(divider);
-//   // Section 内容
-//   const contentText = figma.createText();
-//   contentText.fontName = { family: 'Inter', style: 'Regular' };
-//   contentText.fontSize = 14;  // 稍大的字体
-//   contentText.characters = content || 'N/A';
-//   contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
-//   contentText.layoutAlign = 'STRETCH';
-//   contentText.textAutoResize = 'HEIGHT';
-//   contentText.lineHeight = { value: 150, unit: 'PERCENT' };  // 增加行高
-//   sectionCard.appendChild(contentText);
-//   parent.appendChild(sectionCard);
-// }
-// 辅助方法：添加 section 到 frame
-// private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
-//   // Section 标题
-//   const titleText = figma.createText();
-//   titleText.fontName = { family: 'Inter', style: 'Bold' };
-//   titleText.fontSize = 16;
-//   titleText.characters = title;
-//   titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
-//   parent.appendChild(titleText);
-//   // Section 内容
-//   const contentText = figma.createText();
-//   contentText.fontName = { family: 'Inter', style: 'Regular' };
-//   contentText.fontSize = 13;
-//   contentText.characters = content || 'N/A';
-//   contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
-//   contentText.resize(836, contentText.height);
-//   parent.appendChild(contentText);
-// }
-async;
-createFinalSummary(summary, MeetingSummary, metadata, any);
-Promise < void  > {
-    try: {
-        await, figma, : .loadFontAsync({ family: "Inter", style: "Regular" }),
-        await, figma, : .loadFontAsync({ family: "Inter", style: "Bold" }),
-        const: summaryFrame = figma.createFrame(),
-        summaryFrame, : .name = `Meeting Summary - ${new Date().toLocaleDateString()}`,
-        summaryFrame, : .resize(900, 800),
-        summaryFrame, : .fills = [{
-                type: 'SOLID',
-                color: { r: 1, g: 1, b: 1 }
-            }],
-        summaryFrame, : .cornerRadius = 12,
-        summaryFrame, : .layoutMode = 'VERTICAL',
-        summaryFrame, : .paddingTop = 40,
-        summaryFrame, : .paddingRight = 40,
-        summaryFrame, : .paddingBottom = 40,
-        summaryFrame, : .paddingLeft = 40,
-        summaryFrame, : .itemSpacing = 32,
-        summaryFrame, : .x = figma.viewport.center.x - 450,
-        summaryFrame, : .y = figma.viewport.center.y - 400,
-        // Add title
-        const: title = figma.createText(),
-        title, : .characters = "📋 Meeting Summary",
-        title, : .fontSize = 28,
-        title, : .fontName = { family: "Inter", style: "Bold" },
-        summaryFrame, : .appendChild(title),
-        // Add metadata
-        const: metadata_text = figma.createText(),
-        metadata_text, : .characters = `${metadata.module || 'DE4 ERO'} | ${metadata.meetingType || 'Brainstorming'} | ${new Date().toLocaleDateString()}`,
-        metadata_text, : .fontSize = 14,
-        metadata_text, : .fontName = { family: "Inter", style: "Regular" },
-        metadata_text, : .fills = [{
-                type: 'SOLID',
-                color: { r: 0.4, g: 0.4, b: 0.4 }
-            }],
-        summaryFrame, : .appendChild(metadata_text),
-        // Add sections
-        if(summary) { }, : .overview
+    // 辅助方法：添加 section 到 frame
+    // private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
+    //   // Section 标题
+    //   const titleText = figma.createText();
+    //   titleText.fontName = { family: 'Inter', style: 'Bold' };
+    //   titleText.fontSize = 16;
+    //   titleText.characters = title;
+    //   titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
+    //   parent.appendChild(titleText);
+    //   // Section 内容
+    //   const contentText = figma.createText();
+    //   contentText.fontName = { family: 'Inter', style: 'Regular' };
+    //   contentText.fontSize = 13;
+    //   contentText.characters = content || 'N/A';
+    //   contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 } }];
+    //   contentText.resize(836, contentText.height);
+    //   parent.appendChild(contentText);
+    // }
+    createFinalSummary(summary, metadata) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield figma.loadFontAsync({ family: "Inter", style: "Regular" });
+                yield figma.loadFontAsync({ family: "Inter", style: "Bold" });
+                const summaryFrame = figma.createFrame();
+                summaryFrame.name = `Meeting Summary - ${new Date().toLocaleDateString()}`;
+                summaryFrame.resize(900, 800);
+                summaryFrame.fills = [{
+                        type: 'SOLID',
+                        color: { r: 1, g: 1, b: 1 }
+                    }];
+                summaryFrame.cornerRadius = 12;
+                summaryFrame.layoutMode = 'VERTICAL';
+                summaryFrame.paddingTop = 40;
+                summaryFrame.paddingRight = 40;
+                summaryFrame.paddingBottom = 40;
+                summaryFrame.paddingLeft = 40;
+                summaryFrame.itemSpacing = 32;
+                summaryFrame.x = figma.viewport.center.x - 450;
+                summaryFrame.y = figma.viewport.center.y - 400;
+                // Add title
+                const title = figma.createText();
+                title.characters = "📋 Meeting Summary";
+                title.fontSize = 28;
+                title.fontName = { family: "Inter", style: "Bold" };
+                summaryFrame.appendChild(title);
+                // Add metadata
+                const metadata_text = figma.createText();
+                metadata_text.characters = `${metadata.module || 'DE4 ERO'} | ${metadata.meetingType || 'Brainstorming'} | ${new Date().toLocaleDateString()}`;
+                metadata_text.fontSize = 14;
+                metadata_text.fontName = { family: "Inter", style: "Regular" };
+                metadata_text.fills = [{
+                        type: 'SOLID',
+                        color: { r: 0.4, g: 0.4, b: 0.4 }
+                    }];
+                summaryFrame.appendChild(metadata_text);
+                // Add sections
+                if (summary.overview) {
+                    yield this.addSummarySection(summaryFrame, "📊 Executive Summary", summary.overview);
+                }
+                if (summary.decisions && summary.decisions.length > 0) {
+                    yield this.addSummarySection(summaryFrame, "🎯 Key Decisions", summary.decisions.map((d, i) => `${i + 1}. ${d}`).join('\n'));
+                }
+                if (summary.actions && summary.actions.length > 0) {
+                    yield this.addSummarySection(summaryFrame, "✅ Action Items", summary.actions.map(a => `• ${a}`).join('\n'));
+                }
+                figma.currentPage.appendChild(summaryFrame);
+                figma.currentPage.selection = [summaryFrame];
+                figma.viewport.scrollAndZoomIntoView([summaryFrame]);
+            }
+            catch (error) {
+                console.error('Error creating final summary:', error);
+                throw error;
+            }
+        });
     }
-};
-{
-    await this.addSummarySection(summaryFrame, "📊 Executive Summary", summary.overview);
-}
-if (summary.decisions && summary.decisions.length > 0) {
-    await this.addSummarySection(summaryFrame, "🎯 Key Decisions", summary.decisions.map((d, i) => `${i + 1}. ${d}`).join('\n'));
-}
-if (summary.actions && summary.actions.length > 0) {
-    await this.addSummarySection(summaryFrame, "✅ Action Items", summary.actions.map(a => `• ${a}`).join('\n'));
-}
-figma.currentPage.appendChild(summaryFrame);
-figma.currentPage.selection = [summaryFrame];
-figma.viewport.scrollAndZoomIntoView([summaryFrame]);
-try { }
-catch (error) {
-    console.error('Error creating final summary:', error);
-    throw error;
-}
-async;
-addSummarySection(parent, FrameNode, title, string, content, string);
-Promise < void  > {
-    const: section = figma.createFrame(),
-    section, : .layoutMode = 'VERTICAL',
-    section, : .counterAxisSizingMode = 'FIXED',
-    section, : .primaryAxisSizingMode = 'AUTO',
-    section, : .layoutAlign = 'STRETCH',
-    section, : .itemSpacing = 12,
-    section, : .fills = [{
-            type: 'SOLID',
-            color: { r: 0.98, g: 0.98, b: 0.98 }
-        }],
-    section, : .cornerRadius = 8,
-    section, : .paddingTop = 16,
-    section, : .paddingRight = 16,
-    section, : .paddingBottom = 16,
-    section, : .paddingLeft = 16,
-    const: sectionTitle = figma.createText(),
-    sectionTitle, : .characters = title,
-    sectionTitle, : .fontSize = 18,
-    sectionTitle, : .fontName = { family: "Inter", style: "Bold" },
-    const: sectionContent = figma.createText(),
-    sectionContent, : .characters = content,
-    sectionContent, : .fontSize = 14,
-    sectionContent, : .fontName = { family: "Inter", style: "Regular" },
-    sectionContent, : .layoutAlign = 'STRETCH',
-    section, : .appendChild(sectionTitle),
-    section, : .appendChild(sectionContent),
-    parent, : .appendChild(section)
-};
-clearCanvas();
-void {
-    : .realtimeFrame
-};
-{
-    this.realtimeFrame.remove();
-    this.realtimeFrame = null;
-    this.cardPositions.clear();
-    this.currentRow = 0;
-    this.currentCol = 0;
+    addSummarySection(parent, title, content) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const section = figma.createFrame();
+            section.layoutMode = 'VERTICAL';
+            section.counterAxisSizingMode = 'FIXED';
+            section.primaryAxisSizingMode = 'AUTO';
+            section.layoutAlign = 'STRETCH';
+            section.itemSpacing = 12;
+            section.fills = [{
+                    type: 'SOLID',
+                    color: { r: 0.98, g: 0.98, b: 0.98 }
+                }];
+            section.cornerRadius = 8;
+            section.paddingTop = 16;
+            section.paddingRight = 16;
+            section.paddingBottom = 16;
+            section.paddingLeft = 16;
+            const sectionTitle = figma.createText();
+            sectionTitle.characters = title;
+            sectionTitle.fontSize = 18;
+            sectionTitle.fontName = { family: "Inter", style: "Bold" };
+            const sectionContent = figma.createText();
+            sectionContent.characters = content;
+            sectionContent.fontSize = 14;
+            sectionContent.fontName = { family: "Inter", style: "Regular" };
+            sectionContent.layoutAlign = 'STRETCH';
+            section.appendChild(sectionTitle);
+            section.appendChild(sectionContent);
+            parent.appendChild(section);
+        });
+    }
+    clearCanvas() {
+        if (this.realtimeFrame) {
+            this.realtimeFrame.remove();
+            this.realtimeFrame = null;
+            this.cardPositions.clear();
+            this.currentRow = 0;
+            this.currentCol = 0;
+        }
+    }
 }
 // =====================================
 // Main Plugin Code
