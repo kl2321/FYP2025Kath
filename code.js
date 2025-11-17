@@ -294,8 +294,39 @@ class CanvasManager {
     }
     createFinalSummaryWithData(finalData) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c, _d;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
             try {
+                // ========== 🔍 DEBUG: 查看实际收到的数据结构 ==========
+                console.log('🔍 ===== FINAL DATA STRUCTURE DEBUG =====');
+                console.log('📦 Top-level keys:', Object.keys(finalData));
+                console.log('📊 Has duration_overview?', !!finalData.duration_overview);
+                console.log('📊 Has decision_summary?', !!finalData.decision_summary);
+                console.log('📊 Has meeting_summary?', !!finalData.meeting_summary);
+                // 检查各种可能的 key_topics 字段名
+                console.log('📍 keytopicsdiscussed?', !!finalData.keytopicsdiscussed);
+                console.log('📍 key_topics_discussed?', !!finalData.key_topics_discussed);
+                console.log('📍 meeting_summary.keytopicsdiscussed?', !!((_a = finalData.meeting_summary) === null || _a === void 0 ? void 0 : _a.keytopicsdiscussed));
+                console.log('📍 meeting_summary.key_topics_discussed?', !!((_b = finalData.meeting_summary) === null || _b === void 0 ? void 0 : _b.key_topics_discussed));
+                // 检查 action_items 字段
+                if (finalData.action_items) {
+                    console.log('✅ action_items keys:', Object.keys(finalData.action_items));
+                }
+                // 打印完整数据结构（简化版）
+                console.log('📄 Full data structure (keys only):');
+                for (const key in finalData) {
+                    if (typeof finalData[key] === 'object' && finalData[key] !== null) {
+                        if (Array.isArray(finalData[key])) {
+                            console.log(`  ${key}: Array[${finalData[key].length}]`);
+                        }
+                        else {
+                            console.log(`  ${key}: Object { ${Object.keys(finalData[key]).join(', ')} }`);
+                        }
+                    }
+                    else {
+                        console.log(`  ${key}: ${typeof finalData[key]}`);
+                    }
+                }
+                console.log('🔍 ===== END DEBUG =====');
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
                 const date = new Date().toLocaleDateString();
@@ -335,20 +366,30 @@ class CanvasManager {
                 frame.appendChild(dateText);
                 // 检查数据结构类型并处理
                 if (finalData.duration_overview || finalData.decision_summary) {
+                    console.log('✅ Using NEW final summary structure');
                     // ========== 新数据结构处理 ==========
                     // 📊 Meeting Overview
                     if (finalData.duration_overview) {
+                        console.log('📊 Adding Duration Overview section');
                         this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
                     }
-                    // 📍 Key Topics
-                    if (finalData.keytopicsdiscussed && finalData.keytopicsdiscussed.length > 0) {
-                        const topicsContent = finalData.keytopicsdiscussed
+                    // 📍 Key Topics - 尝试所有可能的字段名
+                    const topics = finalData.keytopicsdiscussed ||
+                        finalData.key_topics_discussed ||
+                        ((_c = finalData.meeting_summary) === null || _c === void 0 ? void 0 : _c.keytopicsdiscussed) ||
+                        ((_d = finalData.meeting_summary) === null || _d === void 0 ? void 0 : _d.key_topics_discussed);
+                    if (topics && Array.isArray(topics) && topics.length > 0) {
+                        console.log('📍 Adding Key Topics section, count:', topics.length);
+                        const topicsContent = topics
                             .map((topic) => `• ${topic}`)
                             .join('\n');
                         this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
                     }
+                    else {
+                        console.log('⚠️ No key topics found');
+                    }
                     // 🎯 Key Decisions with Knowledge
-                    if (((_a = finalData.decision_summary) === null || _a === void 0 ? void 0 : _a.decisions) && finalData.decision_summary.decisions.length > 0) {
+                    if (((_e = finalData.decision_summary) === null || _e === void 0 ? void 0 : _e.decisions) && finalData.decision_summary.decisions.length > 0) {
                         finalData.decision_summary.decisions.forEach((d, i) => {
                             // Decision 主内容
                             let decisionText = `${d.decision || ''}`;
@@ -398,23 +439,35 @@ class CanvasManager {
                             this.addSectionToFrame(frame, '⚠️ Gaps Identified', gapsContent);
                         }
                     }
-                    // ✅ Action Items
-                    if (((_b = finalData.action_items) === null || _b === void 0 ? void 0 : _b.immediatenextsteps) && finalData.action_items.immediatenextsteps.length > 0) {
-                        finalData.action_items.immediatenextsteps.forEach((a, i) => {
+                    // ✅ Action Items - 容错处理多种字段名
+                    const immediateActions = ((_f = finalData.action_items) === null || _f === void 0 ? void 0 : _f.immediatenextsteps) ||
+                        ((_g = finalData.action_items) === null || _g === void 0 ? void 0 : _g.immediate_next_steps);
+                    if (immediateActions && Array.isArray(immediateActions) && immediateActions.length > 0) {
+                        console.log('✅ Adding Action Items section, count:', immediateActions.length);
+                        immediateActions.forEach((a, i) => {
                             const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
                             const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
                             this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
                         });
                     }
-                    // 🎯 Next Week Focus (独立 section)
-                    if (((_c = finalData.action_items) === null || _c === void 0 ? void 0 : _c.upcomingweekfocus) && finalData.action_items.upcomingweekfocus.length > 0) {
-                        const focusContent = finalData.action_items.upcomingweekfocus
+                    else {
+                        console.log('⚠️ No action items found');
+                    }
+                    // 🎯 Next Week Focus - 容错处理多种字段名
+                    const weekFocus = ((_h = finalData.action_items) === null || _h === void 0 ? void 0 : _h.upcomingweekfocus) ||
+                        ((_j = finalData.action_items) === null || _j === void 0 ? void 0 : _j.upcoming_week_focus);
+                    if (weekFocus && Array.isArray(weekFocus) && weekFocus.length > 0) {
+                        console.log('🎯 Adding Next Week Focus section, count:', weekFocus.length);
+                        const focusContent = weekFocus
                             .map((f) => `• ${f}`)
                             .join('\n');
                         this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
                     }
+                    else {
+                        console.log('⚠️ No next week focus found');
+                    }
                     // 📚 Learning Materials
-                    if (((_d = finalData.learning_materials) === null || _d === void 0 ? void 0 : _d.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
+                    if (((_k = finalData.learning_materials) === null || _k === void 0 ? void 0 : _k.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
                         finalData.learning_materials.recommended_resources.forEach((r, i) => {
                             const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
                             const resourceText = `${priorityEmoji} ${r.title}\n\nType: ${r.resource_type}\nRelevance: ${r.relevance}`;
@@ -423,6 +476,7 @@ class CanvasManager {
                     }
                 }
                 else {
+                    console.log('✅ Using OLD final summary structure (legacy format)');
                     // ========== 旧数据结构处理（保持兼容） ==========
                     // 📊 Summary
                     if (finalData.summary) {

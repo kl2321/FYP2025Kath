@@ -847,6 +847,39 @@ class CanvasManager {
 
 async createFinalSummaryWithData(finalData: any): Promise<void> {
   try {
+    // ========== 🔍 DEBUG: 查看实际收到的数据结构 ==========
+    console.log('🔍 ===== FINAL DATA STRUCTURE DEBUG =====');
+    console.log('📦 Top-level keys:', Object.keys(finalData));
+    console.log('📊 Has duration_overview?', !!finalData.duration_overview);
+    console.log('📊 Has decision_summary?', !!finalData.decision_summary);
+    console.log('📊 Has meeting_summary?', !!finalData.meeting_summary);
+
+    // 检查各种可能的 key_topics 字段名
+    console.log('📍 keytopicsdiscussed?', !!finalData.keytopicsdiscussed);
+    console.log('📍 key_topics_discussed?', !!finalData.key_topics_discussed);
+    console.log('📍 meeting_summary.keytopicsdiscussed?', !!finalData.meeting_summary?.keytopicsdiscussed);
+    console.log('📍 meeting_summary.key_topics_discussed?', !!finalData.meeting_summary?.key_topics_discussed);
+
+    // 检查 action_items 字段
+    if (finalData.action_items) {
+      console.log('✅ action_items keys:', Object.keys(finalData.action_items));
+    }
+
+    // 打印完整数据结构（简化版）
+    console.log('📄 Full data structure (keys only):');
+    for (const key in finalData) {
+      if (typeof finalData[key] === 'object' && finalData[key] !== null) {
+        if (Array.isArray(finalData[key])) {
+          console.log(`  ${key}: Array[${finalData[key].length}]`);
+        } else {
+          console.log(`  ${key}: Object { ${Object.keys(finalData[key]).join(', ')} }`);
+        }
+      } else {
+        console.log(`  ${key}: ${typeof finalData[key]}`);
+      }
+    }
+    console.log('🔍 ===== END DEBUG =====');
+
     await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
     await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
 
@@ -892,19 +925,29 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 
     // 检查数据结构类型并处理
     if (finalData.duration_overview || finalData.decision_summary) {
+      console.log('✅ Using NEW final summary structure');
       // ========== 新数据结构处理 ==========
-      
+
       // 📊 Meeting Overview
       if (finalData.duration_overview) {
+        console.log('📊 Adding Duration Overview section');
         this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
       }
 
-      // 📍 Key Topics
-      if (finalData.keytopicsdiscussed && finalData.keytopicsdiscussed.length > 0) {
-        const topicsContent = finalData.keytopicsdiscussed
+      // 📍 Key Topics - 尝试所有可能的字段名
+      const topics = finalData.keytopicsdiscussed ||
+                     finalData.key_topics_discussed ||
+                     finalData.meeting_summary?.keytopicsdiscussed ||
+                     finalData.meeting_summary?.key_topics_discussed;
+
+      if (topics && Array.isArray(topics) && topics.length > 0) {
+        console.log('📍 Adding Key Topics section, count:', topics.length);
+        const topicsContent = topics
           .map((topic: string) => `• ${topic}`)
           .join('\n');
         this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
+      } else {
+        console.log('⚠️ No key topics found');
       }
 
       // 🎯 Key Decisions with Knowledge
@@ -972,20 +1015,33 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
         }
       }
 
-      // ✅ Action Items
-      if (finalData.action_items?.immediatenextsteps && finalData.action_items.immediatenextsteps.length > 0) {
-         finalData.action_items.immediatenextsteps.forEach((a: any, i: number) => {
+      // ✅ Action Items - 容错处理多种字段名
+      const immediateActions = finalData.action_items?.immediatenextsteps ||
+                              finalData.action_items?.immediate_next_steps;
+
+      if (immediateActions && Array.isArray(immediateActions) && immediateActions.length > 0) {
+        console.log('✅ Adding Action Items section, count:', immediateActions.length);
+        immediateActions.forEach((a: any, i: number) => {
           const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
           const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
           this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
         });
+      } else {
+        console.log('⚠️ No action items found');
       }
-      // 🎯 Next Week Focus (独立 section)
-      if (finalData.action_items?.upcomingweekfocus && finalData.action_items.upcomingweekfocus.length > 0) {
-        const focusContent = finalData.action_items.upcomingweekfocus
+
+      // 🎯 Next Week Focus - 容错处理多种字段名
+      const weekFocus = finalData.action_items?.upcomingweekfocus ||
+                       finalData.action_items?.upcoming_week_focus;
+
+      if (weekFocus && Array.isArray(weekFocus) && weekFocus.length > 0) {
+        console.log('🎯 Adding Next Week Focus section, count:', weekFocus.length);
+        const focusContent = weekFocus
           .map((f: string) => `• ${f}`)
           .join('\n');
         this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
+      } else {
+        console.log('⚠️ No next week focus found');
       }
 
       // 📚 Learning Materials
@@ -1001,8 +1057,9 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       }
 
     } else {
+      console.log('✅ Using OLD final summary structure (legacy format)');
       // ========== 旧数据结构处理（保持兼容） ==========
-      
+
       // 📊 Summary
       if (finalData.summary) {
         this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
