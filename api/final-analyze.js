@@ -372,10 +372,11 @@ Make sure EVERY decision has both explicit and tacit knowledge identified.`;
 
     const content = response.data.choices[0]?.message?.content || '';
     console.log('🤖 GPT Response received, length:', content.length);
-    
-    // 使用增强的解析函数
-    return parseGPTResponseEnhanced(content);
-    
+    console.log('🔍 First 200 chars:', content.substring(0, 200));
+
+    // 使用新的JSON解析函数
+    return parseJSONResponse(content);
+
   } catch (err) {
     console.error('❌ GPT analysis error:', err.message);
     return {
@@ -387,6 +388,117 @@ Make sure EVERY decision has both explicit and tacit knowledge identified.`;
       reasoning: '',
       suggestions: []
     };
+  }
+}
+
+// 新增：专门解析JSON格式的响应
+function parseJSONResponse(content) {
+  try {
+    console.log('📄 Attempting to parse JSON response...');
+
+    // 移除可能的markdown代码块标记
+    let jsonContent = content.trim();
+    jsonContent = jsonContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+    // 尝试解析JSON
+    const data = JSON.parse(jsonContent);
+    console.log('✅ JSON parsed successfully');
+    console.log('📦 Top-level keys:', Object.keys(data));
+
+    // 提取并重组数据以符合旧的返回格式
+    const result = {
+      summary: '',
+      decision: [],
+      actions: [],
+      explicit: [],
+      tacit: [],
+      reasoning: '',
+      suggestions: []
+    };
+
+    // 从meeting_summary提取
+    if (data.meeting_summary) {
+      const parts = [];
+      if (data.meeting_summary.duration_overview) {
+        parts.push(data.meeting_summary.duration_overview);
+      }
+      if (data.meeting_summary.key_topics_discussed && data.meeting_summary.key_topics_discussed.length > 0) {
+        parts.push('\n\nKey Topics:\n' + data.meeting_summary.key_topics_discussed.map(t => `• ${t}`).join('\n'));
+      }
+      if (data.meeting_summary.overall_team_dynamics) {
+        parts.push('\n\nTeam Dynamics:\n' + data.meeting_summary.overall_team_dynamics);
+      }
+      result.summary = parts.join('\n');
+    }
+
+    // 从decision_summary提取decisions
+    if (data.decision_summary && data.decision_summary.decisions) {
+      data.decision_summary.decisions.forEach((d, i) => {
+        let decisionText = `Decision ${i + 1}: ${d.decision}`;
+        if (d.rationale) {
+          decisionText += `\n  Rationale: ${d.rationale}`;
+        }
+        if (d.impact) {
+          decisionText += `\n  Impact: ${d.impact}`;
+        }
+        result.decision.push(decisionText);
+
+        // 收集explicit和tacit knowledge
+        if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge)) {
+          d.explicit_knowledge.forEach(e => result.explicit.push(`[D${i + 1}] ${e}`));
+        }
+        if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge)) {
+          d.tacit_knowledge.forEach(t => result.tacit.push(`[D${i + 1}] ${t}`));
+        }
+      });
+    }
+
+    // 从action_items提取
+    if (data.action_items) {
+      if (data.action_items.immediate_next_steps && Array.isArray(data.action_items.immediate_next_steps)) {
+        data.action_items.immediate_next_steps.forEach(a => {
+          result.actions.push(`${a.action} (Owner: ${a.owner}, Deadline: ${a.deadline}, Priority: ${a.priority})`);
+        });
+      }
+      if (data.action_items.upcoming_week_focus && Array.isArray(data.action_items.upcoming_week_focus)) {
+        data.action_items.upcoming_week_focus.forEach(f => {
+          result.actions.push(`Next week: ${f}`);
+        });
+      }
+    }
+
+    // 从progress_check提取reasoning
+    if (data.progress_check) {
+      const reasoningParts = [];
+      reasoningParts.push(`Current Status: Week ${data.progress_check.current_week || 'Unknown'}`);
+      reasoningParts.push(`Alignment: ${data.progress_check.alignment_status || 'Unknown'}`);
+      if (data.progress_check.gaps_identified && data.progress_check.gaps_identified.length > 0) {
+        reasoningParts.push('\nGaps Identified:\n' + data.progress_check.gaps_identified.map(g => `• ${g}`).join('\n'));
+      }
+      result.reasoning = reasoningParts.join('\n');
+    }
+
+    // 从learning_materials提取suggestions
+    if (data.learning_materials && data.learning_materials.recommended_resources) {
+      data.learning_materials.recommended_resources.forEach(r => {
+        result.suggestions.push(`${r.title} (${r.resource_type}): ${r.relevance}`);
+      });
+    }
+
+    console.log('✅ JSON response parsed and restructured:', {
+      summaryLength: result.summary.length,
+      decisionCount: result.decision.length,
+      actionCount: result.actions.length,
+      explicitCount: result.explicit.length,
+      tacitCount: result.tacit.length
+    });
+
+    return result;
+
+  } catch (jsonErr) {
+    console.warn('⚠️ JSON parsing failed, falling back to text parsing:', jsonErr.message);
+    // 如果JSON解析失败，尝试文本解析
+    return parseGPTResponseEnhanced(content);
   }
 }
 

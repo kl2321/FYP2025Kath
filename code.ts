@@ -847,35 +847,60 @@ class CanvasManager {
 
 async createFinalSummaryWithData(finalData: any): Promise<void> {
   try {
+    // ========== 处理数据类型 ==========
+    let parsedData = finalData;
+
+    // 如果 finalData 是字符串，尝试解析为 JSON
+    if (typeof finalData === 'string') {
+      console.log('⚠️ finalData is a string, attempting to parse...');
+      try {
+        // 移除可能的前缀（如 ": {）
+        let cleanData = parsedData.trim();
+        if (cleanData.startsWith('":')) {
+          cleanData = cleanData.substring(2).trim();
+        }
+        if (!cleanData.startsWith('{')) {
+          cleanData = '{' + cleanData;
+        }
+        parsedData = JSON.parse(cleanData);
+        console.log('✅ Successfully parsed string to JSON');
+      } catch (parseErr) {
+        console.error('❌ Failed to parse finalData string:', parseErr);
+        figma.notify('❌ Invalid data format');
+        return;
+      }
+    }
+
     // ========== 🔍 DEBUG: 查看实际收到的数据结构 ==========
     console.log('🔍 ===== FINAL DATA STRUCTURE DEBUG =====');
-    console.log('📦 Top-level keys:', Object.keys(finalData));
-    console.log('📊 Has duration_overview?', !!finalData.duration_overview);
-    console.log('📊 Has decision_summary?', !!finalData.decision_summary);
-    console.log('📊 Has meeting_summary?', !!finalData.meeting_summary);
+    console.log('📦 Data type:', typeof parsedData);
+    console.log('📦 Top-level keys:', Object.keys(parsedData));
+    console.log('📊 Has duration_overview?', !!parsedData.duration_overview);
+    console.log('📊 Has decision_summary?', !!parsedData.decision_summary);
+    console.log('📊 Has meeting_summary?', !!parsedData.meeting_summary);
 
     // 检查各种可能的 key_topics 字段名
-    console.log('📍 keytopicsdiscussed?', !!finalData.keytopicsdiscussed);
-    console.log('📍 key_topics_discussed?', !!finalData.key_topics_discussed);
-    console.log('📍 meeting_summary.keytopicsdiscussed?', !!finalData.meeting_summary?.keytopicsdiscussed);
-    console.log('📍 meeting_summary.key_topics_discussed?', !!finalData.meeting_summary?.key_topics_discussed);
+    console.log('📍 keytopicsdiscussed?', !!parsedData.keytopicsdiscussed);
+    console.log('📍 key_topics_discussed?', !!parsedData.key_topics_discussed);
+    console.log('📍 meeting_summary.keytopicsdiscussed?', !!parsedData.meeting_summary?.keytopicsdiscussed);
+    console.log('📍 meeting_summary.key_topics_discussed?', !!parsedData.meeting_summary?.key_topics_discussed);
 
     // 检查 action_items 字段
-    if (finalData.action_items) {
-      console.log('✅ action_items keys:', Object.keys(finalData.action_items));
+    if (parsedData.action_items) {
+      console.log('✅ action_items keys:', Object.keys(parsedData.action_items));
     }
 
     // 打印完整数据结构（简化版）
     console.log('📄 Full data structure (keys only):');
-    for (const key in finalData) {
-      if (typeof finalData[key] === 'object' && finalData[key] !== null) {
-        if (Array.isArray(finalData[key])) {
-          console.log(`  ${key}: Array[${finalData[key].length}]`);
+    for (const key in parsedData) {
+      if (typeof parsedData[key] === 'object' && parsedData[key] !== null) {
+        if (Array.isArray(parsedData[key])) {
+          console.log(`  ${key}: Array[${parsedData[key].length}]`);
         } else {
-          console.log(`  ${key}: Object { ${Object.keys(finalData[key]).join(', ')} }`);
+          console.log(`  ${key}: Object { ${Object.keys(parsedData[key]).join(', ')} }`);
         }
       } else {
-        console.log(`  ${key}: ${typeof finalData[key]}`);
+        console.log(`  ${key}: ${typeof parsedData[key]}`);
       }
     }
     console.log('🔍 ===== END DEBUG =====');
@@ -924,21 +949,21 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
     frame.appendChild(dateText);
 
     // 检查数据结构类型并处理
-    if (finalData.duration_overview || finalData.decision_summary) {
+    if (parsedData.duration_overview || parsedData.decision_summary) {
       console.log('✅ Using NEW final summary structure');
       // ========== 新数据结构处理 ==========
 
       // 📊 Meeting Overview
-      if (finalData.duration_overview) {
+      if (parsedData.duration_overview) {
         console.log('📊 Adding Duration Overview section');
-        this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
+        this.addSectionToFrame(frame, '📊 Duration Overview', parsedData.duration_overview);
       }
 
       // 📍 Key Topics - 尝试所有可能的字段名
-      const topics = finalData.keytopicsdiscussed ||
-                     finalData.key_topics_discussed ||
-                     finalData.meeting_summary?.keytopicsdiscussed ||
-                     finalData.meeting_summary?.key_topics_discussed;
+      const topics = parsedData.keytopicsdiscussed ||
+                     parsedData.key_topics_discussed ||
+                     parsedData.meeting_summary?.keytopicsdiscussed ||
+                     parsedData.meeting_summary?.key_topics_discussed;
 
       if (topics && Array.isArray(topics) && topics.length > 0) {
         console.log('📍 Adding Key Topics section, count:', topics.length);
@@ -951,8 +976,8 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       }
 
       // 🎯 Key Decisions with Knowledge
-      if (finalData.decision_summary?.decisions && finalData.decision_summary.decisions.length > 0) {
-        finalData.decision_summary.decisions.forEach((d: any, i: number) => {
+      if (parsedData.decision_summary?.decisions && parsedData.decision_summary.decisions.length > 0) {
+        parsedData.decision_summary.decisions.forEach((d: any, i: number) => {
           // Decision 主内容
           let decisionText = `${d.decision || ''}`;
 
@@ -985,27 +1010,27 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       }
 
       // 📈 Progress Status
-      if (finalData.progress_check) {
+      if (parsedData.progress_check) {
         // let progressContent = '';
         
-        if (finalData.progress_check.current_week) {
-            this.addSectionToFrame(frame, '📅 Current Week', finalData.progress_check.current_week);
+        if (parsedData.progress_check.current_week) {
+            this.addSectionToFrame(frame, '📅 Current Week', parsedData.progress_check.current_week);
         }
         
-        if (finalData.progress_check.alignment_status) {
-          const statusEmoji = finalData.progress_check.alignment_status === 'on_track' ? '✅' : '⚠️';
-          this.addSectionToFrame(frame, '📊 Alignment Status', `${statusEmoji} ${finalData.progress_check.alignment_status}`);
+        if (parsedData.progress_check.alignment_status) {
+          const statusEmoji = parsedData.progress_check.alignment_status === 'on_track' ? '✅' : '⚠️';
+          this.addSectionToFrame(frame, '📊 Alignment Status', `${statusEmoji} ${parsedData.progress_check.alignment_status}`);
         }
         
-        if (finalData.progress_check.actual_progress && finalData.progress_check.actual_progress.length > 0) {
-           const progressContent = finalData.progress_check.actual_progress
+        if (parsedData.progress_check.actual_progress && parsedData.progress_check.actual_progress.length > 0) {
+           const progressContent = parsedData.progress_check.actual_progress
             .map((p: string) => `• ${p}`)
             .join('\n');
              this.addSectionToFrame(frame, '✅ Progress Achieved', progressContent);
         }
         
-        if (finalData.progress_check.gaps_identified && finalData.progress_check.gaps_identified.length > 0) {
-           const gapsContent = finalData.progress_check.gaps_identified
+        if (parsedData.progress_check.gaps_identified && parsedData.progress_check.gaps_identified.length > 0) {
+           const gapsContent = parsedData.progress_check.gaps_identified
 
 
             .map((g: string) => `• ${g}`)
@@ -1016,8 +1041,8 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       }
 
       // ✅ Action Items - 容错处理多种字段名
-      const immediateActions = finalData.action_items?.immediatenextsteps ||
-                              finalData.action_items?.immediate_next_steps;
+      const immediateActions = parsedData.action_items?.immediatenextsteps ||
+                              parsedData.action_items?.immediate_next_steps;
 
       if (immediateActions && Array.isArray(immediateActions) && immediateActions.length > 0) {
         console.log('✅ Adding Action Items section, count:', immediateActions.length);
@@ -1031,8 +1056,8 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       }
 
       // 🎯 Next Week Focus - 容错处理多种字段名
-      const weekFocus = finalData.action_items?.upcomingweekfocus ||
-                       finalData.action_items?.upcoming_week_focus;
+      const weekFocus = parsedData.action_items?.upcomingweekfocus ||
+                       parsedData.action_items?.upcoming_week_focus;
 
       if (weekFocus && Array.isArray(weekFocus) && weekFocus.length > 0) {
         console.log('🎯 Adding Next Week Focus section, count:', weekFocus.length);
@@ -1045,8 +1070,8 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       }
 
       // 📚 Learning Materials
-      if (finalData.learning_materials?.recommended_resources && finalData.learning_materials.recommended_resources.length > 0) {
-       finalData.learning_materials.recommended_resources.forEach((r: any, i: number) => {
+      if (parsedData.learning_materials?.recommended_resources && parsedData.learning_materials.recommended_resources.length > 0) {
+       parsedData.learning_materials.recommended_resources.forEach((r: any, i: number) => {
           const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
           const resourceText = `${priorityEmoji} ${r.title}\n\nType: ${r.resource_type}\nRelevance: ${r.relevance}`;
           this.addSectionToFrame(frame, `📚 Resource ${i + 1}`, resourceText);
@@ -1061,38 +1086,38 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       // ========== 旧数据结构处理（保持兼容） ==========
 
       // 📊 Summary
-      if (finalData.summary) {
-        this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
+      if (parsedData.summary) {
+        this.addSectionToFrame(frame, '📊 Summary', parsedData.summary);
       }
 
       // 🎯 Key Decisions
-      if (finalData.decisions && finalData.decisions.length > 0) {
-       finalData.decisions.forEach((d: string, i: number) => {
+      if (parsedData.decisions && parsedData.decisions.length > 0) {
+       parsedData.decisions.forEach((d: string, i: number) => {
           this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, d);
         });
       }
 
       // 💡 Explicit Knowledge
-      if (finalData.explicit && finalData.explicit.length > 0) {
-       finalData.explicit.forEach((e: string, i: number) => {
+      if (parsedData.explicit && parsedData.explicit.length > 0) {
+       parsedData.explicit.forEach((e: string, i: number) => {
           this.addSectionToFrame(frame, `💡 Explicit Knowledge ${i + 1}`, e);
         });
       }
 
       // 🧠 Tacit Knowledge
-      if (finalData.tacit && finalData.tacit.length > 0) {
-        finalData.tacit.forEach((t: string, i: number) => {
+      if (parsedData.tacit && parsedData.tacit.length > 0) {
+        parsedData.tacit.forEach((t: string, i: number) => {
           this.addSectionToFrame(frame, `🧠 Tacit Knowledge ${i + 1}`, t);
         });
       }
 
       // 🤔 Reasoning
-      if (finalData.reasoning) {
-        this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
+      if (parsedData.reasoning) {
+        this.addSectionToFrame(frame, '🤔 Strategic Reasoning', parsedData.reasoning);
       }
 
       // 🚀 Suggestions
-      if (finalData.suggestions && finalData.suggestions.length > 0) {
+      if (parsedData.suggestions && parsedData.suggestions.length > 0) {
         finalData.suggestions.forEach((s: string, i: number) => {
           this.addSectionToFrame(frame, `🚀 Suggestion ${i + 1}`, s);
         });
@@ -1177,18 +1202,18 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 //     frame.appendChild(title);
 
 //     // 📊 Summary
-//     if (finalData.summary) {
+//     if (parsedData.summary) {
 //       this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
 //     }
 
 //     // 🎯 Key Decisions
-//     // if (finalData.decisions && finalData.decisions.length > 0) {
+//     // if (parsedData.decisions && finalData.decisions.length > 0) {
 //     //   const decisionsContent = finalData.decisions
 //     //     .map((d: string, i: number) => `${i + 1}. ${d}`)
 //     //     .join('\n\n');
 //     //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
 //     // }
-//     if (finalData.decisions && finalData.decisions.length > 0) {
+//     if (parsedData.decisions && finalData.decisions.length > 0) {
 //   const decisionsContent = finalData.decisions
 //     .map((d: string, i: number) => `${i + 1}. ${d}`)
 //     .join('\n\n');  // 双换行增加间距
@@ -1196,7 +1221,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 // }
 
 //     // 💡 Explicit Knowledge
-//     if (finalData.explicit && finalData.explicit.length > 0) {
+//     if (parsedData.explicit && finalData.explicit.length > 0) {
 //       const explicitContent = finalData.explicit
 //        .map((e: string, i: number) => `•  ${e}`)  // 添加空格
 //     .join('\n\n');  // 双换行
@@ -1204,7 +1229,7 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 //     }
 
 //     // 🧠 Tacit Knowledge
-//     if (finalData.tacit && finalData.tacit.length > 0) {
+//     if (parsedData.tacit && finalData.tacit.length > 0) {
 //       const tacitContent = finalData.tacit
 //         .map((t: string, i: number) => `•  ${t}`)  // 添加空格
 //     .join('\n\n');  // 双换行
@@ -1212,12 +1237,12 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 //     }
 
 //     // 🤔 Reasoning
-//     if (finalData.reasoning) {
+//     if (parsedData.reasoning) {
 //       this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
 //     }
 
 //     // 💬 Suggestions
-//     if (finalData.suggestions && finalData.suggestions.length > 0) {
+//     if (parsedData.suggestions && finalData.suggestions.length > 0) {
 //       const suggestionsContent = finalData.suggestions
 //         .map((s: string, i: number) => `• ${s}`)
 //         .join('\n');
