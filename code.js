@@ -294,7 +294,7 @@ class CanvasManager {
     }
     createFinalSummaryWithData(finalData) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c;
+            var _a, _b, _c, _d;
             try {
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
@@ -336,119 +336,93 @@ class CanvasManager {
                 // 检查数据结构类型并处理
                 if (finalData.duration_overview || finalData.decision_summary) {
                     // ========== 新数据结构处理 ==========
-                    // 📊 Meeting Overview
+                    // 📊 Meeting Overview (独立 section)
                     if (finalData.duration_overview) {
-                        this.addSectionToFrame(frame, '📊 Meeting Overview', finalData.duration_overview);
+                        this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
                     }
-                    // 📍 Key Topics
+                    // 📍 Key Topics Discussed (独立 section)
                     if (finalData.key_topics_discussed && finalData.key_topics_discussed.length > 0) {
                         const topicsContent = finalData.key_topics_discussed
                             .map((topic) => `• ${topic}`)
                             .join('\n');
                         this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
                     }
-                    // 🎯 Key Decisions with Knowledge
+                    // 🎯 每个 Decision 独立 section，包含对应的 Knowledge
                     if (((_a = finalData.decision_summary) === null || _a === void 0 ? void 0 : _a.decisions) && finalData.decision_summary.decisions.length > 0) {
-                        const decisionsContent = finalData.decision_summary.decisions
-                            .map((d, i) => {
-                            let text = `${i + 1}. ${d.decision}`;
+                        finalData.decision_summary.decisions.forEach((d, i) => {
+                            // Decision 主内容
+                            let decisionText = `${d.decision || ''}`;
                             if (d.rationale) {
-                                text += `\n   📝 Rationale: ${d.rationale}`;
+                                decisionText += `\n\nRationale:\n${d.rationale}`;
                             }
                             if (d.impact) {
-                                text += `\n   💫 Impact: ${d.impact}`;
+                                decisionText += `\n\nImpact:\n${d.impact}`;
                             }
-                            return text;
-                        })
-                            .join('\n\n');
-                        this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
-                        // 提取所有 Explicit Knowledge
-                        const allExplicit = [];
-                        finalData.decision_summary.decisions.forEach((d) => {
-                            if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge)) {
-                                d.explicit_knowledge.forEach((e) => {
-                                    if (e && !allExplicit.indexOf(e)) {
-                                        allExplicit.push(e);
-                                    }
-                                });
+                            // 添加 Explicit Knowledge (如果有)
+                            if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge) && d.explicit_knowledge.length > 0) {
+                                decisionText += `\n\n💡 Explicit Knowledge:\n`;
+                                decisionText += d.explicit_knowledge
+                                    .map((e) => `• ${e}`)
+                                    .join('\n');
                             }
+                            // 添加 Tacit Knowledge (如果有)
+                            if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge) && d.tacit_knowledge.length > 0) {
+                                decisionText += `\n\n🧠 Tacit Knowledge:\n`;
+                                decisionText += d.tacit_knowledge
+                                    .map((t) => `• ${t}`)
+                                    .join('\n');
+                            }
+                            this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, decisionText);
                         });
-                        if (allExplicit.length > 0) {
-                            const explicitContent = allExplicit
-                                .map((e) => `•  ${e}`)
-                                .join('\n\n');
-                            this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
-                        }
-                        // 提取所有 Tacit Knowledge
-                        const allTacit = [];
-                        finalData.decision_summary.decisions.forEach((d) => {
-                            if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge)) {
-                                d.tacit_knowledge.forEach((t) => {
-                                    if (t && !allTacit.indexOf(t)) {
-                                        allTacit.push(t);
-                                    }
-                                });
-                            }
-                        });
-                        if (allTacit.length > 0) {
-                            const tacitContent = allTacit
-                                .map((t) => `•  ${t}`)
-                                .join('\n\n');
-                            this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
-                        }
                     }
-                    // 📈 Progress Status
+                    // 📈 Progress Status - 拆分成多个独立 sections
                     if (finalData.progress_check) {
-                        let progressContent = '';
+                        // Current Week (独立 section)
                         if (finalData.progress_check.current_week) {
-                            progressContent += `📅 Current Week: ${finalData.progress_check.current_week}\n`;
+                            this.addSectionToFrame(frame, '📅 Current Week', finalData.progress_check.current_week);
                         }
+                        // Alignment Status (独立 section)
                         if (finalData.progress_check.alignment_status) {
                             const statusEmoji = finalData.progress_check.alignment_status === 'on_track' ? '✅' : '⚠️';
-                            progressContent += `${statusEmoji} Status: ${finalData.progress_check.alignment_status}\n`;
+                            this.addSectionToFrame(frame, '📊 Alignment Status', `${statusEmoji} ${finalData.progress_check.alignment_status}`);
                         }
+                        // Progress Achieved (独立 section)
                         if (finalData.progress_check.actual_progress && finalData.progress_check.actual_progress.length > 0) {
-                            progressContent += `\nProgress Achieved:\n`;
-                            progressContent += finalData.progress_check.actual_progress
+                            const progressContent = finalData.progress_check.actual_progress
                                 .map((p) => `• ${p}`)
                                 .join('\n');
+                            this.addSectionToFrame(frame, '✅ Progress Achieved', progressContent);
                         }
+                        // Gaps Identified (独立 section)
                         if (finalData.progress_check.gaps_identified && finalData.progress_check.gaps_identified.length > 0) {
-                            progressContent += `\n\nGaps Identified:\n`;
-                            progressContent += finalData.progress_check.gaps_identified
+                            const gapsContent = finalData.progress_check.gaps_identified
                                 .map((g) => `• ${g}`)
                                 .join('\n');
-                        }
-                        if (progressContent) {
-                            this.addSectionToFrame(frame, '📈 Progress Status', progressContent);
+                            this.addSectionToFrame(frame, '⚠️ Gaps Identified', gapsContent);
                         }
                     }
-                    // ✅ Action Items
+                    // ✅ Action Items - 每个 action 独立 section
                     if (((_b = finalData.action_items) === null || _b === void 0 ? void 0 : _b.immediate_next_steps) && finalData.action_items.immediate_next_steps.length > 0) {
-                        const actionsContent = finalData.action_items.immediate_next_steps
-                            .map((a) => {
+                        finalData.action_items.immediate_next_steps.forEach((a, i) => {
                             const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
-                            return `${priorityEmoji} ${a.action}\n   👤 Owner: ${a.owner}\n   📅 Due: ${a.deadline}`;
-                        })
-                            .join('\n\n');
-                        this.addSectionToFrame(frame, '✅ Action Items', actionsContent);
-                        // Upcoming Week Focus
-                        if (finalData.action_items.upcoming_week_focus && finalData.action_items.upcoming_week_focus.length > 0) {
-                            const focusContent = finalData.action_items.upcoming_week_focus
-                                .map((f) => `• ${f}`)
-                                .join('\n');
-                            this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
-                        }
+                            const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
+                            this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
+                        });
                     }
-                    // 📚 Learning Materials
-                    if (((_c = finalData.learning_materials) === null || _c === void 0 ? void 0 : _c.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
-                        const resourcesContent = finalData.learning_materials.recommended_resources
-                            .map((r) => {
+                    // 🎯 Next Week Focus (独立 section)
+                    if (((_c = finalData.action_items) === null || _c === void 0 ? void 0 : _c.upcoming_week_focus) && finalData.action_items.upcoming_week_focus.length > 0) {
+                        const focusContent = finalData.action_items.upcoming_week_focus
+                            .map((f) => `• ${f}`)
+                            .join('\n');
+                        this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
+                    }
+                    // 📚 Learning Materials - 每个资源独立 section
+                    if (((_d = finalData.learning_materials) === null || _d === void 0 ? void 0 : _d.recommended_resources) && finalData.learning_materials.recommended_resources.length > 0) {
+                        finalData.learning_materials.recommended_resources.forEach((r, i) => {
                             const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
-                            return `${priorityEmoji} ${r.title}\n   Type: ${r.resource_type}\n   ${r.relevance}`;
-                        })
-                            .join('\n\n');
-                        this.addSectionToFrame(frame, '📚 Recommended Resources', resourcesContent);
+                            const resourceText = `${priorityEmoji} ${r.title}\n\nType: ${r.resource_type}\nRelevance: ${r.relevance}`;
+                            this.addSectionToFrame(frame, `📚 Resource ${i + 1}`, resourceText);
+                        });
                     }
                 }
                 else {
@@ -457,37 +431,33 @@ class CanvasManager {
                     if (finalData.summary) {
                         this.addSectionToFrame(frame, '📊 Summary', finalData.summary);
                     }
-                    // 🎯 Key Decisions
+                    // 🎯 每个 Decision 独立 section
                     if (finalData.decisions && finalData.decisions.length > 0) {
-                        const decisionsContent = finalData.decisions
-                            .map((d, i) => `${i + 1}. ${d}`)
-                            .join('\n\n');
-                        this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+                        finalData.decisions.forEach((d, i) => {
+                            this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, d);
+                        });
                     }
-                    // 💡 Explicit Knowledge
+                    // 💡 每个 Explicit Knowledge 独立 section
                     if (finalData.explicit && finalData.explicit.length > 0) {
-                        const explicitContent = finalData.explicit
-                            .map((e) => `•  ${e}`)
-                            .join('\n\n');
-                        this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
+                        finalData.explicit.forEach((e, i) => {
+                            this.addSectionToFrame(frame, `💡 Explicit Knowledge ${i + 1}`, e);
+                        });
                     }
-                    // 🧠 Tacit Knowledge
+                    // 🧠 每个 Tacit Knowledge 独立 section
                     if (finalData.tacit && finalData.tacit.length > 0) {
-                        const tacitContent = finalData.tacit
-                            .map((t) => `•  ${t}`)
-                            .join('\n\n');
-                        this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
+                        finalData.tacit.forEach((t, i) => {
+                            this.addSectionToFrame(frame, `🧠 Tacit Knowledge ${i + 1}`, t);
+                        });
                     }
                     // 🤔 Reasoning
                     if (finalData.reasoning) {
                         this.addSectionToFrame(frame, '🤔 Strategic Reasoning', finalData.reasoning);
                     }
-                    // 🚀 Suggestions
+                    // 🚀 每个 Suggestion 独立 section
                     if (finalData.suggestions && finalData.suggestions.length > 0) {
-                        const suggestionsContent = finalData.suggestions
-                            .map((s) => `• ${s}`)
-                            .join('\n\n');
-                        this.addSectionToFrame(frame, '🚀 Suggestions & Next Steps', suggestionsContent);
+                        finalData.suggestions.forEach((s, i) => {
+                            this.addSectionToFrame(frame, `🚀 Suggestion ${i + 1}`, s);
+                        });
                     }
                 }
                 // 将框架添加到画布并居中显示
