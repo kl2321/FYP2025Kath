@@ -342,27 +342,26 @@ class CanvasManager {
                 frame.appendChild(headerFrame);
                 frame.appendChild(dateText);
                 // 检查数据结构类型并处理
-                if (finalData.duration_overview || finalData.decision_summary) {
-                    // ========== 新数据结构处理 ==========
+                // 🔧 修正：检查 meeting_summary 而不是 duration_overview
+                if (finalData.meeting_summary || finalData.decision_summary) {
+                    // ========== 新数据结构处理（final_comprehensive JSON 格式）==========
                     // 📊 Meeting Overview
-                    if (finalData.duration_overview) {
-                        this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
-                    }
-                    // 📍 Key Topics
-                    // if (finalData.keytopicsdiscussed && finalData.keytopicsdiscussed.length > 0) {
-                    //     const topicsContent = finalData.keytopicsdiscussed
-                    //     .map((topic: string) => `• ${topic}`)
-                    //     .join('\n');
-                    //   this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
-                    // }
-                    const topics = finalData.keytopicsdiscussed || // 你现在的字段
-                        finalData.key_topics_discussed || // 将来如果你想换下划线字段也兼容
-                        finalData.keyTopicsDiscussed; // 兼容驼峰
-                    if (Array.isArray(topics) && topics.length > 0) {
-                        const topicsContent = topics
-                            .map((topic) => `• ${topic}`)
-                            .join('\n');
-                        this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
+                    if (finalData.meeting_summary) {
+                        const ms = finalData.meeting_summary;
+                        if (ms.duration_overview) {
+                            this.addSectionToFrame(frame, '📊 Duration Overview', ms.duration_overview);
+                        }
+                        // 📍 Key Topics
+                        if (Array.isArray(ms.key_topics_discussed) && ms.key_topics_discussed.length > 0) {
+                            const topicsContent = ms.key_topics_discussed
+                                .map((topic) => `• ${topic}`)
+                                .join('\n');
+                            this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
+                        }
+                        // 👥 Team Dynamics
+                        if (ms.overall_team_dynamics) {
+                            this.addSectionToFrame(frame, '👥 Team Dynamics', ms.overall_team_dynamics);
+                        }
                     }
                     // 🎯 Key Decisions with Knowledge
                     if (((_a = finalData.decision_summary) === null || _a === void 0 ? void 0 : _a.decisions) && finalData.decision_summary.decisions.length > 0) {
@@ -487,9 +486,8 @@ class CanvasManager {
                     // ✅ Action Items
                     if (finalData.action_items) {
                         const ai = finalData.action_items;
-                        // 1. Immediate next steps
-                        const immediate = ai.immediatenextsteps || // 你的 JSON 里是这个
-                            ai.immediatenext_steps; // 兼容你之前写错的版本
+                        // 1. Immediate next steps (匹配 final_comprehensive 格式：immediate_next_steps)
+                        const immediate = ai.immediate_next_steps || ai.immediatenext_steps || ai.immediatenextsteps;
                         if (Array.isArray(immediate) && immediate.length > 0) {
                             immediate.forEach((a, i) => {
                                 const priorityEmoji = a.priority === 'high' ? '🔴' :
@@ -501,16 +499,15 @@ class CanvasManager {
                                 this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText.trim());
                             });
                         }
-                        // 2. Next week focus
-                        const upcoming = ai.upcomingweekfocus || // 你的 JSON 里是这个
-                            ai.upcomingweek_focus; // 兼容你之前写的
+                        // 2. Next week focus (匹配 final_comprehensive 格式：upcoming_week_focus)
+                        const upcoming = ai.upcoming_week_focus || ai.upcomingweek_focus || ai.upcomingweekfocus;
                         if (Array.isArray(upcoming) && upcoming.length > 0) {
                             const focusContent = upcoming
                                 .map((f) => `• ${f}`)
                                 .join('\n');
                             this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
                         }
-                        // 3. Dependencies（你 JSON 里也有）
+                        // 3. Dependencies
                         if (Array.isArray(ai.dependencies) && ai.dependencies.length > 0) {
                             const depsContent = ai.dependencies
                                 .map((d) => `• ${d}`)
@@ -521,32 +518,37 @@ class CanvasManager {
                     // 📚 Learning Materials
                     if (finalData.learning_materials) {
                         const lm = finalData.learning_materials;
+                        // 1. Recommended resources
                         if (lm.recommended_resources && lm.recommended_resources.length > 0) {
                             lm.recommended_resources.forEach((r, i) => {
                                 const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
                                 const resourceText = `${priorityEmoji} ${r.title}\n\n` +
                                     (r.resource_type ? `Type: ${r.resource_type}\n` : '') +
+                                    (r.url ? `URL: ${r.url}\n` : '') +
                                     (r.relevance ? `Relevance: ${r.relevance}` : '');
                                 this.addSectionToFrame(frame, `📚 Resource ${i + 1}`, resourceText);
                             });
                         }
-                        // 2. Skill gaps
-                        if (Array.isArray(lm.skillgapsidentified) && lm.skillgapsidentified.length > 0) {
-                            const skillsContent = lm.skillgapsidentified
+                        // 2. Skill gaps (匹配 final_comprehensive 格式：skill_gaps_identified)
+                        const skillGaps = lm.skill_gaps_identified || lm.skillgapsidentified || lm.skillGapsIdentified;
+                        if (Array.isArray(skillGaps) && skillGaps.length > 0) {
+                            const skillsContent = skillGaps
                                 .map((s) => `• ${s}`)
                                 .join('\n');
                             this.addSectionToFrame(frame, '📈 Skill Gaps Identified', skillsContent);
                         }
-                        // 3. Module-specific guidance（可能是 string 或 array）
-                        if (lm.modulespecificguidance) {
-                            const mg = Array.isArray(lm.modulespecificguidance)
-                                ? lm.modulespecificguidance.map((s) => `• ${s}`).join('\n')
-                                : lm.modulespecificguidance;
+                        // 3. Module-specific guidance (匹配 final_comprehensive 格式：module_specific_guidance)
+                        const moduleGuidance = lm.module_specific_guidance || lm.modulespecificguidance || lm.moduleSpecificGuidance;
+                        if (moduleGuidance) {
+                            const mg = Array.isArray(moduleGuidance)
+                                ? moduleGuidance.map((s) => `• ${s}`).join('\n')
+                                : moduleGuidance;
                             this.addSectionToFrame(frame, '🧭 Module-Specific Guidance', mg);
                         }
-                        // 4. Suggested next learning
-                        if (Array.isArray(lm.suggestednextlearning) && lm.suggestednextlearning.length > 0) {
-                            const nextContent = lm.suggestednextlearning
+                        // 4. Suggested next learning (匹配 final_comprehensive 格式：suggested_next_learning)
+                        const nextLearning = lm.suggested_next_learning || lm.suggestednextlearning || lm.suggestedNextLearning;
+                        if (Array.isArray(nextLearning) && nextLearning.length > 0) {
+                            const nextContent = nextLearning
                                 .map((s) => `• ${s}`)
                                 .join('\n');
                             this.addSectionToFrame(frame, '📖 Suggested Next Learning', nextContent);
