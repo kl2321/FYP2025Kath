@@ -744,10 +744,10 @@
     </small>
   </div>
 
-   <div class="form-group">
+   <!-- <div class="form-group">
     <label>Analysis Preferences</label>
     <div class="checkbox-group">
-      <!-- Existing checkboxes remain unchanged -->
+      Existing checkboxes remain unchanged
       <div class="checkbox-item">
         <input type="checkbox" id="key-decisions" checked>
         <label for="key-decisions" style="margin: 0;">Extract Key Decisions</label>
@@ -763,19 +763,24 @@
       <div class="checkbox-item">
         <input type="checkbox" id="progress-tracking">
         <label for="progress-tracking" style="margin: 0;">Track the Project Progress</label>
-      </div>
+      </div> -->
 
 <!-- Navigation Buttons -->
-  <div class="navigation">
+  <!-- <div class="navigation">
     <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
     <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button>
   </div>
       
         </div>
       </div>
-    </div>
+    </div> -->
 
-    
+    <!-- Navigation Buttons -->
+  <div class="navigation">
+    <button class="btn btn-secondary" id="prevBtn" onclick="changePage(-1)">Previous</button>
+    <button class="btn btn-primary" id="nextBtn" onclick="changePage(1)">Next</button>
+  </div>
+</div>
 
     <!-- Page 3: Recording -->
 <!-- <div class="page" id="page3">
@@ -2108,10 +2113,16 @@ function updatePageStatistics(stats) {
         formData.teamMembers = document.getElementById('team-members').value.split(',').map(s => s.trim()).filter(Boolean);
         formData.meetingGoals = document.getElementById('meeting-goals').value;
       } else if (currentPage === 2) {
-        formData.preferences.keyDecisions = document.getElementById('key-decisions').checked;
-        formData.preferences.actionItems = document.getElementById('action-items').checked;
-        formData.preferences.speakerAnalysis = document.getElementById('speaker-analysis').checked;
-        formData.preferences.progressTracking = document.getElementById('progress-tracking').checked;
+        // formData.preferences.keyDecisions = document.getElementById('key-decisions').checked;
+        // formData.preferences.actionItems = document.getElementById('action-items').checked;
+        // formData.preferences.speakerAnalysis = document.getElementById('speaker-analysis').checked;
+        // formData.preferences.progressTracking = document.getElementById('progress-tracking').checked;
+        // Set default preferences since UI checkboxes are removed
+formData.preferences.keyDecisions = true;  // Default: Extract Key Decisions
+formData.preferences.actionItems = true;   // Default: Identify Action Items
+formData.preferences.speakerAnalysis = false; // Default: Don't analyze speaker contributions
+formData.preferences.progressTracking = false; // Default: Don't track project progress
+        
 
         const previousSummary = document.getElementById('previous-summary');
   if (previousSummary) {
@@ -2262,12 +2273,12 @@ function displayRealtimeDecisions(decisions) {
       }
 
       // Page 2 fields
-      if (document.getElementById('key-decisions')) {
-        document.getElementById('key-decisions').checked = formData.preferences.keyDecisions;
-        document.getElementById('action-items').checked = formData.preferences.actionItems;
-        document.getElementById('speaker-analysis').checked = formData.preferences.speakerAnalysis;
-        document.getElementById('progress-tracking').checked = formData.preferences.progressTracking;
-      }
+      // if (document.getElementById('key-decisions')) {
+      //   document.getElementById('key-decisions').checked = formData.preferences.keyDecisions;
+      //   document.getElementById('action-items').checked = formData.preferences.actionItems;
+      //   document.getElementById('speaker-analysis').checked = formData.preferences.speakerAnalysis;
+      //   document.getElementById('progress-tracking').checked = formData.preferences.progressTracking;
+      // }
 
       // Update file list
       if (document.getElementById('fileList')) {

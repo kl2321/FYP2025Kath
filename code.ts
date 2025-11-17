@@ -896,132 +896,181 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       
       // 📊 Meeting Overview
       if (finalData.duration_overview) {
-        this.addSectionToFrame(frame, '📊 Meeting Overview', finalData.duration_overview);
+        this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
       }
 
       // 📍 Key Topics
       if (finalData.key_topics_discussed && finalData.key_topics_discussed.length > 0) {
-        const topicsContent = finalData.key_topics_discussed
-          .map((topic: string) => `• ${topic}`)
-          .join('\n');
-        this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
-      }
+        finalData.decision_summary.decisions.forEach((d: any, i: number) => {
+          // Decision 主内容
+          let decisionText = `${d.decision || ''}`;
 
-      // 🎯 Key Decisions with Knowledge
-      if (finalData.decision_summary?.decisions && finalData.decision_summary.decisions.length > 0) {
-        const decisionsContent = finalData.decision_summary.decisions
-          .map((d: any, i: number) => {
-            let text = `${i + 1}. ${d.decision}`;
-            if (d.rationale) {
-              text += `\n   📝 Rationale: ${d.rationale}`;
-            }
-            if (d.impact) {
-              text += `\n   💫 Impact: ${d.impact}`;
-            }
-            return text;
-          })
-          .join('\n\n');
-        this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+          if (d.rationale) {
+            decisionText += `\n\nRationale:\n${d.rationale}`;
+      //   const topicsContent = finalData.key_topics_discussed
+      //     .map((topic: string) => `• ${topic}`)
+      //     .join('\n');
+      //   this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
+      // }
 
-        // 提取所有 Explicit Knowledge
-        const allExplicit: string[] = [];
-        finalData.decision_summary.decisions.forEach((d: any) => {
-          if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge)) {
-            d.explicit_knowledge.forEach((e: string) => {
-              if (e && !allExplicit.indexOf(e)) {
-                allExplicit.push(e);
-              }
-            });
+      // // 🎯 Key Decisions with Knowledge
+      // if (finalData.decision_summary?.decisions && finalData.decision_summary.decisions.length > 0) {
+      //   const decisionsContent = finalData.decision_summary.decisions
+      //     .map((d: any, i: number) => {
+      //       let text = `${i + 1}. ${d.decision}`;
+      //       if (d.rationale) {
+      //         text += `\n   📝 Rationale: ${d.rationale}`;
+      //       }
+      //       if (d.impact) {
+      //         text += `\n   💫 Impact: ${d.impact}`;
+      //       }
+      //       return text;
+      //     })
+      //     .join('\n\n');
+      //   this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+
+      //   // 提取所有 Explicit Knowledge
+      //   const allExplicit: string[] = [];
+      //   finalData.decision_summary.decisions.forEach((d: any) => {
+      //     if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge)) {
+      //       d.explicit_knowledge.forEach((e: string) => {
+      //         if (e && !allExplicit.indexOf(e)) {
+      //           allExplicit.push(e);
+      //         }
+      //       });
           }
+ if (d.impact) {
+            decisionText += `\n\nImpact:\n${d.impact}`;
+          }
+
+          // 添加 Explicit Knowledge (如果有)
+          if (d.explicit_knowledge && Array.isArray(d.explicit_knowledge) && d.explicit_knowledge.length > 0) {
+            decisionText += `\n\n💡 Explicit Knowledge:\n`;
+            decisionText += d.explicit_knowledge
+              .map((e: string) => `• ${e}`)
+              .join('\n');
+        // });
+        
+        // if (allExplicit.length > 0) {
+        //   const explicitContent = allExplicit
+        //     .map((e: string) => `•  ${e}`)
+        //     .join('\n\n');
+        //   this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
+        // }
+
+        // // 提取所有 Tacit Knowledge
+        // const allTacit: string[] = [];
+        // finalData.decision_summary.decisions.forEach((d: any) => {
+        //   if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge)) {
+        //     d.tacit_knowledge.forEach((t: string) => {
+        //       if (t && !allTacit.indexOf(t)) {
+        //         allTacit.push(t);
+        //       }
+        //     });
+          }
+            // 添加 Tacit Knowledge (如果有)
+          if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge) && d.tacit_knowledge.length > 0) {
+            decisionText += `\n\n🧠 Tacit Knowledge:\n`;
+            decisionText += d.tacit_knowledge
+              .map((t: string) => `• ${t}`)
+              .join('\n');
+          }
+
+          this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, decisionText);
         });
         
-        if (allExplicit.length > 0) {
-          const explicitContent = allExplicit
-            .map((e: string) => `•  ${e}`)
-            .join('\n\n');
-          this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
-        }
-
-        // 提取所有 Tacit Knowledge
-        const allTacit: string[] = [];
-        finalData.decision_summary.decisions.forEach((d: any) => {
-          if (d.tacit_knowledge && Array.isArray(d.tacit_knowledge)) {
-            d.tacit_knowledge.forEach((t: string) => {
-              if (t && !allTacit.indexOf(t)) {
-                allTacit.push(t);
-              }
-            });
-          }
-        });
-        
-        if (allTacit.length > 0) {
-          const tacitContent = allTacit
-            .map((t: string) => `•  ${t}`)
-            .join('\n\n');
-          this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
-        }
+        // if (allTacit.length > 0) {
+        //   const tacitContent = allTacit
+        //     .map((t: string) => `•  ${t}`)
+        //     .join('\n\n');
+        //   this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
+        // }
       }
 
       // 📈 Progress Status
       if (finalData.progress_check) {
-        let progressContent = '';
+        // let progressContent = '';
         
         if (finalData.progress_check.current_week) {
-          progressContent += `📅 Current Week: ${finalData.progress_check.current_week}\n`;
+          this.addSectionToFrame(frame, '📅 Current Week', finalData.progress_check.current_week);
         }
         
         if (finalData.progress_check.alignment_status) {
           const statusEmoji = finalData.progress_check.alignment_status === 'on_track' ? '✅' : '⚠️';
-          progressContent += `${statusEmoji} Status: ${finalData.progress_check.alignment_status}\n`;
+          this.addSectionToFrame(frame, '📊 Alignment Status', `${statusEmoji} ${finalData.progress_check.alignment_status}`);
         }
         
         if (finalData.progress_check.actual_progress && finalData.progress_check.actual_progress.length > 0) {
-          progressContent += `\nProgress Achieved:\n`;
-          progressContent += finalData.progress_check.actual_progress
+           const progressContent = finalData.progress_check.actual_progress
+
             .map((p: string) => `• ${p}`)
             .join('\n');
+            this.addSectionToFrame(frame, '✅ Progress Achieved', progressContent);
         }
         
         if (finalData.progress_check.gaps_identified && finalData.progress_check.gaps_identified.length > 0) {
-          progressContent += `\n\nGaps Identified:\n`;
-          progressContent += finalData.progress_check.gaps_identified
+          const gapsContent = finalData.progress_check.gaps_identified
+
+
+          // progressContent += `\n\nGaps Identified:\n`;
+          // progressContent += finalData.progress_check.gaps_identified
             .map((g: string) => `• ${g}`)
             .join('\n');
+             this.addSectionToFrame(frame, '⚠️ Gaps Identified', gapsContent);
         }
         
-        if (progressContent) {
-          this.addSectionToFrame(frame, '📈 Progress Status', progressContent);
+        // if (progressContent) {
+        //   this.addSectionToFrame(frame, '📈 Progress Status', progressContent);
         }
       }
 
       // ✅ Action Items
       if (finalData.action_items?.immediate_next_steps && finalData.action_items.immediate_next_steps.length > 0) {
-        const actionsContent = finalData.action_items.immediate_next_steps
-          .map((a: any) => {
-            const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
-            return `${priorityEmoji} ${a.action}\n   👤 Owner: ${a.owner}\n   📅 Due: ${a.deadline}`;
-          })
-          .join('\n\n');
-        this.addSectionToFrame(frame, '✅ Action Items', actionsContent);
+         finalData.action_items.immediate_next_steps.forEach((a: any, i: number) => {
+          const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
+          const actionText = `${a.action}\n\nOwner: ${a.owner}\nDeadline: ${a.deadline}\nPriority: ${priorityEmoji} ${a.priority}`;
+          this.addSectionToFrame(frame, `✅ Action Item ${i + 1}`, actionText);
+        });
+        // const actionsContent = finalData.action_items.immediate_next_steps
+        //   .map((a: any) => {
+        //     const priorityEmoji = a.priority === 'high' ? '🔴' : a.priority === 'medium' ? '🟡' : '🟢';
+        //     return `${priorityEmoji} ${a.action}\n   👤 Owner: ${a.owner}\n   📅 Due: ${a.deadline}`;
+        //   })
+        //   .join('\n\n');
+        // this.addSectionToFrame(frame, '✅ Action Items', actionsContent);
         
-        // Upcoming Week Focus
-        if (finalData.action_items.upcoming_week_focus && finalData.action_items.upcoming_week_focus.length > 0) {
-          const focusContent = finalData.action_items.upcoming_week_focus
-            .map((f: string) => `• ${f}`)
-            .join('\n');
-          this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
-        }
+        // // Upcoming Week Focus
+        // if (finalData.action_items.upcoming_week_focus && finalData.action_items.upcoming_week_focus.length > 0) {
+        //   const focusContent = finalData.action_items.upcoming_week_focus
+        //     .map((f: string) => `• ${f}`)
+        //     .join('\n');
+        //   this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
+        // }
       }
+       // 🎯 Next Week Focus (独立 section)
+      if (finalData.action_items?.upcoming_week_focus && finalData.action_items.upcoming_week_focus.length > 0) {
+        const focusContent = finalData.action_items.upcoming_week_focus
+          .map((f: string) => `• ${f}`)
+          .join('\n');
+        this.addSectionToFrame(frame, '🎯 Next Week Focus', focusContent);
+      }
+
+      // 📚 Learning Materials - 每个资源独立 section
 
       // 📚 Learning Materials
       if (finalData.learning_materials?.recommended_resources && finalData.learning_materials.recommended_resources.length > 0) {
-        const resourcesContent = finalData.learning_materials.recommended_resources
-          .map((r: any) => {
-            const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
-            return `${priorityEmoji} ${r.title}\n   Type: ${r.resource_type}\n   ${r.relevance}`;
-          })
-          .join('\n\n');
-        this.addSectionToFrame(frame, '📚 Recommended Resources', resourcesContent);
+         finalData.learning_materials.recommended_resources.forEach((r: any, i: number) => {
+          const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
+          const resourceText = `${priorityEmoji} ${r.title}\n\nType: ${r.resource_type}\nRelevance: ${r.relevance}`;
+          this.addSectionToFrame(frame, `📚 Resource ${i + 1}`, resourceText);
+        });
+        // const resourcesContent = finalData.learning_materials.recommended_resources
+        //   .map((r: any) => {
+        //     const priorityEmoji = r.priority === 'high' ? '⭐' : '📄';
+        //     return `${priorityEmoji} ${r.title}\n   Type: ${r.resource_type}\n   ${r.relevance}`;
+        //   })
+        //   .join('\n\n');
+        // this.addSectionToFrame(frame, '📚 Recommended Resources', resourcesContent);
       }
 
     } else {
@@ -1034,26 +1083,35 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 
       // 🎯 Key Decisions
       if (finalData.decisions && finalData.decisions.length > 0) {
-        const decisionsContent = finalData.decisions
-          .map((d: string, i: number) => `${i + 1}. ${d}`)
-          .join('\n\n');
-        this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
+        finalData.decisions.forEach((d: string, i: number) => {
+          this.addSectionToFrame(frame, `🎯 Decision ${i + 1}`, d);
+        });
+        // const decisionsContent = finalData.decisions
+        //   .map((d: string, i: number) => `${i + 1}. ${d}`)
+        //   .join('\n\n');
+        // this.addSectionToFrame(frame, '🎯 Key Decisions', decisionsContent);
       }
 
       // 💡 Explicit Knowledge
       if (finalData.explicit && finalData.explicit.length > 0) {
-        const explicitContent = finalData.explicit
-          .map((e: string) => `•  ${e}`)
-          .join('\n\n');
-        this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
+          finalData.explicit.forEach((e: string, i: number) => {
+          this.addSectionToFrame(frame, `💡 Explicit Knowledge ${i + 1}`, e);
+        });
+        // const explicitContent = finalData.explicit
+        //   .map((e: string) => `•  ${e}`)
+        //   .join('\n\n');
+        // this.addSectionToFrame(frame, '💡 Explicit Knowledge', explicitContent);
       }
 
       // 🧠 Tacit Knowledge
       if (finalData.tacit && finalData.tacit.length > 0) {
-        const tacitContent = finalData.tacit
-          .map((t: string) => `•  ${t}`)
-          .join('\n\n');
-        this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
+         finalData.tacit.forEach((t: string, i: number) => {
+          this.addSectionToFrame(frame, `🧠 Tacit Knowledge ${i + 1}`, t);
+        });
+        // const tacitContent = finalData.tacit
+        //   .map((t: string) => `•  ${t}`)
+        //   .join('\n\n');
+        // this.addSectionToFrame(frame, '🧠 Tacit Knowledge', tacitContent);
       }
 
       // 🤔 Reasoning
@@ -1063,10 +1121,13 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 
       // 🚀 Suggestions
       if (finalData.suggestions && finalData.suggestions.length > 0) {
-        const suggestionsContent = finalData.suggestions
-          .map((s: string) => `• ${s}`)
-          .join('\n\n');
-        this.addSectionToFrame(frame, '🚀 Suggestions & Next Steps', suggestionsContent);
+        finalData.suggestions.forEach((s: string, i: number) => {
+          this.addSectionToFrame(frame, `🚀 Suggestion ${i + 1}`, s);
+        });
+        // const suggestionsContent = finalData.suggestions
+        //   .map((s: string) => `• ${s}`)
+        //   .join('\n\n');
+        // this.addSectionToFrame(frame, '🚀 Suggestions & Next Steps', suggestionsContent);
       }
     }
 
@@ -1080,6 +1141,79 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
     console.error('❌ Error creating final summary with data:', error);
     throw error;
   }
+}
+private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
+  // 创建 section 卡片
+  const sectionCard = figma.createFrame();
+  sectionCard.layoutMode = 'VERTICAL';
+  sectionCard.counterAxisSizingMode = 'AUTO';
+  sectionCard.primaryAxisSizingMode = 'AUTO';
+  sectionCard.layoutAlign = 'STRETCH';
+  sectionCard.paddingLeft = 24;
+  sectionCard.paddingRight = 24;
+  sectionCard.paddingTop = 20;
+  sectionCard.paddingBottom = 20;
+  sectionCard.cornerRadius = 12;
+  sectionCard.itemSpacing = 12;
+
+  // 根据标题类型设置背景色
+  if (title.includes('Summary') || title.includes('Overview')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];  // 淡蓝
+  } else if (title.includes('Decision')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }];  // 淡红
+  } else if (title.includes('Explicit')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }];  // 蓝色调
+  } else if (title.includes('Tacit')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }];  // 橘色调
+  } else if (title.includes('Action')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 1, b: 0.95 } }];  // 淡绿
+  } else if (title.includes('Resource') || title.includes('Learning')) {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.98, b: 0.93 } }];  // 淡黄
+  } else {
+    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];  // 白色
+  }
+
+  // 添加边框
+  sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
+  sectionCard.strokeWeight = 1;
+
+  // Section 标题
+  const titleText = figma.createText();
+  titleText.fontName = { family: 'Inter', style: 'Bold' };
+  titleText.fontSize = 18;
+  titleText.characters = title;
+
+  // 标题颜色
+  if (title.includes('Explicit')) {
+    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
+  } else if (title.includes('Tacit')) {
+    titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
+  } else {
+    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
+  }
+
+  sectionCard.appendChild(titleText);
+
+  // 添加分隔线
+  const divider = figma.createLine();
+  divider.resize(100, 0);
+  divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
+  divider.strokeWeight = 1;
+  divider.layoutAlign = 'STRETCH';
+  sectionCard.appendChild(divider);
+
+  // Section 内容
+  const contentText = figma.createText();
+  contentText.fontName = { family: 'Inter', style: 'Regular' };
+  contentText.fontSize = 14;
+  contentText.characters = content || 'N/A';
+  contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
+  contentText.layoutAlign = 'STRETCH';
+  contentText.textAutoResize = 'HEIGHT';
+  contentText.lineHeight = { value: 150, unit: 'PERCENT' };
+
+  sectionCard.appendChild(contentText);
+  parent.appendChild(sectionCard);
 }
 
 // async createFinalSummaryWithData(finalData: any): Promise<void> {
@@ -1212,75 +1346,75 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 //   }
 // }
 
-private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
-  // 创建 section 卡片
-  const sectionCard = figma.createFrame();
-  sectionCard.layoutMode = 'VERTICAL';
-  sectionCard.counterAxisSizingMode = 'AUTO';
-  sectionCard.primaryAxisSizingMode = 'AUTO';
-  sectionCard.layoutAlign = 'STRETCH';
-  sectionCard.paddingLeft = 24;
-  sectionCard.paddingRight = 24;
-  sectionCard.paddingTop = 20;
-  sectionCard.paddingBottom = 20;
-  sectionCard.cornerRadius = 12;
-  sectionCard.itemSpacing = 12;
+// private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
+//   // 创建 section 卡片
+//   const sectionCard = figma.createFrame();
+//   sectionCard.layoutMode = 'VERTICAL';
+//   sectionCard.counterAxisSizingMode = 'AUTO';
+//   sectionCard.primaryAxisSizingMode = 'AUTO';
+//   sectionCard.layoutAlign = 'STRETCH';
+//   sectionCard.paddingLeft = 24;
+//   sectionCard.paddingRight = 24;
+//   sectionCard.paddingTop = 20;
+//   sectionCard.paddingBottom = 20;
+//   sectionCard.cornerRadius = 12;
+//   sectionCard.itemSpacing = 12;
   
-  // 根据标题类型设置背景色
-  if (title.includes('Summary')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];  // 淡蓝
-  } else if (title.includes('Decisions')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }];  // 淡红
-  } else if (title.includes('Explicit')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }];  // 蓝色调
-  } else if (title.includes('Tacit')) {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }];  // 橘色调
-  } else {
-    sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];  // 白色
-  }
+//   // 根据标题类型设置背景色
+//   if (title.includes('Summary')) {
+//     sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];  // 淡蓝
+//   } else if (title.includes('Decisions')) {
+//     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.95, b: 0.95 } }];  // 淡红
+//   } else if (title.includes('Explicit')) {
+//     sectionCard.fills = [{ type: 'SOLID', color: { r: 0.93, g: 0.95, b: 1 } }];  // 蓝色调
+//   } else if (title.includes('Tacit')) {
+//     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.93 } }];  // 橘色调
+//   } else {
+//     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];  // 白色
+//   }
   
-  // 添加边框
-  sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
-  sectionCard.strokeWeight = 1;
+//   // 添加边框
+//   sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
+//   sectionCard.strokeWeight = 1;
   
-  // Section 标题
-  const titleText = figma.createText();
-  titleText.fontName = { family: 'Inter', style: 'Bold' };
-  titleText.fontSize = 18;  // 增大标题
-  titleText.characters = title;
+//   // Section 标题
+//   const titleText = figma.createText();
+//   titleText.fontName = { family: 'Inter', style: 'Bold' };
+//   titleText.fontSize = 18;  // 增大标题
+//   titleText.characters = title;
   
-  // 标题颜色（使用之前的颜色逻辑）
-  if (title.includes('Explicit')) {
-    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
-  } else if (title.includes('Tacit')) {
-    titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
-  } else {
-    titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
-  }
+//   // 标题颜色（使用之前的颜色逻辑）
+//   if (title.includes('Explicit')) {
+//     titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
+//   } else if (title.includes('Tacit')) {
+//     titleText.fills = [{ type: 'SOLID', color: { r: 1.0, g: 0.6, b: 0.2 } }];
+//   } else {
+//     titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
+//   }
   
-  sectionCard.appendChild(titleText);
+//   sectionCard.appendChild(titleText);
   
-  // 添加分隔线
-  const divider = figma.createLine();
-  divider.resize(100, 0);
-  divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
-  divider.strokeWeight = 1;
-  divider.layoutAlign = 'STRETCH';
-  sectionCard.appendChild(divider);
+//   // 添加分隔线
+//   const divider = figma.createLine();
+//   divider.resize(100, 0);
+//   divider.strokes = [{ type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.88 } }];
+//   divider.strokeWeight = 1;
+//   divider.layoutAlign = 'STRETCH';
+//   sectionCard.appendChild(divider);
   
-  // Section 内容
-  const contentText = figma.createText();
-  contentText.fontName = { family: 'Inter', style: 'Regular' };
-  contentText.fontSize = 14;  // 稍大的字体
-  contentText.characters = content || 'N/A';
-  contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
-  contentText.layoutAlign = 'STRETCH';
-  contentText.textAutoResize = 'HEIGHT';
-  contentText.lineHeight = { value: 150, unit: 'PERCENT' };  // 增加行高
+//   // Section 内容
+//   const contentText = figma.createText();
+//   contentText.fontName = { family: 'Inter', style: 'Regular' };
+//   contentText.fontSize = 14;  // 稍大的字体
+//   contentText.characters = content || 'N/A';
+//   contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
+//   contentText.layoutAlign = 'STRETCH';
+//   contentText.textAutoResize = 'HEIGHT';
+//   contentText.lineHeight = { value: 150, unit: 'PERCENT' };  // 增加行高
   
-  sectionCard.appendChild(contentText);
-  parent.appendChild(sectionCard);
-}
+//   sectionCard.appendChild(contentText);
+//   parent.appendChild(sectionCard);
+// }
 // 辅助方法：添加 section 到 frame
 // private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
 //   // Section 标题
