@@ -626,6 +626,32 @@ class CanvasManager {
     //     throw error;
     //   }
     // }
+    // 辅助方法：清理 markdown 符号
+    cleanMarkdownSymbols(text) {
+        if (!text)
+            return '';
+        return text
+            // 移除粗体符号 **text** 或 __text__
+            .replace(/\*\*(.+?)\*\*/g, '$1')
+            .replace(/__(.+?)__/g, '$1')
+            // 移除斜体符号 *text* 或 _text_
+            .replace(/\*(.+?)\*/g, '$1')
+            .replace(/_(.+?)_/g, '$1')
+            // 移除标题符号 ###
+            .replace(/^#{1,6}\s+/gm, '')
+            // 移除删除线 ~~text~~
+            .replace(/~~(.+?)~~/g, '$1')
+            // 移除代码块符号 ```
+            .replace(/```[\s\S]*?```/g, '')
+            .replace(/`(.+?)`/g, '$1')
+            // 移除链接 [text](url)
+            .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+            // 移除图片 ![alt](url)
+            .replace(/!\[.*?\]\(.+?\)/g, '')
+            // 移除多余空白
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
     addSectionToFrame(parent, title, content) {
         // 创建 section 卡片
         const sectionCard = figma.createFrame();
@@ -681,11 +707,11 @@ class CanvasManager {
         divider.strokeWeight = 1;
         divider.layoutAlign = 'STRETCH';
         sectionCard.appendChild(divider);
-        // Section 内容
+        // Section 内容 - 清理 markdown 符号
         const contentText = figma.createText();
         contentText.fontName = { family: 'Inter', style: 'Regular' };
         contentText.fontSize = 14; // 稍大的字体
-        contentText.characters = content || 'N/A';
+        contentText.characters = this.cleanMarkdownSymbols(content) || 'N/A';
         contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
         contentText.layoutAlign = 'STRETCH';
         contentText.textAutoResize = 'HEIGHT';

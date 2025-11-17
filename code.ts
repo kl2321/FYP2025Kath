@@ -1230,6 +1230,33 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
 //   }
 // }
 
+// 辅助方法：清理 markdown 符号
+private cleanMarkdownSymbols(text: string): string {
+  if (!text) return '';
+
+  return text
+    // 移除粗体符号 **text** 或 __text__
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    // 移除斜体符号 *text* 或 _text_
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/_(.+?)_/g, '$1')
+    // 移除标题符号 ###
+    .replace(/^#{1,6}\s+/gm, '')
+    // 移除删除线 ~~text~~
+    .replace(/~~(.+?)~~/g, '$1')
+    // 移除代码块符号 ```
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`(.+?)`/g, '$1')
+    // 移除链接 [text](url)
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+    // 移除图片 ![alt](url)
+    .replace(/!\[.*?\]\(.+?\)/g, '')
+    // 移除多余空白
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 private addSectionToFrame(parent: FrameNode, title: string, content: string): void {
   // 创建 section 卡片
   const sectionCard = figma.createFrame();
@@ -1243,7 +1270,7 @@ private addSectionToFrame(parent: FrameNode, title: string, content: string): vo
   sectionCard.paddingBottom = 20;
   sectionCard.cornerRadius = 12;
   sectionCard.itemSpacing = 12;
-  
+
   // 根据标题类型设置背景色
   if (title.includes('Summary')) {
     sectionCard.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];  // 淡蓝
@@ -1256,17 +1283,17 @@ private addSectionToFrame(parent: FrameNode, title: string, content: string): vo
   } else {
     sectionCard.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];  // 白色
   }
-  
+
   // 添加边框
   sectionCard.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.92 } }];
   sectionCard.strokeWeight = 1;
-  
+
   // Section 标题
   const titleText = figma.createText();
   titleText.fontName = { family: 'Inter', style: 'Bold' };
   titleText.fontSize = 18;  // 增大标题
   titleText.characters = title;
-  
+
   // 标题颜色（使用之前的颜色逻辑）
   if (title.includes('Explicit')) {
     titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.4, b: 0.9 } }];
@@ -1275,9 +1302,9 @@ private addSectionToFrame(parent: FrameNode, title: string, content: string): vo
   } else {
     titleText.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.3 } }];
   }
-  
+
   sectionCard.appendChild(titleText);
-  
+
   // 添加分隔线
   const divider = figma.createLine();
   divider.resize(100, 0);
@@ -1285,17 +1312,17 @@ private addSectionToFrame(parent: FrameNode, title: string, content: string): vo
   divider.strokeWeight = 1;
   divider.layoutAlign = 'STRETCH';
   sectionCard.appendChild(divider);
-  
-  // Section 内容
+
+  // Section 内容 - 清理 markdown 符号
   const contentText = figma.createText();
   contentText.fontName = { family: 'Inter', style: 'Regular' };
   contentText.fontSize = 14;  // 稍大的字体
-  contentText.characters = content || 'N/A';
+  contentText.characters = this.cleanMarkdownSymbols(content) || 'N/A';
   contentText.fills = [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.35 } }];
   contentText.layoutAlign = 'STRETCH';
   contentText.textAutoResize = 'HEIGHT';
   contentText.lineHeight = { value: 150, unit: 'PERCENT' };  // 增加行高
-  
+
   sectionCard.appendChild(contentText);
   parent.appendChild(sectionCard);
 }
