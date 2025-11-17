@@ -649,13 +649,46 @@ async function checkAudioActivity() {
           return `${d}\n  → Explicit: ${explicit}\n  → Tacit: ${tacit}`;
         }).join('\n\n');
       }
+
+      // 🔧 处理 finalSummary 显示（可能是对象或字符串）
+      let summaryDisplay = '';
+      if (typeof result.finalSummary === 'object' && result.finalSummary !== null) {
+        // 新的 JSON 格式，格式化显示
+        const fs = result.finalSummary;
+
+        if (fs.meeting_summary) {
+          summaryDisplay += `\n📊 Meeting Overview:\n${fs.meeting_summary.duration_overview || ''}\n`;
+          if (fs.meeting_summary.key_topics_discussed) {
+            summaryDisplay += `\n📍 Key Topics:\n${fs.meeting_summary.key_topics_discussed.map(t => `  • ${t}`).join('\n')}\n`;
+          }
+        }
+
+        if (fs.decision_summary?.decisions) {
+          summaryDisplay += `\n🎯 Decisions (${fs.decision_summary.total_decisions || fs.decision_summary.decisions.length}):\n`;
+          fs.decision_summary.decisions.forEach((d, i) => {
+            summaryDisplay += `\n${i + 1}. ${d.decision}\n`;
+            if (d.rationale) summaryDisplay += `   Rationale: ${d.rationale}\n`;
+          });
+        }
+
+        if (fs.action_items?.immediate_next_steps) {
+          summaryDisplay += `\n✅ Action Items:\n`;
+          fs.action_items.immediate_next_steps.forEach((a, i) => {
+            summaryDisplay += `  ${i + 1}. ${a.action} (${a.owner || 'TBD'} - ${a.deadline || 'TBD'})\n`;
+          });
+        }
+      } else {
+        // 旧的字符串格式
+        summaryDisplay = result.finalSummary || 'No summary available';
+      }
+
           textArea.value = `✨ FINAL MEETING SUMMARY ✨\n` +
                       `Duration: ${duration} minutes\n` +
                       `Speakers: ${result.metadata?.speakers || 'Unknown'}\n` +
                       `Module: ${formDataObj.module || 'Not specified'}\n` +
                       `Meeting Type: ${formDataObj.meetingType || 'Not specified'}\n` +
                       `${formDataObj.projectWeek ? `Project Week: ${formDataObj.projectWeek}\n` : ''}` +
-                      `\n📝 Complete Summary:\n${result.finalSummary}\n\n` +
+                      `\n📝 Complete Summary:${summaryDisplay}\n\n` +
                       `🎯 Decisions & Knowledge:\n${decisionsText}\n\n` +
                       `🎬 Actions:\n${result.actions?.join('\n') || 'None'}\n\n` +
                       `💡 Strategic Reasoning:\n${result.reasoning || 'None'}\n\n` +

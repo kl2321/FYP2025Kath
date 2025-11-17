@@ -905,27 +905,43 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
     // 🔧 修正：检查 meeting_summary 而不是 duration_overview
     if (finalData.meeting_summary || finalData.decision_summary) {
       // ========== 新数据结构处理（final_comprehensive JSON 格式）==========
+      console.log('✅ Using NEW final summary structure');
 
       // 📊 Meeting Overview
       if (finalData.meeting_summary) {
         const ms = finalData.meeting_summary;
+        console.log('📊 Processing meeting_summary:', {
+          hasDuration: !!ms.duration_overview,
+          hasTopics: Array.isArray(ms.key_topics_discussed),
+          topicsCount: ms.key_topics_discussed?.length,
+          hasDynamics: !!ms.overall_team_dynamics
+        });
 
         if (ms.duration_overview) {
+          console.log('✅ Adding Duration Overview section');
           this.addSectionToFrame(frame, '📊 Duration Overview', ms.duration_overview);
+        } else {
+          console.warn('⚠️ No duration_overview found');
         }
 
         // 📍 Key Topics
         if (Array.isArray(ms.key_topics_discussed) && ms.key_topics_discussed.length > 0) {
+          console.log('✅ Adding Key Topics section with', ms.key_topics_discussed.length, 'topics');
           const topicsContent = ms.key_topics_discussed
             .map((topic: string) => `• ${topic}`)
             .join('\n');
           this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
+        } else {
+          console.warn('⚠️ No key_topics_discussed found or empty');
         }
 
         // 👥 Team Dynamics
         if (ms.overall_team_dynamics) {
+          console.log('✅ Adding Team Dynamics section');
           this.addSectionToFrame(frame, '👥 Team Dynamics', ms.overall_team_dynamics);
         }
+      } else {
+        console.warn('⚠️ No meeting_summary found in finalData');
       }
 
       // 🎯 Key Decisions with Knowledge
