@@ -298,6 +298,14 @@ class CanvasManager {
             try {
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
                 yield figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+                // 🔧 unwrap 空 key：如果顶层只有一个空键，展开它
+                if (finalData[""] && typeof finalData[""] === "object") {
+                    console.log('⚠️ Detected empty key in finalData, unwrapping...');
+                    const emptyKeyData = finalData[""];
+                    const otherKeys = Object.fromEntries(Object.entries(finalData).filter(([k]) => k !== ""));
+                    finalData = Object.assign(Object.assign({}, emptyKeyData), otherKeys);
+                    console.log('✅ Unwrapped finalData:', Object.keys(finalData));
+                }
                 const date = new Date().toLocaleDateString();
                 const frame = figma.createFrame();
                 frame.name = `Meeting Summary - ${date}`;
