@@ -958,7 +958,15 @@ async createFinalSummaryWithData(finalData: any): Promise<void> {
       
       // 📊 Meeting Overview
       if (finalData.duration_overview) {
-        this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
+         const ms = finalData.meeting_summary;
+           console.log('📊 Processing meeting_summary:', {
+          hasDuration: !!ms.duration_overview,
+          hasTopics: Array.isArray(ms.key_topics_discussed),
+          topicsCount: ms.key_topics_discussed?.length,
+          hasDynamics: !!ms.overall_team_dynamics
+        });
+        
+       // this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
       }
 
       // 📍 Key Topics

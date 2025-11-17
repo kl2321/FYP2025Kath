@@ -294,7 +294,7 @@ class CanvasManager {
     }
     createFinalSummaryWithData(finalData) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
+            var _a, _b;
             try {
                 // 🔍 调试：看看原始传进来的数据长什么样
                 console.log('🔍 [createFinalSummaryWithData] raw input =', finalData);
@@ -392,7 +392,14 @@ class CanvasManager {
                     // ========== 新数据结构处理 ==========
                     // 📊 Meeting Overview
                     if (finalData.duration_overview) {
-                        this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
+                        const ms = finalData.meeting_summary;
+                        console.log('📊 Processing meeting_summary:', {
+                            hasDuration: !!ms.duration_overview,
+                            hasTopics: Array.isArray(ms.key_topics_discussed),
+                            topicsCount: (_a = ms.key_topics_discussed) === null || _a === void 0 ? void 0 : _a.length,
+                            hasDynamics: !!ms.overall_team_dynamics
+                        });
+                        // this.addSectionToFrame(frame, '📊 Duration Overview', finalData.duration_overview);
                     }
                     // 📍 Key Topics
                     // if (finalData.keytopicsdiscussed && finalData.keytopicsdiscussed.length > 0) {
@@ -411,7 +418,7 @@ class CanvasManager {
                         this.addSectionToFrame(frame, '📍 Key Topics Discussed', topicsContent);
                     }
                     // 🎯 Key Decisions with Knowledge
-                    if (((_a = finalData.decision_summary) === null || _a === void 0 ? void 0 : _a.decisions) && finalData.decision_summary.decisions.length > 0) {
+                    if (((_b = finalData.decision_summary) === null || _b === void 0 ? void 0 : _b.decisions) && finalData.decision_summary.decisions.length > 0) {
                         finalData.decision_summary.decisions.forEach((d, i) => {
                             // Decision 主内容
                             let decisionText = `${d.decision || ''}`;
