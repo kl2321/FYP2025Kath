@@ -3507,12 +3507,22 @@ function startPolling(sessionId) {
 
         // 🔧 解析 data.summary（如果它是 JSON 字符串）
         let parsedSummary = null;
-        if (typeof data.summary === 'string' && data.summary.trim().startsWith('{')) {
+        if (typeof data.summary === 'string' && data.summary.trim()) {
           try {
-            parsedSummary = JSON.parse(data.summary);
+            let jsonStr = data.summary.trim();
+
+            // 🔧 如果字符串以 ": {" 开头（缺少外层的 {），补上
+            if (jsonStr.startsWith('":')) {
+              jsonStr = '{' + jsonStr + '}';
+              console.log('🔧 Fixed malformed JSON by adding outer braces');
+            }
+
+            // 尝试解析
+            parsedSummary = JSON.parse(jsonStr);
             console.log('✅ Parsed data.summary as JSON object');
           } catch (e) {
             console.warn('⚠️ Failed to parse data.summary:', e);
+            console.log('📄 Raw summary:', data.summary.substring(0, 200));
             parsedSummary = null;
           }
         }
