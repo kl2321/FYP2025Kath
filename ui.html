@@ -3505,11 +3505,23 @@ function startPolling(sessionId) {
       if (data && data.is_final && JSON.stringify(data) !== JSON.stringify(lastFinalData)) {
         console.log('🎯 最终结果接收');
 
+        // 🔧 解析 data.summary（如果它是 JSON 字符串）
+        let parsedSummary = null;
+        if (typeof data.summary === 'string' && data.summary.trim().startsWith('{')) {
+          try {
+            parsedSummary = JSON.parse(data.summary);
+            console.log('✅ Parsed data.summary as JSON object');
+          } catch (e) {
+            console.warn('⚠️ Failed to parse data.summary:', e);
+            parsedSummary = null;
+          }
+        }
+
         // 【新增】发送最终数据给 code.ts
         parent.postMessage({
           pluginMessage: {
             type: 'final-summary-ready',  // 【新增】新的消息类型
-            data: {
+            data: parsedSummary || {
               summary: data.summary || '',
               decisions: Array.isArray(data.decision) ? data.decision : [],
               explicit: Array.isArray(data.explicit) ? data.explicit : [],
